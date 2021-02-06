@@ -66,7 +66,7 @@ for %%i in (picoprobe) do (
 )
 
 rem Open repo folder in Explorer
-start "%~dp0"
+start .
 
 rem Keep the terminal window open
 pause

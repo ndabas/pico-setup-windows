@@ -16,3 +16,7 @@ variables for Pico development.
 pico-setup.cmd
 This batch file clones the Pico SDK and related Git repositories, and runs a
 few test builds to ensure that everything is working as expected.
+
+Uninstall
+Just delete this directory. Any other software that you installed using Pico
+setup for Windows will have its own uninstaller.
