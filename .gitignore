@@ -1,0 +1,8 @@
+# Downloaded installers
+installers/
+
+# Generated NSIS scripts
+*.nsi
+
+# Build installers
+*.exe
