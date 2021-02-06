@@ -1,4 +1,19 @@
-$installers = Get-Content .\x64.json | ConvertFrom-Json
+[CmdletBinding()]
+param (
+    [Parameter(Mandatory=$true,
+               Position=0,
+               HelpMessage="Path to a JSON installer configuration file.")]
+    [Alias("PSPath")]
+    [ValidateNotNullOrEmpty()]
+    [string]
+    $ConfigFile
+)
+
+Write-Host "Building from $ConfigFile"
+
+$suffix = [io.path]::GetFileNameWithoutExtension($ConfigFile)
+
+$installers = Get-Content $ConfigFile | ConvertFrom-Json
 $installers | ForEach-Object {
   $_ | Add-Member -NotePropertyName 'shortName' -NotePropertyValue ($_.name -replace '[^a-zA-Z0-9]', '')
 
@@ -11,7 +26,7 @@ $installers | ForEach-Object {
 
 Name "Pico setup for Windows"
 Caption "Pico setup for Windows"
-OutFile "pico-setup-windows.exe"
+OutFile "bin\pico-setup-windows-$suffix.exe"
 Unicode True
 
 InstallDir "`$DOCUMENTS\Pico"
@@ -21,9 +36,14 @@ InstallDirRegKey HKCU "Software\pico-setup-windows" ""
 
 !define MUI_ABORTWARNING
 
+!define MUI_WELCOMEPAGE_TITLE "Pico setup for Windows"
+
 !define MUI_FINISHPAGE_RUN_TEXT "Clone and build Pico repos"
 !define MUI_FINISHPAGE_RUN "cmd.exe"
 !define MUI_FINISHPAGE_RUN_PARAMETERS "/k $\"`$INSTDIR\pico-setup.cmd$\""
+
+!define MUI_FINISHPAGE_SHOWREADME "`$INSTDIR\ReadMe.txt"
+!define MUI_FINISHPAGE_SHOWREADME_TEXT "Show ReadMe"
 
 !insertmacro MUI_PAGE_WELCOME
 ;!insertmacro MUI_PAGE_LICENSE "`${NSISDIR}\Docs\Modern UI\License.txt"
@@ -58,6 +78,7 @@ Section "Pico environment" SecPico
   SetOutPath "`$INSTDIR"
   File "pico-env.cmd"
   File "pico-setup.cmd"
+  File "docs\ReadMe.txt"
   CreateShortcut "`$INSTDIR\Developer Command Prompt for Pico.lnk" "cmd.exe" '/k "`$INSTDIR\pico-env.cmd"'
 
 SectionEnd
@@ -70,4 +91,8 @@ $($installers | ForEach-Object {
   "  !insertmacro MUI_DESCRIPTION_TEXT `${Sec$($_.shortName)} `$(DESC_Sec$($_.shortName))`n"
 })
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
-"@ | Set-Content .\pico-setup-windows-x64.nsi
+"@ | Set-Content ".\pico-setup-windows-$suffix.nsi"
+
+New-Item -Path bin -Type Directory -Force | Out-Null
+
+makensis ".\pico-setup-windows-$suffix.nsi"

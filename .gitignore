@@ -4,5 +4,5 @@ installers/
 # Generated NSIS scripts
 *.nsi
 
-# Build installers
-*.exe
+# Built installers
+bin/
