@@ -34,3 +34,7 @@ To build:
 ```
 
 The built installers will be saved to the `bin` directory.
+
+# Credits
+
+[RefreshEnv.cmd](RefreshEnv.cmd) is from [Chocolatey](https://github.com/chocolatey/choco/blob/master/src/chocolatey.resources/redirects/RefreshEnv.cmd).

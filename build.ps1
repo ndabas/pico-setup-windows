@@ -76,6 +76,7 @@ LangString DESC_Sec$($_.shortName) `${LANG_ENGLISH} "$($_.name)"
 Section "Pico environment" SecPico
 
   SetOutPath "`$INSTDIR"
+  File "RefreshEnv.cmd"
   File "pico-env.cmd"
   File "pico-setup.cmd"
   File "docs\ReadMe.txt"
