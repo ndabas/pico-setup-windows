@@ -40,10 +40,12 @@ InstallDirRegKey HKCU "Software\pico-setup-windows" ""
 
 !define MUI_FINISHPAGE_RUN_TEXT "Clone and build Pico repos"
 !define MUI_FINISHPAGE_RUN "cmd.exe"
-!define MUI_FINISHPAGE_RUN_PARAMETERS "/k $\"`$INSTDIR\pico-setup.cmd$\""
+!define MUI_FINISHPAGE_RUN_PARAMETERS "/k call `$\"`$PLUGINSDIR\RefreshEnv.cmd`$\" && call `$\"`$INSTDIR\pico-setup.cmd`$\""
 
 !define MUI_FINISHPAGE_SHOWREADME "`$INSTDIR\ReadMe.txt"
 !define MUI_FINISHPAGE_SHOWREADME_TEXT "Show ReadMe"
+
+!define MUI_FINISHPAGE_NOAUTOCLOSE
 
 !insertmacro MUI_PAGE_WELCOME
 ;!insertmacro MUI_PAGE_LICENSE "`${NSISDIR}\Docs\Modern UI\License.txt"
@@ -73,10 +75,29 @@ LangString DESC_Sec$($_.shortName) `${LANG_ENGLISH} "$($_.name)"
 "@
 })
 
+Section
+
+  InitPluginsDir
+  File /oname=`$PLUGINSDIR\RefreshEnv.cmd RefreshEnv.cmd
+
+SectionEnd
+
+Section "VS Code Extensions" SecCodeExts
+
+  nsExec::ExecToLog 'cmd.exe /c call "`$PLUGINSDIR\RefreshEnv.cmd" && code --install-extension marus25.cortex-debug'
+  Pop `$0
+  nsExec::ExecToLog 'cmd.exe /c call "`$PLUGINSDIR\RefreshEnv.cmd" && code --install-extension ms-vscode.cmake-tools'
+  Pop `$0
+  nsExec::ExecToLog 'cmd.exe /c call "`$PLUGINSDIR\RefreshEnv.cmd" && code --install-extension ms-vscode.cpptools'
+  Pop `$0
+
+SectionEnd
+
+LangString DESC_SecCodeExts `${LANG_ENGLISH} "Recommended extensions for Visual Studio Code: C/C++, CMake-Tools, and Cortex-Debug"
+
 Section "Pico environment" SecPico
 
   SetOutPath "`$INSTDIR"
-  File "RefreshEnv.cmd"
   File "pico-env.cmd"
   File "pico-setup.cmd"
   File "docs\ReadMe.txt"
@@ -87,6 +108,7 @@ SectionEnd
 LangString DESC_SecPico `${LANG_ENGLISH} "Scripts for cloning the Pico SDK and tools repos, and for setting up your Pico development environment."
 
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
+  !insertmacro MUI_DESCRIPTION_TEXT `${SecCodeExts} `$(DESC_SecCodeExts)
   !insertmacro MUI_DESCRIPTION_TEXT `${SecPico} `$(DESC_SecPico)
 $($installers | ForEach-Object {
   "  !insertmacro MUI_DESCRIPTION_TEXT `${Sec$($_.shortName)} `$(DESC_Sec$($_.shortName))`n"

@@ -1,4 +1,3 @@
-call "%~dp0RefreshEnv.cmd"
 call "%~dp0pico-env.cmd"
 setlocal enabledelayedexpansion
 
