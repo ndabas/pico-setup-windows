@@ -40,7 +40,7 @@ InstallDirRegKey HKCU "Software\pico-setup-windows" ""
 
 !define MUI_FINISHPAGE_RUN_TEXT "Clone and build Pico repos"
 !define MUI_FINISHPAGE_RUN "cmd.exe"
-!define MUI_FINISHPAGE_RUN_PARAMETERS "/k call `$\"`$PLUGINSDIR\RefreshEnv.cmd`$\" && call `$\"`$INSTDIR\pico-setup.cmd`$\""
+!define MUI_FINISHPAGE_RUN_PARAMETERS "/k call `$\"`$TEMP\RefreshEnv.cmd`$\" && del `$\"`$TEMP\RefreshEnv.cmd`$\" && call `$\"`$INSTDIR\pico-setup.cmd`$\""
 
 !define MUI_FINISHPAGE_SHOWREADME "`$INSTDIR\ReadMe.txt"
 !define MUI_FINISHPAGE_SHOWREADME_TEXT "Show ReadMe"
@@ -78,17 +78,17 @@ LangString DESC_Sec$($_.shortName) `${LANG_ENGLISH} "$($_.name)"
 Section
 
   InitPluginsDir
-  File /oname=`$PLUGINSDIR\RefreshEnv.cmd RefreshEnv.cmd
+  File /oname=`$TEMP\RefreshEnv.cmd RefreshEnv.cmd
 
 SectionEnd
 
 Section "VS Code Extensions" SecCodeExts
 
-  nsExec::ExecToLog 'cmd.exe /c call "`$PLUGINSDIR\RefreshEnv.cmd" && code --install-extension marus25.cortex-debug'
+  nsExec::ExecToLog 'cmd.exe /c call "`$TEMP\RefreshEnv.cmd" && code --install-extension marus25.cortex-debug'
   Pop `$0
-  nsExec::ExecToLog 'cmd.exe /c call "`$PLUGINSDIR\RefreshEnv.cmd" && code --install-extension ms-vscode.cmake-tools'
+  nsExec::ExecToLog 'cmd.exe /c call "`$TEMP\RefreshEnv.cmd" && code --install-extension ms-vscode.cmake-tools'
   Pop `$0
-  nsExec::ExecToLog 'cmd.exe /c call "`$PLUGINSDIR\RefreshEnv.cmd" && code --install-extension ms-vscode.cpptools'
+  nsExec::ExecToLog 'cmd.exe /c call "`$TEMP\RefreshEnv.cmd" && code --install-extension ms-vscode.cpptools'
   Pop `$0
 
 SectionEnd
@@ -101,7 +101,19 @@ Section "Pico environment" SecPico
   File "pico-env.cmd"
   File "pico-setup.cmd"
   File "docs\ReadMe.txt"
+
   CreateShortcut "`$INSTDIR\Developer Command Prompt for Pico.lnk" "cmd.exe" '/k "`$INSTDIR\pico-env.cmd"'
+
+  ; Unconditionally create a shortcut for VS Code -- in case the user had it
+  ; installed already, or if they install it later
+  CreateShortcut "`$INSTDIR\Visual Studio Code for Pico.lnk" "cmd.exe" '/c call "`$INSTDIR\pico-env.cmd" && code'
+
+  ; SetOutPath is needed here to set the working directory for the shortcut
+  SetOutPath "`$INSTDIR\pico-project-generator"
+  CreateShortcut "`$INSTDIR\Pico Project Generator.lnk" "cmd.exe" '/c call "`$INSTDIR\pico-env.cmd" && python "`$INSTDIR\pico-project-generator\pico_project.py" --gui'
+
+  ; Reset working dir for pico-setup.cmd launched from the finish page
+  SetOutPath "`$INSTDIR"
 
 SectionEnd
 

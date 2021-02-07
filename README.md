@@ -17,6 +17,7 @@ The installers attempt to install the required tools silently, without user inte
 - [Build Tools for Visual Studio 2019](https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2019)
 - [Python 3.8](https://www.python.org/downloads/windows/)
 - [Git for Windows](https://git-scm.com/download/win)
+- [Visual Studio Code](https://code.visualstudio.com/)
 
 # Building
 

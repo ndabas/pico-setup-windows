@@ -8,10 +8,10 @@ set "GITHUB_PREFIX=https://github.com/raspberrypi/"
 set "GITHUB_SUFFIX=.git"
 set "SDK_BRANCH=master"
 
-for %%i in (sdk examples extras playground) do (
+for %%i in (sdk examples extras playground project-generator) do (
   set "DEST=%~dp0pico-%%i"
 
-  if exist "!DEST!" (
+  if exist "!DEST!\.git" (
     echo !DEST! exists, skipping clone
   ) else (
     set "REPO_URL=%GITHUB_PREFIX%pico-%%i%GITHUB_SUFFIX%"
