@@ -56,6 +56,14 @@ InstallDirRegKey HKCU "Software\pico-setup-windows" ""
 
 !insertmacro MUI_LANGUAGE "English"
 
+Section
+
+  InitPluginsDir
+  File /oname=`$TEMP\RefreshEnv.cmd RefreshEnv.cmd
+  File /oname=`$PLUGINSDIR\git.inf git.inf
+
+SectionEnd
+
 $($installers | ForEach-Object {
 @"
 
@@ -74,13 +82,6 @@ LangString DESC_Sec$($_.shortName) `${LANG_ENGLISH} "$($_.name)"
 
 "@
 })
-
-Section
-
-  InitPluginsDir
-  File /oname=`$TEMP\RefreshEnv.cmd RefreshEnv.cmd
-
-SectionEnd
 
 Section "VS Code Extensions" SecCodeExts
 

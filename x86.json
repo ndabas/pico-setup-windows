@@ -26,7 +26,7 @@
   {
     "name": "Git for Windows",
     "file": "Git-2.30.0.2-32-bit.exe",
-    "exec": "\"$0\" /VERYSILENT /NORESTART /NOCANCEL /SP- /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS /PathOption=Cmd /CRLFOption=CRLFCommitAsIs /BashTerminalOption=ConHost /EnablePseudoConsoleSupport=Enabled",
+    "exec": "\"$0\" /VERYSILENT /NORESTART /NOCANCEL /SP- /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS \"/LOADINF=$PLUGINSDIR\\git.inf\"",
     "href": "https://github.com/git-for-windows/git/releases/download/v2.30.0.windows.2/Git-2.30.0.2-32-bit.exe"
   },
   {

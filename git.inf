@@ -1,0 +1,5 @@
+[Setup]
+PathOption=Cmd
+CRLFOption=CRLFCommitAsIs
+BashTerminalOption=ConHost
+EnablePseudoConsoleSupport=Enabled
