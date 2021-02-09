@@ -13,6 +13,12 @@ for %%i in (sdk examples extras playground) do (
   )
 )
 
+if exist "%~dp0openocd-picoprobe" (
+  echo OPENOCD_SCRIPTS=%~dp0openocd-picoprobe\scripts
+  set "OPENOCD_SCRIPTS=%~dp0openocd-picoprobe\scripts"
+  set "PATH=%~dp0openocd-picoprobe;%PATH%"
+)
+
 rem https://github.com/microsoft/vswhere/wiki/Start-Developer-Command-Prompt
 
 for /f "usebackq delims=" %%i in (`vswhere.exe -products * -requires "Microsoft.VisualStudio.Component.VC.CoreIde" -latest -property installationPath`) do (

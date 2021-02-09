@@ -1,38 +1,42 @@
-[
-  {
-    "name": "GNU Arm Embedded Toolchain",
-    "file": "gcc-arm-none-eabi-10-2020-q4-major-win32.exe",
-    "exec": "\"$0\" /S /P /R",
-    "href": "https://developer.arm.com/-/media/Files/downloads/gnu-rm/10-2020q4/gcc-arm-none-eabi-10-2020-q4-major-win32.exe?revision=9a4bce5a-7577-4b4f-910d-4585f55d35e8&la=en&hash=068C813EEFFB68060B5FB40E6541BDE7159AFAA0"
-  },
-  {
-    "name": "CMake",
-    "file": "cmake-3.19.4-win32-x86.msi",
-    "exec": "msiexec /i \"$0\" /qn /norestart ADD_CMAKE_TO_PATH=System",
-    "href": "https://github.com/Kitware/CMake/releases/download/v3.19.4/cmake-3.19.4-win32-x86.msi"
-  },
-  {
-    "name": "Build Tools for Visual Studio 2019",
-    "file": "vs_BuildTools.exe",
-    "exec": "\"$0\" --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended --quiet --wait --norestart",
-    "href": "https://download.visualstudio.microsoft.com/download/pr/3a7354bc-d2e4-430f-92d0-9abd031b5ee5/1792a192788dbe8af64739f06e62db3317cee536b5f4e04a0eb4b5ca7f58ca78/vs_BuildTools.exe"
-  },
-  {
-    "name": "Python 3.8",
-    "file": "python-3.8.7.exe",
-    "exec": "\"$0\" /quiet InstallAllUsers=1 PrependPath=1",
-    "href": "https://www.python.org/ftp/python/3.8.7/python-3.8.7.exe"
-  },
-  {
-    "name": "Git for Windows",
-    "file": "Git-2.30.0.2-32-bit.exe",
-    "exec": "\"$0\" /VERYSILENT /NORESTART /NOCANCEL /SP- /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS \"/LOADINF=$PLUGINSDIR\\git.inf\"",
-    "href": "https://github.com/git-for-windows/git/releases/download/v2.30.0.windows.2/Git-2.30.0.2-32-bit.exe"
-  },
-  {
-    "name": "Visual Studio Code",
-    "file": "VSCodeUserSetup-ia32.exe",
-    "exec": "\"$0\" /VERYSILENT /NORESTART /NOCANCEL /SP- /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS /MERGETASKS=!runcode",
-    "href": "https://code.visualstudio.com/sha/download?build=stable&os=win32-user"
-  }
-]
+{
+  "bitness": 32,
+  "mingw_arch": "i686",
+  "installers": [
+    {
+      "name": "GNU Arm Embedded Toolchain",
+      "file": "gcc-arm-none-eabi-10-2020-q4-major-win32.exe",
+      "exec": "\"$0\" /S /P /R",
+      "href": "https://developer.arm.com/-/media/Files/downloads/gnu-rm/10-2020q4/gcc-arm-none-eabi-10-2020-q4-major-win32.exe?revision=9a4bce5a-7577-4b4f-910d-4585f55d35e8&la=en&hash=068C813EEFFB68060B5FB40E6541BDE7159AFAA0"
+    },
+    {
+      "name": "CMake",
+      "file": "cmake-3.19.4-win32-x86.msi",
+      "exec": "msiexec /i \"$0\" /qn /norestart ADD_CMAKE_TO_PATH=System",
+      "href": "https://github.com/Kitware/CMake/releases/download/v3.19.4/cmake-3.19.4-win32-x86.msi"
+    },
+    {
+      "name": "Build Tools for Visual Studio 2019",
+      "file": "vs_BuildTools.exe",
+      "exec": "\"$0\" --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended --quiet --wait --norestart",
+      "href": "https://download.visualstudio.microsoft.com/download/pr/3a7354bc-d2e4-430f-92d0-9abd031b5ee5/1792a192788dbe8af64739f06e62db3317cee536b5f4e04a0eb4b5ca7f58ca78/vs_BuildTools.exe"
+    },
+    {
+      "name": "Python 3.8",
+      "file": "python-3.8.7.exe",
+      "exec": "\"$0\" /quiet InstallAllUsers=1 PrependPath=1",
+      "href": "https://www.python.org/ftp/python/3.8.7/python-3.8.7.exe"
+    },
+    {
+      "name": "Git for Windows",
+      "file": "Git-2.30.0.2-32-bit.exe",
+      "exec": "\"$0\" /VERYSILENT /NORESTART /NOCANCEL /SP- /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS \"/LOADINF=$PLUGINSDIR\\git.inf\"",
+      "href": "https://github.com/git-for-windows/git/releases/download/v2.30.0.windows.2/Git-2.30.0.2-32-bit.exe"
+    },
+    {
+      "name": "Visual Studio Code",
+      "file": "VSCodeUserSetup-ia32.exe",
+      "exec": "\"$0\" /VERYSILENT /NORESTART /NOCANCEL /SP- /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS /MERGETASKS=!runcode",
+      "href": "https://code.visualstudio.com/sha/download?build=stable&os=win32-user"
+    }
+  ]
+}

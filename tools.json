@@ -1,0 +1,19 @@
+{
+  "tools": [
+    {
+      "name": "NSIS",
+      "file": "nsis.zip",
+      "href": "https://sourceforge.net/projects/nsis/files/NSIS%203/3.06.1/nsis-3.06.1.zip/download"
+    },
+    {
+      "name": "MSYS2",
+      "file": "msys2.exe",
+      "href": "https://github.com/msys2/msys2-installer/releases/download/2021-01-05/msys2-base-x86_64-20210105.sfx.exe"
+    },
+    {
+      "name": "Zadig",
+      "file": "zadig.exe",
+      "href": "https://github.com/pbatard/libwdi/releases/download/b730/zadig-2.5.exe"
+    }
+  ]
+}

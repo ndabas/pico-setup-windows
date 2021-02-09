@@ -6,19 +6,88 @@ param (
     [Alias("PSPath")]
     [ValidateNotNullOrEmpty()]
     [string]
-    $ConfigFile
+    $ConfigFile,
+
+    [Parameter(HelpMessage="Path to MSYS2 installation. MSYS2 will be downloaded and installed to this path if it doesn't exist.")]
+    [ValidatePattern('[\\\/]msys64$')]
+    [string]
+    $MSYS2Path = '.\build\msys64'
 )
+
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
 
 Write-Host "Building from $ConfigFile"
 
 $suffix = [io.path]::GetFileNameWithoutExtension($ConfigFile)
 
-$installers = Get-Content $ConfigFile | ConvertFrom-Json
-$installers | ForEach-Object {
+$tools = (Get-Content '.\tools.json' | ConvertFrom-Json).tools
+$config = Get-Content $ConfigFile | ConvertFrom-Json
+$bitness = $config.bitness
+$mingw_arch = $config.mingw_arch
+$installers = $config.installers
+
+($installers + $tools) | ForEach-Object {
   $_ | Add-Member -NotePropertyName 'shortName' -NotePropertyValue ($_.name -replace '[^a-zA-Z0-9]', '')
 
   Write-Host "Downloading $($_.name)"
   curl.exe --fail --silent --show-error --url "$($_.href)" --location --output "installers/$($_.file)" --create-dirs --remote-time --time-cond "installers/$($_.file)"
+}
+
+function mkdirp {
+  param ([string] $dir)
+
+  New-Item -Path $dir -Type Directory -Force | Out-Null
+}
+
+mkdirp "build"
+mkdirp "bin"
+
+if (-not (Test-Path $MSYS2Path)) {
+  Write-Host 'Extracting MSYS2'
+  & .\installers\msys2.exe -y "-o$(Resolve-Path (Split-Path $MSYS2Path -Parent))"
+}
+
+if (-not (Test-Path build\NSIS)) {
+  Write-Host 'Extracting NSIS'
+  Expand-Archive '.\installers\nsis.zip' -DestinationPath '.\build'
+  Rename-Item (Resolve-Path '.\build\nsis-*').Path 'NSIS'
+}
+
+function msys {
+  param ([string] $cmd)
+
+  & "$MSYS2Path\usr\bin\bash" -lc "$cmd"
+}
+
+if (-not (Test-Path ".\build\openocd-install\mingw$bitness")) {
+  # First run setup
+  msys 'uname -a'
+  # Core update
+  msys 'pacman --noconfirm -Syuu'
+  # Normal update
+  msys 'pacman --noconfirm -Suu'
+
+  $openocd_deps = @(
+    "autoconf",
+    "automake",
+    "git",
+    "libtool",
+    "make",
+    "mingw-w64-${mingw_arch}-toolchain",
+    "mingw-w64-cross-winpthreads-git",
+    "mingw-w64-${mingw_arch}-libusb",
+    "pkg-config"
+  )
+  msys ('pacman -S --noconfirm --needed ' + $openocd_deps -join ' ')
+
+  # Preserve the current working directory
+  $env:CHERE_INVOKING = 'yes'
+  # Start MINGW32/64 environment
+  $env:MSYSTEM = "MINGW$bitness"
+
+  msys "cd build && ../build-openocd.sh $bitness $mingw_arch"
 }
 
 @"
@@ -96,6 +165,26 @@ SectionEnd
 
 LangString DESC_SecCodeExts `${LANG_ENGLISH} "Recommended extensions for Visual Studio Code: C/C++, CMake-Tools, and Cortex-Debug"
 
+Section "OpenOCD" SecOpenOCD
+
+  SetOutPath "`$INSTDIR\openocd-picoprobe"
+  File "build\openocd-install\mingw$bitness\bin\*.*"
+  SetOutPath "`$INSTDIR\openocd-picoprobe\scripts"
+  File /r "build\openocd-install\mingw$bitness\share\openocd\scripts\*.*"
+
+SectionEnd
+
+LangString DESC_SecOpenOCD `${LANG_ENGLISH} "Open On-Chip Debugger with picoprobe support"
+
+Section /o "Zadig" SecZadig
+
+  SetOutPath "`$INSTDIR\tools"
+  File "installers\zadig.exe"
+
+SectionEnd
+
+LangString DESC_SecZadig `${LANG_ENGLISH} "Zadig is a Windows application that installs generic USB drivers. Used with picoprobe."
+
 Section "Pico environment" SecPico
 
   SetOutPath "`$INSTDIR"
@@ -122,6 +211,8 @@ LangString DESC_SecPico `${LANG_ENGLISH} "Scripts for cloning the Pico SDK and t
 
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
   !insertmacro MUI_DESCRIPTION_TEXT `${SecCodeExts} `$(DESC_SecCodeExts)
+  !insertmacro MUI_DESCRIPTION_TEXT `${SecOpenOCD} `$(DESC_SecOpenOCD)
+  !insertmacro MUI_DESCRIPTION_TEXT `${SecZadig} `$(DESC_SecZadig)
   !insertmacro MUI_DESCRIPTION_TEXT `${SecPico} `$(DESC_SecPico)
 $($installers | ForEach-Object {
   "  !insertmacro MUI_DESCRIPTION_TEXT `${Sec$($_.shortName)} `$(DESC_Sec$($_.shortName))`n"
@@ -129,6 +220,4 @@ $($installers | ForEach-Object {
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 "@ | Set-Content ".\pico-setup-windows-$suffix.nsi"
 
-New-Item -Path bin -Type Directory -Force | Out-Null
-
-makensis ".\pico-setup-windows-$suffix.nsi"
+.\build\NSIS\makensis ".\pico-setup-windows-$suffix.nsi"

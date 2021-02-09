@@ -6,3 +6,6 @@ installers/
 
 # Built installers
 bin/
+
+# Build tools
+build/
