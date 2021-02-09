@@ -3,6 +3,7 @@
 set ProgRoot=%ProgramFiles%
 if not "%ProgramFiles(x86)%" == "" set ProgRoot=%ProgramFiles(x86)%
 set "PATH=%ProgRoot%\Microsoft Visual Studio\Installer;%PATH%"
+set CMAKE_GENERATOR="NMake Makefiles"
 
 for %%i in (sdk examples extras playground) do (
   rem Environment variables in Windows aren't case-sensitive, so we don't need
