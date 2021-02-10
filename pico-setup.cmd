@@ -65,6 +65,11 @@ for %%i in (picoprobe) do (
   popd
 )
 
+if exist "%~dp0pico-docs.ps1" (
+  echo Downloading Pico documents and files...
+  powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "%~dp0pico-docs.ps1"
+)
+
 rem Open repo folder in Explorer
 start .
 

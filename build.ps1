@@ -206,11 +206,21 @@ SectionEnd
 
 LangString DESC_SecPico `${LANG_ENGLISH} "Scripts for cloning the Pico SDK and tools repos, and for setting up your Pico development environment."
 
+Section "Download documents and files" SecDocs
+
+  SetOutPath "`$INSTDIR"
+  File "pico-docs.ps1"
+
+SectionEnd
+
+LangString DESC_SecDocs `${LANG_ENGLISH} "Adds a script to download the latest Pico documents, design files, and UF2 files."
+
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
   !insertmacro MUI_DESCRIPTION_TEXT `${SecCodeExts} `$(DESC_SecCodeExts)
   !insertmacro MUI_DESCRIPTION_TEXT `${SecOpenOCD} `$(DESC_SecOpenOCD)
   !insertmacro MUI_DESCRIPTION_TEXT `${SecZadig} `$(DESC_SecZadig)
   !insertmacro MUI_DESCRIPTION_TEXT `${SecPico} `$(DESC_SecPico)
+  !insertmacro MUI_DESCRIPTION_TEXT `${SecDocs} `$(DESC_SecDocs)
 $($installers | ForEach-Object {
   "  !insertmacro MUI_DESCRIPTION_TEXT `${Sec$($_.shortName)} `$(DESC_Sec$($_.shortName))`n"
 })
