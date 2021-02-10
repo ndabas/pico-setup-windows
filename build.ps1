@@ -61,6 +61,11 @@ function msys {
   & "$MSYS2Path\usr\bin\bash" -lc "$cmd"
 }
 
+# Preserve the current working directory
+$env:CHERE_INVOKING = 'yes'
+# Start MINGW32/64 environment
+$env:MSYSTEM = "MINGW$bitness"
+
 if (-not (Test-Path ".\build\openocd-install\mingw$bitness")) {
   # First run setup
   msys 'uname -a'
@@ -69,25 +74,16 @@ if (-not (Test-Path ".\build\openocd-install\mingw$bitness")) {
   # Normal update
   msys 'pacman --noconfirm -Suu'
 
-  $openocd_deps = @(
-    "autoconf",
-    "automake",
-    "git",
-    "libtool",
-    "make",
-    "mingw-w64-${mingw_arch}-toolchain",
-    "mingw-w64-cross-winpthreads-git",
-    "mingw-w64-${mingw_arch}-libusb",
-    "pkg-config"
-  )
-  msys ('pacman -S --noconfirm --needed ' + $openocd_deps -join ' ')
+  msys "pacman -S --noconfirm --needed autoconf automake git libtool make mingw-w64-${mingw_arch}-toolchain mingw-w64-${mingw_arch}-libusb p7zip pkg-config wget"
 
-  # Preserve the current working directory
-  $env:CHERE_INVOKING = 'yes'
-  # Start MINGW32/64 environment
-  $env:MSYSTEM = "MINGW$bitness"
+  # Keep it clean
+  Remove-Item .\build\openocd -Recurse -Force
 
   msys "cd build && ../build-openocd.sh $bitness $mingw_arch"
+}
+
+if (-not (Test-Path ".\build\libusb")) {
+  msys '7z x -obuild/libusb ./installers/libusb.7z'
 }
 
 @"
@@ -167,9 +163,10 @@ LangString DESC_SecCodeExts `${LANG_ENGLISH} "Recommended extensions for Visual 
 
 Section "OpenOCD" SecOpenOCD
 
-  SetOutPath "`$INSTDIR\openocd-picoprobe"
+  SetOutPath "`$INSTDIR\tools\openocd-picoprobe"
   File "build\openocd-install\mingw$bitness\bin\*.*"
-  SetOutPath "`$INSTDIR\openocd-picoprobe\scripts"
+  File "build\libusb\mingw$bitness\dll\libusb-1.0.dll"
+  SetOutPath "`$INSTDIR\tools\openocd-picoprobe\scripts"
   File /r "build\openocd-install\mingw$bitness\share\openocd\scripts\*.*"
 
 SectionEnd

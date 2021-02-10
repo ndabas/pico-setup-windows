@@ -14,6 +14,11 @@
       "name": "Zadig",
       "file": "zadig.exe",
       "href": "https://github.com/pbatard/libwdi/releases/download/b730/zadig-2.5.exe"
+    },
+    {
+      "name": "libusb",
+      "file": "libusb.7z",
+      "href": "https://github.com/libusb/libusb/releases/download/v1.0.23/libusb-1.0.23.7z"
     }
   ]
 }

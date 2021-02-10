@@ -15,13 +15,7 @@ fi
 
 cd openocd
 ./bootstrap
-./configure --disable-doxygen-pdf --enable-ftdi --enable-picoprobe
+./configure --enable-picoprobe
 make clean
 make -j4
-export DESTDIR="$PWD/../openocd-install"
-make install
-for dll in libgcc_s_dw2-1.dll libusb-1.0.dll libwinpthread-1.dll; do
-  if [ -f /mingw$BITNESS/bin/$dll ]; then
-    cp /mingw$BITNESS/bin/$dll $DESTDIR/mingw$BITNESS/bin
-  fi
-done
+DESTDIR="$PWD/../openocd-install" make install
