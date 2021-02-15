@@ -77,7 +77,9 @@ if (-not (Test-Path ".\build\openocd-install\mingw$bitness")) {
   msys "pacman -S --noconfirm --needed autoconf automake git libtool make mingw-w64-${mingw_arch}-toolchain mingw-w64-${mingw_arch}-libusb p7zip pkg-config wget"
 
   # Keep it clean
-  Remove-Item .\build\openocd -Recurse -Force
+  if (Test-Path .\build\openocd) {
+    Remove-Item .\build\openocd -Recurse -Force
+  }
 
   msys "cd build && ../build-openocd.sh $bitness $mingw_arch"
 }
