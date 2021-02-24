@@ -1,22 +1,24 @@
 [CmdletBinding()]
 param (
-    [Parameter(Mandatory=$true,
-               Position=0,
-               HelpMessage="Path to a JSON installer configuration file.")]
-    [Alias("PSPath")]
-    [ValidateNotNullOrEmpty()]
-    [string]
-    $ConfigFile,
+  [Parameter(Mandatory = $true,
+    Position = 0,
+    HelpMessage = "Path to a JSON installer configuration file.")]
+  [Alias("PSPath")]
+  [ValidateNotNullOrEmpty()]
+  [string]
+  $ConfigFile,
 
-    [Parameter(HelpMessage="Path to MSYS2 installation. MSYS2 will be downloaded and installed to this path if it doesn't exist.")]
-    [ValidatePattern('[\\\/]msys64$')]
-    [string]
-    $MSYS2Path = '.\build\msys64'
+  [Parameter(HelpMessage = "Path to MSYS2 installation. MSYS2 will be downloaded and installed to this path if it doesn't exist.")]
+  [ValidatePattern('[\\\/]msys64$')]
+  [string]
+  $MSYS2Path = '.\build\msys64'
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
+
+. "$PSScriptRoot\common.ps1"
 
 Write-Host "Building from $ConfigFile"
 
@@ -33,12 +35,6 @@ $installers = $config.installers
 
   Write-Host "Downloading $($_.name)"
   curl.exe --fail --silent --show-error --url "$($_.href)" --location --output "installers/$($_.file)" --create-dirs --remote-time --time-cond "installers/$($_.file)"
-}
-
-function mkdirp {
-  param ([string] $dir)
-
-  New-Item -Path $dir -Type Directory -Force | Out-Null
 }
 
 mkdirp "build"
@@ -211,6 +207,7 @@ LangString DESC_SecPico `${LANG_ENGLISH} "Scripts for cloning the Pico SDK and t
 Section "Download documents and files" SecDocs
 
   SetOutPath "`$INSTDIR"
+  File "common.ps1"
   File "pico-docs.ps1"
 
 SectionEnd
@@ -230,3 +227,29 @@ $($installers | ForEach-Object {
 "@ | Set-Content ".\pico-setup-windows-$suffix.nsi"
 
 .\build\NSIS\makensis ".\pico-setup-windows-$suffix.nsi"
+
+# Package OpenOCD separately as well
+
+$tempPath = '.\build\openocd-package'
+if (Test-Path $tempPath) {
+  Remove-Item $tempPath -Recurse -Force
+}
+mkdirp $tempPath
+
+# Copy openocd.exe and required DLLs to a temp dir so we can run it to
+# determine the version.
+Copy-Item ".\build\openocd-install\mingw$bitness\bin\openocd.exe" $tempPath
+Copy-Item ".\build\libusb\MinGW$bitness\dll\libusb-1.0.dll" $tempPath
+
+$version = (cmd /c "$tempPath\openocd.exe" --version '2>&1')[0]
+if (-not ($version -match 'Open On-Chip Debugger (?<version>[a-zA-Z0-9\.\-+]+) \((?<timestamp>[0-9\-:]+)\)')) {
+  Write-Error 'Could not determine openocd version'
+}
+
+$filename = 'openocd-picoprobe-{0}-{1}-{2}.zip' -f
+  ($Matches.version -replace '-dirty$', ''),
+  ($Matches.timestamp -replace '[:-]', ''),
+  $suffix
+
+Write-Host "Saving OpenOCD package to $filename"
+Compress-Archive "$tempPath\*", ".\build\openocd-install\mingw$bitness\share\openocd\scripts" "bin\$filename"

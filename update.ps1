@@ -1,72 +1,120 @@
+#Requires -Version 7.0
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
-function crawl {
-  param ([string]$url)
+. "$PSScriptRoot\common.ps1"
 
-  (Invoke-WebRequest $url -UseBasicParsing).Links | Where-Object { $_ | Get-Member href } | ForEach-Object {
-    try {
-      (New-Object System.Uri([uri]$url, $_.href)).AbsoluteUri
+function getGitHubReleaseAssetUrl {
+  param (
+    [string] $Repo,
+    [scriptblock] $AssetFilter,
+    [scriptblock] $ReleaseFilter = { $_.prerelease -eq $false }
+  )
+
+  $rel = (Invoke-RestMethod "https://api.github.com/repos/$Repo/releases") |
+    Where-Object $ReleaseFilter |
+    Select-Object -First 1
+  $asset = $rel.assets |
+    Where-Object $AssetFilter
+  $asset.browser_download_url
+}
+
+function updateDownloadUrl {
+  param (
+    $Download,
+    $Config
+  )
+
+  Write-Host "Updating $($Download.name): " -NoNewline
+
+  $newName = $null # Override local filename if needed
+
+  [uri]$newUrl = switch ($Download.name) {
+
+    'GNU Arm Embedded Toolchain' {
+      crawl 'https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm/downloads' |
+        Where-Object { $_ -match "-win32\.exe" } | # There is no 64-bit build for Windows currently
+        Select-Object -First 1
     }
-    catch {
-      $_.href
+
+    'Build Tools for Visual Studio 2019' {
+      # The download URL is in a JS variable
+      $resp = Invoke-WebRequest 'https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=16' -UseBasicParsing
+      $resp.Content -match "['`"](http[^'`"]+\.exe)[`'`"]" | Out-Null
+      $Matches[1]
     }
+
+    'CMake' {
+      # CMake does not mark prereleases as such, so we filter based on the tag
+      getGitHubReleaseAssetUrl 'Kitware/CMake' { $_.name -match "win$($Config.bitness)-x[0-9]{2}\.msi$" } { $_.tag_name -match '^v([0-9]+\.)+[0-9]$' }
+    }
+
+    'Python 3.8' {
+      $suffix = ''
+      if ($Config.bitness -eq 64) { $suffix = '-amd64' }
+
+      crawl 'https://www.python.org/downloads/windows/' |
+        Where-Object { $_ -match "python-3\.8\.[0-9]+$suffix\.exe$" } |
+        Select-Object -First 1
+    }
+
+    'Git for Windows' {
+      getGitHubReleaseAssetUrl 'git-for-windows/git' { $_.name -match "^Git-([0-9]+\.)+[0-9]+-$($Config.bitness)-bit\.exe$" }
+    }
+
+    'NSIS' {
+      $newName = 'nsis.zip'
+      $item = Invoke-RestMethod 'https://sourceforge.net/projects/nsis/rss' |
+        Where-Object { $_.link -match 'nsis-([0-9]+\.)+[0-9]+\.zip' } |
+        Select-Object -First 1
+      $item.link
+    }
+
+    'MSYS2' {
+      $newName = 'msys2.exe'
+      getGitHubReleaseAssetUrl 'msys2/msys2-installer' { $_.name -match "^msys2-base-x86_64-[0-9]+\.sfx\.exe$" }
+    }
+
+    'Zadig' {
+      $newName = 'zadig.exe'
+      $assetFilter = { $_.name -match "^zadig-([0-9]+\.)+[0-9]+\.exe$" }
+      getGitHubReleaseAssetUrl 'pbatard/libwdi' $assetFilter { $_.assets | Where-Object $assetFilter }
+    }
+
+    'libusb' {
+      $newName = 'libusb.7z'
+      # Do not update libusb currently - 1.0.23 works but 1.0.24 crashes OpenOCD with picoprobe
+      # getGitHubReleaseAssetUrl 'libusb/libusb' { $_.name -match "^libusb-([0-9]+\.)+[0-9]+\.7z$" }
+    }
+  }
+
+  if ($newUrl) {
+    $newName ??= $newUrl.Segments[-1]
+
+    Write-Host $newName
+
+    $Download.file = $newName
+    $Download.href = $newUrl.AbsoluteUri
+  } else {
+    Write-Host "No update"
   }
 }
 
 foreach ($arch in @('x86.json', 'x64.json')) {
   $config = Get-Content $arch | ConvertFrom-Json
-  $bitness = $config.bitness
 
   foreach ($i in $config.installers) {
-    [uri]$newUrl = switch ($i.name) {
-
-      'GNU Arm Embedded Toolchain' {
-        crawl 'https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm/downloads' |
-        Where-Object { $_ -match "-win$bitness\.exe" } |
-        Select-Object -First 1
-      }
-
-      'Build Tools for Visual Studio 2019' {
-        $resp = Invoke-WebRequest 'https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=16' -UseBasicParsing
-        $resp.Content -match "['`"](http[^'`"]+\.exe)[`'`"]" | Out-Null
-        $Matches[1]
-      }
-
-      'CMake' {
-        $rel = (Invoke-RestMethod 'https://api.github.com/repos/Kitware/CMake/releases') |
-        Where-Object { $_.tag_name -match '^v([0-9]+\.)+[0-9]$' } |
-        Select-Object -First 1
-        $asset = $rel.assets |
-        Where-Object { $_.name -match "win$bitness-x[0-9]{2}\.msi$" }
-        $asset.browser_download_url
-      }
-
-      'Python 3.8' {
-        $suffix = ''
-        if ($config.bitness -eq 64) { $suffix = '-amd64' }
-
-        crawl 'https://www.python.org/downloads/windows/' |
-        Where-Object { $_ -match "python-3\.8\.[0-9]+$suffix\.exe$" } |
-        Select-Object -First 1
-      }
-
-      'Git for Windows' {
-        $rel = (Invoke-RestMethod 'https://api.github.com/repos/git-for-windows/git/releases') |
-        Where-Object { $_.prerelease -eq $false } |
-        Select-Object -First 1
-        $asset = $rel.assets |
-        Where-Object { $_.name -match "^Git-([0-9]+\.)+[0-9]-$bitness-bit\.exe$" }
-        $asset.browser_download_url
-      }
-    }
-
-    if ($newUrl) {
-      $i.file = $newUrl.Segments[-1]
-      $i.href = $newUrl.AbsoluteUri
-    }
+    updateDownloadUrl $i $config
   }
 
   $config | ConvertTo-Json | Set-Content $arch
 }
+
+$tools = Get-Content '.\tools.json' | ConvertFrom-Json
+
+foreach ($i in $tools.tools) {
+  updateDownloadUrl $i $tools
+}
+
+$tools | ConvertTo-Json | Set-Content '.\tools.json'
