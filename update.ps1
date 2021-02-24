@@ -63,6 +63,22 @@ function updateDownloadUrl {
       getGitHubReleaseAssetUrl 'git-for-windows/git' { $_.name -match "^Git-([0-9]+\.)+[0-9]+-$($Config.bitness)-bit\.exe$" }
     }
 
+    'Doxygen' {
+      crawl 'https://www.doxygen.nl/download.html' |
+        Where-Object { $_ -match "-setup\.exe" } |
+        Select-Object -First 1
+    }
+
+    'Graphviz' {
+      $link = (Invoke-WebRequest 'https://graphviz.org/download/' -UseBasicParsing).Links |
+        Where-Object { $_.outerHTML -match "-win$($Config.bitness)\.exe" } |
+        Select-Object -First 1
+      if ($link.outerHTML -match '[a-zA-Z0-9_\-\.]+\.exe') {
+        $newName = $Matches[0]
+        $link.href
+      }
+    }
+
     'NSIS' {
       $newName = 'nsis.zip'
       $item = Invoke-RestMethod 'https://sourceforge.net/projects/nsis/rss' |

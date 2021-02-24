@@ -102,8 +102,8 @@ InstallDirRegKey HKCU "Software\pico-setup-windows" ""
 !define MUI_WELCOMEPAGE_TITLE "Pico setup for Windows"
 
 !define MUI_FINISHPAGE_RUN_TEXT "Clone and build Pico repos"
-!define MUI_FINISHPAGE_RUN "cmd.exe"
-!define MUI_FINISHPAGE_RUN_PARAMETERS "/k call `$\"`$TEMP\RefreshEnv.cmd`$\" && del `$\"`$TEMP\RefreshEnv.cmd`$\" && call `$\"`$INSTDIR\pico-setup.cmd`$\""
+!define MUI_FINISHPAGE_RUN
+!define MUI_FINISHPAGE_RUN_FUNCTION RunBuild
 
 !define MUI_FINISHPAGE_SHOWREADME "`$INSTDIR\ReadMe.txt"
 !define MUI_FINISHPAGE_SHOWREADME_TEXT "Show ReadMe"
@@ -148,12 +148,13 @@ LangString DESC_Sec$($_.shortName) `${LANG_ENGLISH} "$($_.name)"
 
 Section "VS Code Extensions" SecCodeExts
 
-  nsExec::ExecToLog 'cmd.exe /c call "`$TEMP\RefreshEnv.cmd" && code --install-extension marus25.cortex-debug'
-  Pop `$0
-  nsExec::ExecToLog 'cmd.exe /c call "`$TEMP\RefreshEnv.cmd" && code --install-extension ms-vscode.cmake-tools'
-  Pop `$0
-  nsExec::ExecToLog 'cmd.exe /c call "`$TEMP\RefreshEnv.cmd" && code --install-extension ms-vscode.cpptools'
-  Pop `$0
+  ReadEnvStr `$0 COMSPEC
+  nsExec::ExecToLog '"`$0" /c call "`$TEMP\RefreshEnv.cmd" && code --install-extension marus25.cortex-debug'
+  Pop `$1
+  nsExec::ExecToLog '"`$0" /c call "`$TEMP\RefreshEnv.cmd" && code --install-extension ms-vscode.cmake-tools'
+  Pop `$1
+  nsExec::ExecToLog '"`$0" /c call "`$TEMP\RefreshEnv.cmd" && code --install-extension ms-vscode.cpptools'
+  Pop `$1
 
 SectionEnd
 
@@ -211,6 +212,13 @@ Section "Download documents and files" SecDocs
   File "pico-docs.ps1"
 
 SectionEnd
+
+Function RunBuild
+
+  ReadEnvStr `$0 COMSPEC
+  Exec '"`$0" /k call "`$TEMP\RefreshEnv.cmd" && del "`$TEMP\RefreshEnv.cmd" && call "`$INSTDIR\pico-setup.cmd"'
+
+FunctionEnd
 
 LangString DESC_SecDocs `${LANG_ENGLISH} "Adds a script to download the latest Pico documents, design files, and UF2 files."
 

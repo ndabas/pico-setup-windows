@@ -37,6 +37,18 @@
       "file": "VSCodeUserSetup-ia32.exe",
       "exec": "\"$0\" /VERYSILENT /NORESTART /NOCANCEL /SP- /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS /MERGETASKS=!runcode",
       "href": "https://code.visualstudio.com/sha/download?build=stable&os=win32-user"
+    },
+    {
+      "name": "Doxygen",
+      "file": "doxygen-1.9.1-setup.exe",
+      "exec": "\"$0\" /VERYSILENT /NORESTART /NOCANCEL /SP- /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS",
+      "href": "https://doxygen.nl/files/doxygen-1.9.1-setup.exe"
+    },
+    {
+      "name": "Graphviz",
+      "file": "stable_windows_10_cmake_Release_Win32_graphviz-install-2.46.1-win32.exe",
+      "exec": "\"$0\" /S",
+      "href": "https://gitlab.com/graphviz/graphviz/-/package_files/7097346/download"
     }
   ]
 }
