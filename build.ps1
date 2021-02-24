@@ -33,8 +33,21 @@ $installers = $config.installers
 ($installers + $tools) | ForEach-Object {
   $_ | Add-Member -NotePropertyName 'shortName' -NotePropertyValue ($_.name -replace '[^a-zA-Z0-9]', '')
 
-  Write-Host "Downloading $($_.name)"
+  Write-Host "Downloading $($_.name): " -NoNewline
   curl.exe --fail --silent --show-error --url "$($_.href)" --location --output "installers/$($_.file)" --create-dirs --remote-time --time-cond "installers/$($_.file)"
+
+  $version = ""
+  if ($_.file -match '([0-9]+\.)+[0-9]+') {
+    $version = $Matches[0]
+  } else {
+    $version = (Get-ChildItem ".\installers\$($_.file)").VersionInfo.ProductVersion
+  }
+
+  if ($version) {
+    Write-Host $version
+  } else {
+    Write-Host $_.file
+  }
 }
 
 mkdirp "build"
