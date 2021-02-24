@@ -252,4 +252,4 @@ $filename = 'openocd-picoprobe-{0}-{1}-{2}.zip' -f
   $suffix
 
 Write-Host "Saving OpenOCD package to $filename"
-Compress-Archive "$tempPath\*", ".\build\openocd-install\mingw$bitness\share\openocd\scripts" "bin\$filename"
+Compress-Archive "$tempPath\*", ".\build\openocd-install\mingw$bitness\share\openocd\scripts" "bin\$filename" -Force
