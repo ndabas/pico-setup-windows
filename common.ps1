@@ -2,7 +2,10 @@ function crawl {
   param ([string]$url)
 
   (Invoke-WebRequest $url -UseBasicParsing).Links |
-    Where-Object { $_ | Get-Member href } |
+    Where-Object {
+      ($_ | Get-Member href) -and
+      [uri]::IsWellFormedUriString($_.href, [System.UriKind]::RelativeOrAbsolute)
+    } |
     ForEach-Object {
       $href = [System.Net.WebUtility]::HtmlDecode($_.href)
 
