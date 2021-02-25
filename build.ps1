@@ -36,8 +36,17 @@ $installers = $config.installers
   Write-Host "Downloading $($_.name): " -NoNewline
   curl.exe --fail --silent --show-error --url "$($_.href)" --location --output "installers/$($_.file)" --create-dirs --remote-time --time-cond "installers/$($_.file)"
 
-  $version = ""
-  if ($_.file -match '([0-9]+\.)+[0-9]+') {
+  # Display versions of packaged installers, for information only. We try to
+  # extract it from:
+  # 1. The file name
+  # 2. The download URL
+  # 3. The version metadata in the file
+  #
+  # This fails for MSYS2, because there is no version number (only a timestamp)
+  # and the version that gets reported is 7-zip SFX version.
+  $version = ''
+  $versionRegEx = '([0-9]+\.)+[0-9]+'
+  if ($_.file -match $versionRegEx -or $_.href -match $versionRegEx) {
     $version = $Matches[0]
   } else {
     $version = (Get-ChildItem ".\installers\$($_.file)").VersionInfo.ProductVersion
