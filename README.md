@@ -20,6 +20,8 @@ The installers attempt to install the required tools silently, without user inte
 - [Visual Studio Code](https://code.visualstudio.com/)
 - [OpenOCD with picoprobe support](https://github.com/raspberrypi/openocd)
 - [Zadig](https://zadig.akeo.ie/)
+- [Doxygen](https://www.doxygen.nl/download.html)
+- [Graphviz](https://graphviz.org/download/)
 
 # Building
 
