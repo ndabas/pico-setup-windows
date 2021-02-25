@@ -10,9 +10,9 @@
     },
     {
       "name": "CMake",
-      "file": "cmake-3.19.5-win64-x64.msi",
+      "file": "cmake-3.19.6-win64-x64.msi",
       "exec": "msiexec /i \"$0\" /qn /norestart ADD_CMAKE_TO_PATH=System",
-      "href": "https://github.com/Kitware/CMake/releases/download/v3.19.5/cmake-3.19.5-win64-x64.msi"
+      "href": "https://github.com/Kitware/CMake/releases/download/v3.19.6/cmake-3.19.6-win64-x64.msi"
     },
     {
       "name": "Build Tools for Visual Studio 2019",
