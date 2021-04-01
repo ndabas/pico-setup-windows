@@ -10,15 +10,15 @@
     },
     {
       "name": "CMake",
-      "file": "cmake-3.19.6-win64-x64.msi",
+      "file": "cmake-3.20.0-windows-x86_64.msi",
       "exec": "msiexec /i \"$0\" /qn /norestart ADD_CMAKE_TO_PATH=System",
-      "href": "https://github.com/Kitware/CMake/releases/download/v3.19.6/cmake-3.19.6-win64-x64.msi"
+      "href": "https://github.com/Kitware/CMake/releases/download/v3.20.0/cmake-3.20.0-windows-x86_64.msi"
     },
     {
       "name": "Build Tools for Visual Studio 2019",
       "file": "vs_BuildTools.exe",
       "exec": "\"$0\" --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended --quiet --wait --norestart",
-      "href": "https://download.visualstudio.microsoft.com/download/pr/8aaeb3c2-46bb-4444-9ca6-0361b60b2d16/1bdf8712b54daab90431b88cec37b959eb423a4522aa7f241c11802c19406928/vs_BuildTools.exe"
+      "href": "https://aka.ms/vs/16/release/vs_buildtools.exe"
     },
     {
       "name": "Python 3.8",
@@ -28,9 +28,9 @@
     },
     {
       "name": "Git for Windows",
-      "file": "Git-2.30.1-64-bit.exe",
+      "file": "Git-2.31.1-64-bit.exe",
       "exec": "\"$0\" /VERYSILENT /NORESTART /NOCANCEL /SP- /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS \"/LOADINF=$PLUGINSDIR\\git.inf\"",
-      "href": "https://github.com/git-for-windows/git/releases/download/v2.30.1.windows.1/Git-2.30.1-64-bit.exe"
+      "href": "https://github.com/git-for-windows/git/releases/download/v2.31.1.windows.1/Git-2.31.1-64-bit.exe"
     },
     {
       "name": "Visual Studio Code",
@@ -46,9 +46,9 @@
     },
     {
       "name": "Graphviz",
-      "file": "stable_windows_10_cmake_Release_x64_graphviz-install-2.46.1-win64.exe",
+      "file": "stable_windows_10_cmake_Release_x64_graphviz-install-2.47.0-win64.exe",
       "exec": "\"$0\" /S",
-      "href": "https://gitlab.com/graphviz/graphviz/-/package_files/7097345/download"
+      "href": "https://gitlab.com/graphviz/graphviz/-/package_files/8184046/download"
     }
   ]
 }

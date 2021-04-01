@@ -38,29 +38,23 @@ function updateDownloadUrl {
         Select-Object -First 1
     }
 
-    'Build Tools for Visual Studio 2019' {
-      # The download URL is in a JS variable
-      $resp = Invoke-WebRequest 'https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=16' -UseBasicParsing
-      $resp.Content -match "['`"](http[^'`"]+\.exe)[`'`"]" | Out-Null
-      $Matches[1]
-    }
-
     'CMake' {
+      $suffix = $Config.bitness -eq 64 ? 'x86_64' : 'i386'
+
       # CMake does not mark prereleases as such, so we filter based on the tag
-      getGitHubReleaseAssetUrl 'Kitware/CMake' { $_.name -match "win$($Config.bitness)-x[0-9]{2}\.msi$" } { $_.tag_name -match '^v([0-9]+\.)+[0-9]$' }
+      getGitHubReleaseAssetUrl 'Kitware/CMake' { $_.name -match "windows-$suffix\.msi`$" } { $_.tag_name -match '^v([0-9]+\.)+[0-9]$' }
     }
 
     'Python 3.8' {
-      $suffix = ''
-      if ($Config.bitness -eq 64) { $suffix = '-amd64' }
+      $suffix = $Config.bitness -eq 64 ? '-amd64' : ''
 
       crawl 'https://www.python.org/downloads/windows/' |
-        Where-Object { $_ -match "python-3\.8\.[0-9]+$suffix\.exe$" } |
+        Where-Object { $_ -match "python-3\.8\.[0-9]+$suffix\.exe`$" } |
         Select-Object -First 1
     }
 
     'Git for Windows' {
-      getGitHubReleaseAssetUrl 'git-for-windows/git' { $_.name -match "^Git-([0-9]+\.)+[0-9]+-$($Config.bitness)-bit\.exe$" }
+      getGitHubReleaseAssetUrl 'git-for-windows/git' { $_.name -match "^Git-([0-9]+\.)+[0-9]+-$($Config.bitness)-bit\.exe`$" }
     }
 
     'Doxygen' {
@@ -89,19 +83,19 @@ function updateDownloadUrl {
 
     'MSYS2' {
       $newName = 'msys2.exe'
-      getGitHubReleaseAssetUrl 'msys2/msys2-installer' { $_.name -match "^msys2-base-x86_64-[0-9]+\.sfx\.exe$" }
+      getGitHubReleaseAssetUrl 'msys2/msys2-installer' { $_.name -match "^msys2-base-x86_64-[0-9]+\.sfx\.exe`$" }
     }
 
     'Zadig' {
       $newName = 'zadig.exe'
-      $assetFilter = { $_.name -match "^zadig-([0-9]+\.)+[0-9]+\.exe$" }
+      $assetFilter = { $_.name -match "^zadig-([0-9]+\.)+[0-9]+\.exe`$" }
       getGitHubReleaseAssetUrl 'pbatard/libwdi' $assetFilter { $_.assets | Where-Object $assetFilter }
     }
 
     'libusb' {
       $newName = 'libusb.7z'
       # Do not update libusb currently - 1.0.23 works but 1.0.24 crashes OpenOCD with picoprobe
-      # getGitHubReleaseAssetUrl 'libusb/libusb' { $_.name -match "^libusb-([0-9]+\.)+[0-9]+\.7z$" }
+      # getGitHubReleaseAssetUrl 'libusb/libusb' { $_.name -match "^libusb-([0-9]+\.)+[0-9]+\.7z`$" }
     }
   }
 
