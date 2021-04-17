@@ -45,7 +45,7 @@ function updateDownloadUrl {
       getGitHubReleaseAssetUrl 'Kitware/CMake' { $_.name -match "windows-$suffix\.msi`$" } { $_.tag_name -match '^v([0-9]+\.)+[0-9]$' }
     }
 
-    'Python 3.8' {
+    'Python 3.9' {
       $suffix = $Config.bitness -eq 64 ? '-amd64' : ''
 
       crawl 'https://www.python.org/downloads/windows/' |
