@@ -21,10 +21,10 @@
       "href": "https://aka.ms/vs/16/release/vs_buildtools.exe"
     },
     {
-      "name": "Python 3.8",
-      "file": "python-3.8.8-amd64.exe",
+      "name": "Python 3.9",
+      "file": "python-3.9.4-amd64.exe",
       "exec": "\"$0\" /quiet InstallAllUsers=1 PrependPath=1",
-      "href": "https://www.python.org/ftp/python/3.8.8/python-3.8.8-amd64.exe"
+      "href": "https://www.python.org/ftp/python/3.9.4/python-3.9.4-amd64.exe"
     },
     {
       "name": "Git for Windows",

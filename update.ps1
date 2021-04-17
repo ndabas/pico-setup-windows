@@ -49,7 +49,7 @@ function updateDownloadUrl {
       $suffix = $Config.bitness -eq 64 ? '-amd64' : ''
 
       crawl 'https://www.python.org/downloads/windows/' |
-        Where-Object { $_ -match "python-3\.8\.[0-9]+$suffix\.exe`$" } |
+        Where-Object { $_ -match "python-3\.9\.[0-9]+$suffix\.exe`$" } |
         Select-Object -First 1
     }
 
