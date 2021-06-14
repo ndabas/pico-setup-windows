@@ -161,7 +161,6 @@ Section
 
   InitPluginsDir
   File /oname=`$TEMP\RefreshEnv.cmd RefreshEnv.cmd
-  File /oname=`$PLUGINSDIR\git.inf git.inf
 
 SectionEnd
 
@@ -171,6 +170,13 @@ $($installers | ForEach-Object {
 Section "$($_.name)" Sec$($_.shortName)
 
   ClearErrors
+
+  $(try {
+    $_.additionalFiles | ForEach-Object {
+      "File /oname=`$PLUGINSDIR\$_ $_`r`n"
+    }
+  }
+  catch {})
 
   SetOutPath "`$TEMP"
   File "installers\$($_.file)"

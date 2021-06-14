@@ -30,7 +30,8 @@
       "name": "Git for Windows",
       "file": "Git-2.31.1-32-bit.exe",
       "exec": "\"$0\" /VERYSILENT /NORESTART /NOCANCEL /SP- /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS \"/LOADINF=$PLUGINSDIR\\git.inf\"",
-      "href": "https://github.com/git-for-windows/git/releases/download/v2.31.1.windows.1/Git-2.31.1-32-bit.exe"
+      "href": "https://github.com/git-for-windows/git/releases/download/v2.31.1.windows.1/Git-2.31.1-32-bit.exe",
+      "additionalFiles": ["git.inf"]
     },
     {
       "name": "Visual Studio Code",
