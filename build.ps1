@@ -44,7 +44,7 @@ $installers = $config.installers
   }
   else {
     Write-Host "Downloading $($_.name): " -NoNewline
-    curl.exe --fail --silent --show-error --url "$($_.href)" --location --output "installers/$($_.file)" --create-dirs --remote-time --time-cond "installers/$($_.file)"
+    exec { curl.exe --fail --silent --show-error --url "$($_.href)" --location --output "installers/$($_.file)" --create-dirs --remote-time --time-cond "installers/$($_.file)" }
   }
 
   # Display versions of packaged installers, for information only. We try to

@@ -23,3 +23,11 @@ function mkdirp {
 
   New-Item -Path $dir -Type Directory -Force | Out-Null
 }
+
+function exec ([scriptblock]$cmd) {
+  $global:LASTEXITCODE = 0
+  & $cmd
+  if ($global:LASTEXITCODE -ne 0) {
+    Write-Error "Command '$cmd' exited with code $LASTEXITCODE"
+  }
+}
