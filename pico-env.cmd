@@ -4,11 +4,19 @@ goto main
 
 :AddToPath
 
-if exist "%~1" (
-  set "PATH=%~1;%PATH%"
-)
+  if exist "%~1" (
+    set "PATH=%~1;%PATH%"
+  )
 
-goto :EOF
+  goto :EOF
+
+:VerifyExe
+
+  echo Checking %1...
+  cmd /c %2 >NUL 2>NUL
+  if %ERRORLEVEL% neq 0 echo ERROR: %1 is required but was not found.
+
+  goto :EOF
 
 :main
 
@@ -45,3 +53,9 @@ for /f "usebackq delims=" %%i in (`vswhere.exe -products * -requires "Microsoft.
     call "%%i\Common7\Tools\vsdevcmd.bat"
   )
 )
+
+call :VerifyExe "GNU Arm Embedded Toolchain" "arm-none-eabi-gcc --version"
+call :VerifyExe "CMake" "cmake --version"
+call :VerifyExe "Visual Studio" "cl"
+call :VerifyExe "Python 3" "python --version"
+call :VerifyExe "Git" "git --version"
