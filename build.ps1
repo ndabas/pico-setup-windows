@@ -82,6 +82,7 @@ if (-not (Test-Path build\NSIS)) {
   Write-Host 'Extracting NSIS'
   Expand-Archive '.\installers\nsis.zip' -DestinationPath '.\build'
   Rename-Item (Resolve-Path '.\build\nsis-*').Path 'NSIS'
+  Expand-Archive '.\installers\nsis-log.zip' -DestinationPath '.\build\NSIS' -Force
 }
 
 function msys {
@@ -153,6 +154,10 @@ InstallDirRegKey HKCU "Software\pico-setup-windows" ""
 !insertmacro MUI_LANGUAGE "English"
 
 Section
+
+  ; Make sure that `$INSTDIR exists before enabling logging
+  SetOutPath `$INSTDIR
+  LogSet on
 
   InitPluginsDir
   File /oname=`$TEMP\RefreshEnv.cmd RefreshEnv.cmd
