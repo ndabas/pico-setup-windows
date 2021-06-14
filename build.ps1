@@ -11,7 +11,10 @@ param (
   [Parameter(HelpMessage = "Path to MSYS2 installation. MSYS2 will be downloaded and installed to this path if it doesn't exist.")]
   [ValidatePattern('[\\\/]msys64$')]
   [string]
-  $MSYS2Path = '.\build\msys64'
+  $MSYS2Path = '.\build\msys64',
+
+  [switch]
+  $SkipDownload
 )
 
 Set-StrictMode -Version Latest
@@ -33,8 +36,16 @@ $installers = $config.installers
 ($installers + $tools) | ForEach-Object {
   $_ | Add-Member -NotePropertyName 'shortName' -NotePropertyValue ($_.name -replace '[^a-zA-Z0-9]', '')
 
-  Write-Host "Downloading $($_.name): " -NoNewline
-  curl.exe --fail --silent --show-error --url "$($_.href)" --location --output "installers/$($_.file)" --create-dirs --remote-time --time-cond "installers/$($_.file)"
+  if ($SkipDownload) {
+    Write-Host "Checking $($_.name): " -NoNewline
+    if (-not (Test-Path "installers/$($_.file)")) {
+      Write-Error "installers/$($_.file) not found"
+    }
+  }
+  else {
+    Write-Host "Downloading $($_.name): " -NoNewline
+    curl.exe --fail --silent --show-error --url "$($_.href)" --location --output "installers/$($_.file)" --create-dirs --remote-time --time-cond "installers/$($_.file)"
+  }
 
   # Display versions of packaged installers, for information only. We try to
   # extract it from:
