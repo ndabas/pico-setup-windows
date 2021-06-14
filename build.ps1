@@ -154,12 +154,26 @@ $($installers | ForEach-Object {
 
 Section "$($_.name)" Sec$($_.shortName)
 
+  ClearErrors
+
   SetOutPath "`$TEMP"
   File "installers\$($_.file)"
   StrCpy `$0 "`$TEMP\$($_.file)"
   ExecWait '$($_.exec)' `$1
   DetailPrint "$($_.name) returned `$1"
   Delete /REBOOTOK "`$0"
+
+  `${If} `${Errors}
+    Abort "Installation of $($_.name) failed"
+  $(try {
+    $_.rebootExitCodes | ForEach-Object {
+      "`${ElseIf} `$1 = $_`r`n    SetRebootFlag true"
+    }
+  }
+  catch {})
+  `${ElseIf} `$1 <> 0
+    Abort "Installation of $($_.name) failed"
+  `${EndIf}
 
 SectionEnd
 
