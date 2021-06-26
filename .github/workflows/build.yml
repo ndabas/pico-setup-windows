@@ -79,6 +79,7 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: Package-x64
+          path: bin
 
       - name: Test installer
         shell: pwsh
