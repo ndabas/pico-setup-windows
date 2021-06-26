@@ -1,4 +1,4 @@
-call "%~dp0pico-env.cmd"
+call "%~dp0pico-env.cmd" || exit /b 1
 setlocal enabledelayedexpansion
 
 rem This is mostly a port of pico-setup
@@ -16,11 +16,11 @@ for %%i in (sdk examples extras playground project-generator) do (
   ) else (
     set "REPO_URL=%GITHUB_PREFIX%pico-%%i%GITHUB_SUFFIX%"
     echo Cloning !REPO_URL!
-    git clone -b %SDK_BRANCH% !REPO_URL!
+    git clone -b %SDK_BRANCH% !REPO_URL! || exit /b 1
 
     rem Any submodules
     pushd "!DEST!"
-    git submodule update --init
+    git submodule update --init || exit /b 1
     popd
 
     set "PICO_%%i_PATH=!DEST!"
@@ -30,12 +30,12 @@ for %%i in (sdk examples extras playground project-generator) do (
 rem Build a couple of examples
 mkdir "%~dp0pico-examples\build"
 pushd "%~dp0pico-examples\build"
-cmake -G "NMake Makefiles" .. -DCMAKE_BUILD_TYPE=Debug
+cmake -G "NMake Makefiles" .. -DCMAKE_BUILD_TYPE=Debug || exit /b 1
 
 for %%i in (blink hello_world) do (
   echo Building %%i
   pushd %%i
-  nmake
+  nmake || exit /b 1
   popd
 )
 
@@ -52,26 +52,23 @@ for %%i in (picoprobe) do (
   ) else (
     set "REPO_URL=%GITHUB_PREFIX%%%i%GITHUB_SUFFIX%"
     echo Cloning !REPO_URL!
-    git clone -b %SDK_BRANCH% !REPO_URL!
+    git clone -b %SDK_BRANCH% !REPO_URL! || exit /b 1
   )
 
   echo Building %%i
   mkdir %%i\build
   pushd %%i\build
 
-  cmake -G "NMake Makefiles" ..
-  nmake
+  cmake -G "NMake Makefiles" .. || exit /b 1
+  nmake || exit /b 1
 
   popd
 )
 
 if exist "%~dp0pico-docs.ps1" (
   echo Downloading Pico documents and files...
-  powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "%~dp0pico-docs.ps1"
+  powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "%~dp0pico-docs.ps1" || exit /b 1
 )
 
 rem Open repo folder in Explorer
 start .
-
-rem Keep the terminal window open
-pause
