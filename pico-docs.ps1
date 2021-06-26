@@ -4,6 +4,8 @@ $ProgressPreference = 'SilentlyContinue'
 
 . "$PSScriptRoot\common.ps1"
 
+[Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+
 crawl 'https://www.raspberrypi.org/documentation/pico/getting-started/' |
   Sort-Object -Unique |
   Where-Object { ([uri]$_).Authority -match '\.raspberrypi.org$' } |
