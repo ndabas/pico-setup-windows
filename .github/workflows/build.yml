@@ -27,7 +27,7 @@ jobs:
               Verbosity = "Detailed"
             }
           }
-          Invoke-Pester .\tests\common.Tests.ps1 -Configuration $pesterConfig
+          Invoke-Pester -Path .\tests\common.Tests.ps1 -Configuration $pesterConfig
 
       - name: Upload test results
         uses: actions/upload-artifact@v2
