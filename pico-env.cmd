@@ -1,5 +1,6 @@
 @if not defined _echo echo off
 
+set errors=0
 goto main
 
 :AddToPath
@@ -14,7 +15,10 @@ goto main
 
   echo Checking %1...
   cmd /c %2 >NUL 2>NUL
-  if %ERRORLEVEL% neq 0 echo ERROR: %1 is required but was not found.
+  if %ERRORLEVEL% neq 0 (
+    echo ERROR: %1 is required but was not found.
+    set /a errors += 1
+  )
 
   goto :EOF
 
@@ -59,3 +63,5 @@ call :VerifyExe "CMake" "cmake --version"
 call :VerifyExe "Visual Studio" "cl"
 call :VerifyExe "Python 3" "python --version"
 call :VerifyExe "Git" "git --version"
+
+exit /b %errors%

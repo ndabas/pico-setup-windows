@@ -1,13 +1,16 @@
 name: Build
 on: [push, pull_request]
 jobs:
-  Test:
+
+  Test-Scripts:
     runs-on: windows-latest
     steps:
+
       - name: Checkout
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
+
       - name: Test scripts
         shell: pwsh
         run: |
@@ -24,24 +27,28 @@ jobs:
               Verbosity = "Detailed"
             }
           }
-          Invoke-Pester -Configuration $pesterConfig
+          Invoke-Pester .\tests\common.Tests.ps1 -Configuration $pesterConfig
+
       - name: Upload test results
         uses: actions/upload-artifact@v2
         if: ${{ always() }}
         with:
           name: Pester-Test-Results
           path: testResults.xml
+
   Build:
     runs-on: windows-latest
-    needs: Test
+    needs: Test-Scripts
     strategy:
       matrix:
         bitness: ['x86', 'x64']
     steps:
+
       - name: Checkout
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
+
       - name: Build ${{ matrix.bitness }}
         shell: pwsh
         run: |
@@ -50,8 +57,29 @@ jobs:
           $ProgressPreference = 'SilentlyContinue'
 
           .\build.ps1 .\${{ matrix.bitness }}.json -MSYS2Path C:\msys64
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v2
         with:
           name: Package-${{ matrix.bitness }}
           path: bin/
+
+  Test-Installer:
+    runs-on: windows-2019
+    needs: Build
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Download installer artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: Package-x64
+
+      - name: Test installer
+        shell: pwsh
+        run: docker run --rm -v "$(Get-Location):C:\project" mcr.microsoft.com/windows/servercore:ltsc2019
+          powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "cd C:\project; .\test\setup.ps1"
