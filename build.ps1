@@ -78,7 +78,7 @@ mkdirp "bin"
 
 if (-not (Test-Path $MSYS2Path)) {
   Write-Host 'Extracting MSYS2'
-  & .\installers\msys2.exe -y "-o$(Resolve-Path (Split-Path $MSYS2Path -Parent))"
+  exec { & .\installers\msys2.exe -y "-o$(Resolve-Path (Split-Path $MSYS2Path -Parent))" }
 }
 
 if (-not (Test-Path build\NSIS)) {
@@ -91,7 +91,7 @@ if (-not (Test-Path build\NSIS)) {
 function msys {
   param ([string] $cmd)
 
-  & "$MSYS2Path\usr\bin\bash" -lc "$cmd"
+  exec { & "$MSYS2Path\usr\bin\bash" -lc "$cmd" }
 }
 
 # Preserve the current working directory
