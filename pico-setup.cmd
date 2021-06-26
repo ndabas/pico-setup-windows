@@ -8,6 +8,8 @@ set "GITHUB_PREFIX=https://github.com/raspberrypi/"
 set "GITHUB_SUFFIX=.git"
 set "SDK_BRANCH=master"
 
+pushd "%~dp0"
+
 for %%i in (sdk examples extras playground project-generator) do (
   set "DEST=%~dp0pico-%%i"
 
@@ -72,3 +74,5 @@ if exist "%~dp0pico-docs.ps1" (
 
 rem Open repo folder in Explorer
 start .
+
+popd
