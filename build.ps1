@@ -25,7 +25,10 @@ $ProgressPreference = 'SilentlyContinue'
 
 Write-Host "Building from $ConfigFile"
 
+$basename = "pico-setup-windows"
+$version = (Get-Content "$PSScriptRoot\version.txt").Trim()
 $suffix = [io.path]::GetFileNameWithoutExtension($ConfigFile)
+$outfile = "bin\$basename-$version-$suffix.exe"
 
 $tools = (Get-Content '.\tools.json' | ConvertFrom-Json).tools
 $config = Get-Content $ConfigFile | ConvertFrom-Json
@@ -121,19 +124,35 @@ if (-not (Test-Path ".\build\libusb")) {
 @"
 !include "MUI2.nsh"
 
-Name "Pico setup for Windows"
-Caption "Pico setup for Windows"
-OutFile "bin\pico-setup-windows-$suffix.exe"
+!define TITLE "Pico setup for Windows"
+
+Name "`${TITLE}"
+Caption "`${TITLE}"
+
+VIAddVersionKey "FileDescription" "`${TITLE}"
+VIAddVersionKey "InternalName" "$basename"
+VIAddVersionKey "ProductName" "`${TITLE}"
+VIAddVersionKey "FileVersion" "$version"
+VIAddVersionKey "LegalCopyright" ""
+VIFileVersion $version.0
+VIProductVersion $version.0
+
+OutFile "$outfile"
 Unicode True
+
+; Since we're packaging up a bunch of installers, the "Space required" shown is inaccurate
+SpaceTexts "none"
 
 InstallDir "`$DOCUMENTS\Pico"
 
 ;Get installation folder from registry if available
-InstallDirRegKey HKCU "Software\pico-setup-windows" ""
+InstallDirRegKey HKCU "Software\$basename" ""
 
 !define MUI_ABORTWARNING
 
-!define MUI_WELCOMEPAGE_TITLE "Pico setup for Windows"
+!define MUI_WELCOMEPAGE_TITLE "`${TITLE}"
+
+!define MUI_COMPONENTSPAGE_SMALLDESC
 
 !define MUI_FINISHPAGE_RUN_TEXT "Clone and build Pico repos"
 !define MUI_FINISHPAGE_RUN
@@ -171,12 +190,11 @@ Section "$($_.name)" Sec$($_.shortName)
 
   ClearErrors
 
-  $(try {
+  $(if ($_ | Get-Member additionalFiles) {
     $_.additionalFiles | ForEach-Object {
       "File /oname=`$PLUGINSDIR\$_ $_`r`n"
     }
-  }
-  catch {})
+  })
 
   SetOutPath "`$TEMP"
   File "installers\$($_.file)"
@@ -187,12 +205,11 @@ Section "$($_.name)" Sec$($_.shortName)
 
   `${If} `${Errors}
     Abort "Installation of $($_.name) failed"
-  $(try {
+  $(if ($_ | Get-Member rebootExitCodes) {
     $_.rebootExitCodes | ForEach-Object {
       "`${ElseIf} `$1 = $_`r`n    SetRebootFlag true"
     }
-  }
-  catch {})
+  })
   `${ElseIf} `$1 <> 0
     Abort "Installation of $($_.name) failed"
   `${EndIf}
@@ -290,9 +307,10 @@ $($installers | ForEach-Object {
   "  !insertmacro MUI_DESCRIPTION_TEXT `${Sec$($_.shortName)} `$(DESC_Sec$($_.shortName))`n"
 })
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
-"@ | Set-Content ".\pico-setup-windows-$suffix.nsi"
+"@ | Set-Content ".\$basename-$suffix.nsi"
 
-.\build\NSIS\makensis ".\pico-setup-windows-$suffix.nsi"
+exec { .\build\NSIS\makensis ".\$basename-$suffix.nsi" }
+Write-Host "Installer saved to $outfile"
 
 # Package OpenOCD separately as well
 

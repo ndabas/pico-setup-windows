@@ -118,7 +118,7 @@ foreach ($arch in @('x86.json', 'x64.json')) {
     updateDownloadUrl $i $config
   }
 
-  $config | ConvertTo-Json | Set-Content $arch
+  $config | ConvertTo-Json -Depth 3 | Set-Content $arch
 }
 
 $tools = Get-Content '.\tools.json' | ConvertFrom-Json
@@ -127,4 +127,4 @@ foreach ($i in $tools.tools) {
   updateDownloadUrl $i $tools
 }
 
-$tools | ConvertTo-Json | Set-Content '.\tools.json'
+$tools | ConvertTo-Json -Depth 3 | Set-Content '.\tools.json'

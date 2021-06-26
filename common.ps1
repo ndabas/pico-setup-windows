@@ -24,9 +24,18 @@ function mkdirp {
   New-Item -Path $dir -Type Directory -Force | Out-Null
 }
 
-function exec ([scriptblock]$cmd) {
+function exec {
+  param ([scriptblock]$cmd)
+
+  $eap = $ErrorActionPreference
+  $ErrorActionPreference = 'Continue'
   $global:LASTEXITCODE = 0
-  & $cmd
+
+  # Convert stderr in ErrorRecord objects back to strings
+  & $cmd 2>&1 | ForEach-Object { "$_" }
+
+  $ErrorActionPreference = $eap
+
   if ($global:LASTEXITCODE -ne 0) {
     Write-Error "Command '$cmd' exited with code $LASTEXITCODE"
   }
