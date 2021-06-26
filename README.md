@@ -42,6 +42,16 @@ To build:
 
 The built installers will be saved to the `bin` directory.
 
+# Tests
+
+There are tests for some parts of the build scripts. You can run them like this:
+
+```powershell
+Install-Module Pester -Force
+Import-Module Pester -PassThru # Check the version of the imported module -- we need v5 or greater
+Invoke-Pester -Output Detailed
+```
+
 # Credits
 
 [RefreshEnv.cmd](RefreshEnv.cmd) is from [Chocolatey](https://github.com/chocolatey/choco/blob/master/src/chocolatey.resources/redirects/RefreshEnv.cmd).
