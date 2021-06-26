@@ -16,6 +16,7 @@ jobs:
         run: |
           $pesterConfig = @{
             Run = @{
+              Path = ".\tests\common.Tests.ps1"
               Exit = $true
             }
             TestResult = @{
@@ -27,7 +28,7 @@ jobs:
               Verbosity = "Detailed"
             }
           }
-          Invoke-Pester -Path .\tests\common.Tests.ps1 -Configuration $pesterConfig
+          Invoke-Pester -Configuration $pesterConfig
 
       - name: Upload test results
         uses: actions/upload-artifact@v2
