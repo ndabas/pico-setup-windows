@@ -17,6 +17,11 @@ Describe 'exec' {
   It 'Should throw on non-zero exit code' {
     { exec { cmd /c exit 42 } } | Should -Throw
   }
+
+  It 'Should not clobber a variable named cmd' {
+    $cmd = 'Yes'
+    exec { cmd /c "echo $cmd" } | Should -Be 'Yes'
+  }
 }
 
 Describe 'mkdirp' {
