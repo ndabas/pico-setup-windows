@@ -62,8 +62,12 @@ jobs:
           path: bin/
 
   Test-Installer:
-    runs-on: windows-2019
+    runs-on: windows-${{ matrix.winver }}
     needs: Build
+    strategy:
+      matrix:
+        bitness: ['x86', 'x64']
+        winver: ['2016', '2019']
     steps:
 
       - name: Checkout
@@ -72,17 +76,17 @@ jobs:
       - name: Download installer artifact
         uses: actions/download-artifact@v2
         with:
-          name: Package-x64
+          name: Package-${{ matrix.bitness }}
           path: bin
 
       - name: Test installer
         shell: pwsh
-        run: docker run --rm -v "$(Get-Location):C:\repo" mcr.microsoft.com/windows/servercore:ltsc2019
+        run: docker run --rm -v "$(Get-Location):C:\repo" mcr.microsoft.com/windows/servercore:ltsc${{ matrix.winver }}
           powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "cd C:\repo; .\tests\setup.ps1"
 
       - name: Upload installer logs
         uses: actions/upload-artifact@v2
         if: ${{ always() }}
         with:
-          name: Installer-Logs
+          name: Installer-Logs-Windows-${{ matrix.winver }}-${{ matrix.bitness }}
           path: logs/
