@@ -291,7 +291,7 @@ SectionEnd
 Function RunBuild
 
   ReadEnvStr `$0 COMSPEC
-  Exec '"`$0" /k call "`$TEMP\RefreshEnv.cmd" && del "`$TEMP\RefreshEnv.cmd" && call "`$INSTDIR\pico-setup.cmd"'
+  Exec '"`$0" /k call "`$TEMP\RefreshEnv.cmd" && del "`$TEMP\RefreshEnv.cmd" && call "`$INSTDIR\pico-setup.cmd" 1'
 
 FunctionEnd
 
