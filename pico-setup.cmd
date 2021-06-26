@@ -1,4 +1,4 @@
-set interactive=%1
+set interactive=%~1
 
 call "%~dp0pico-env.cmd" || exit /b 1
 setlocal enabledelayedexpansion
@@ -74,7 +74,7 @@ if exist "%~dp0pico-docs.ps1" (
   powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "%~dp0pico-docs.ps1" || exit /b 1
 )
 
-if %interactive% equ 1 (
+if "%interactive%" equ "1" (
   rem Open repo folder in Explorer
   start .
 
