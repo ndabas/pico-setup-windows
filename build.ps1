@@ -91,7 +91,7 @@ if (-not (Test-Path build\NSIS)) {
 function msys {
   param ([string] $cmd)
 
-  exec { & "$MSYS2Path\usr\bin\bash" -lc "$cmd" }
+  exec { & "$MSYS2Path\usr\bin\bash" -leo pipefail -c "$cmd" }
 }
 
 # Preserve the current working directory

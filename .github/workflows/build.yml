@@ -82,5 +82,5 @@ jobs:
 
       - name: Test installer
         shell: pwsh
-        run: docker run --rm -v "$(Get-Location):C:\project" mcr.microsoft.com/windows/servercore:ltsc2019
-          powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "cd C:\project; .\test\setup.ps1"
+        run: docker run --rm -v "$(Get-Location):C:\repo" mcr.microsoft.com/windows/servercore:ltsc2019
+          powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "cd C:\repo; .\tests\setup.ps1"
