@@ -210,7 +210,7 @@ Section "$($_.name)" Sec$($_.shortName)
 
   $(if ($_ | Get-Member additionalFiles) {
     $_.additionalFiles | ForEach-Object {
-      "File /oname=`$PLUGINSDIR\$_ $_`r`n"
+      "File /oname=`$PLUGINSDIR\$(Split-Path -Leaf $_) $_`r`n"
     }
   })
 

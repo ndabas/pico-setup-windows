@@ -81,6 +81,14 @@ function updateDownloadUrl {
       $item.link
     }
 
+    'NSIS with logging'  {
+      $newName = 'nsis-log.zip'
+      $item = Invoke-RestMethod 'https://sourceforge.net/projects/nsis/rss' |
+        Where-Object { $_.link -match 'nsis-([0-9]+\.)+[0-9]+\-log.zip' } |
+        Select-Object -First 1
+      $item.link
+    }
+
     'MSYS2' {
       $newName = 'msys2.exe'
       getGitHubReleaseAssetUrl 'msys2/msys2-installer' { $_.name -match "^msys2-base-x86_64-[0-9]+\.sfx\.exe`$" }
