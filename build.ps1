@@ -123,6 +123,7 @@ if (-not (Test-Path ".\build\libusb")) {
 
 @"
 !include "MUI2.nsh"
+!include "WordFunc.nsh"
 
 !define TITLE "Pico setup for Windows"
 
@@ -177,6 +178,23 @@ Section
   ; Make sure that `$INSTDIR exists before enabling logging
   SetOutPath `$INSTDIR
   LogSet on
+
+  ReadRegStr `$R0 HKLM "SOFTWARE\Microsoft\PowerShell\3\PowerShellEngine" "PowerShellVersion"
+  DetailPrint "Detected PowerShell version: `$R0"
+  `${VersionCompare} "5.1.0.0" `$R0 `$R1
+  `${If} `$R1 < 2
+    Abort "Windows PowerShell 5.1 is required for this installation. Please install WMF 5.1 and re-run setup."
+  `${EndIf}
+  ClearErrors
+
+  ; https://docs.microsoft.com/en-us/dotnet/framework/migration-guide/how-to-determine-which-versions-are-installed
+  ; Check for .NET Framework 4.6.2, required for Visual Studio 2019 Build Tools
+  ReadRegDWORD `$R0 HKLM "SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full" "Release"
+  DetailPrint "Detected .NET Framework 4 release: `$R0"
+  `${If} `$R0 < 394802
+    Abort ".NET Framework 4.6.2 or later is required for this installation. Please install the latest .NET Framework 4.x and re-run setup."
+  `${EndIf}
+  ClearErrors
 
   InitPluginsDir
   File /oname=`$TEMP\RefreshEnv.cmd RefreshEnv.cmd
