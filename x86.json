@@ -17,7 +17,7 @@
     {
       "name": "Build Tools for Visual Studio 2019",
       "file": "vs_BuildTools.exe",
-      "exec": "\"$0\" --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended --quiet --wait --norestart",
+      "exec": "\"$0\" modify --installPath \"$PROGRAMFILES32\\Microsoft Visual Studio\\2019\\BuildTools\" --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended --quiet --wait --norestart",
       "href": "https://aka.ms/vs/16/release/vs_buildtools.exe",
       "rebootExitCodes": [
         3010
