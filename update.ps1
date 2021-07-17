@@ -105,6 +105,11 @@ function updateDownloadUrl {
       # Do not update libusb currently - 1.0.23 works but 1.0.24 crashes OpenOCD with picoprobe
       # getGitHubReleaseAssetUrl 'libusb/libusb' { $_.name -match "^libusb-([0-9]+\.)+[0-9]+\.7z`$" }
     }
+
+    'vswhere' {
+      $newName = 'vswhere.exe'
+      getGitHubReleaseAssetUrl 'microsoft/vswhere' { $_.name -eq 'vswhere.exe' }
+    }
   }
 
   if ($newUrl) {

@@ -24,6 +24,11 @@
       "name": "libusb",
       "file": "libusb.7z",
       "href": "https://github.com/libusb/libusb/releases/download/v1.0.23/libusb-1.0.23.7z"
+    },
+    {
+      "name": "vswhere",
+      "file": "vswhere.exe",
+      "href": "https://github.com/microsoft/vswhere/releases/download/2.8.4/vswhere.exe"
     }
   ]
 }

@@ -17,8 +17,12 @@
     {
       "name": "Build Tools for Visual Studio 2019",
       "file": "vs_BuildTools.exe",
-      "exec": "\"$0\" modify --installPath \"$PROGRAMFILES32\\Microsoft Visual Studio\\2019\\BuildTools\" --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended --quiet --wait --norestart",
+      "exec": "powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Minimized -File \"$PLUGINSDIR\\vssetup.ps1\" -VSInstallerPath \"$0\" -VSWherePath \"$PLUGINSDIR\\vswhere.exe\"",
       "href": "https://aka.ms/vs/16/release/vs_buildtools.exe",
+      "additionalFiles": [
+        "installers\\vswhere.exe",
+        "vssetup.ps1"
+      ],
       "rebootExitCodes": [
         3010
       ]
