@@ -25,15 +25,15 @@
     },
     {
       "name": "Python 3.9",
-      "file": "python-3.9.5.exe",
+      "file": "python-3.9.6.exe",
       "exec": "\"$0\" /quiet InstallAllUsers=1 PrependPath=1",
-      "href": "https://www.python.org/ftp/python/3.9.5/python-3.9.5.exe"
+      "href": "https://www.python.org/ftp/python/3.9.6/python-3.9.6.exe"
     },
     {
       "name": "Git for Windows",
-      "file": "Git-2.32.0-32-bit.exe",
+      "file": "Git-2.32.0.2-32-bit.exe",
       "exec": "\"$0\" /VERYSILENT /NORESTART /NOCANCEL /SP- /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS \"/LOADINF=$PLUGINSDIR\\git.inf\"",
-      "href": "https://github.com/git-for-windows/git/releases/download/v2.32.0.windows.1/Git-2.32.0-32-bit.exe",
+      "href": "https://github.com/git-for-windows/git/releases/download/v2.32.0.windows.2/Git-2.32.0.2-32-bit.exe",
       "additionalFiles": [
         "git.inf"
       ]
