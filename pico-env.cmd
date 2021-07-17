@@ -52,7 +52,7 @@ call :AddToPath "%ProgramFiles%\Microsoft Visual Studio\Installer"
 
 rem https://github.com/microsoft/vswhere/wiki/Start-Developer-Command-Prompt
 
-for /f "usebackq delims=" %%i in (`vswhere.exe -products * -requires "Microsoft.VisualStudio.Component.VC.CoreIde" -latest -property installationPath`) do (
+for /f "usebackq delims=" %%i in (`vswhere.exe -products * -requires "Microsoft.VisualStudio.Component.VC.Tools.x86.x64" -latest -property installationPath`) do (
   if exist "%%i\Common7\Tools\vsdevcmd.bat" (
     call "%%i\Common7\Tools\vsdevcmd.bat"
   )

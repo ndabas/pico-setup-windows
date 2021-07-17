@@ -31,12 +31,15 @@ function exec {
   $ErrorActionPreference = 'Continue'
   $global:LASTEXITCODE = 0
 
-  # Convert stderr in ErrorRecord objects back to strings
-  & $private:cmd 2>&1 | ForEach-Object { "$_" }
+  try {
+    # Convert stderr in ErrorRecord objects back to strings
+    & $cmd 2>&1 | ForEach-Object { "$_" }
 
-  $ErrorActionPreference = $private:eap
-
-  if ($global:LASTEXITCODE -ne 0) {
-    Write-Error "Command '$private:cmd' exited with code $LASTEXITCODE"
+    if ($LASTEXITCODE -ne 0) {
+      throw "Command '$cmd' exited with code $LASTEXITCODE"
+    }
+  }
+  finally {
+    $ErrorActionPreference = $eap
   }
 }

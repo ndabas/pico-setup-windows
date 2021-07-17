@@ -20,6 +20,6 @@ $elapsed = Measure-Command { $process = Start-Process -FilePath ".\installers\$f
 Write-Host ("Finished in {0:hh':'mm':'ss}" -f $elapsed)
 
 if ($process.ExitCode -ne 0) {
-  Write-Host "Install failed with exit code $($process.ExitCode)"
+  throw "Install failed with exit code $($process.ExitCode)"
   exit $process.ExitCode
 }
