@@ -285,11 +285,11 @@ Section "Pico environment" SecPico
 
   ; Unconditionally create a shortcut for VS Code -- in case the user had it
   ; installed already, or if they install it later
-  CreateShortcut "`$INSTDIR\Visual Studio Code for Pico.lnk" "cmd.exe" '/c call "`$INSTDIR\pico-env.cmd" && code'
+  CreateShortcut "`$INSTDIR\Visual Studio Code for Pico.lnk" "cmd.exe" '/c (call "`$INSTDIR\pico-env.cmd" && code) || pause'
 
   ; SetOutPath is needed here to set the working directory for the shortcut
   SetOutPath "`$INSTDIR\pico-project-generator"
-  CreateShortcut "`$INSTDIR\Pico Project Generator.lnk" "cmd.exe" '/c call "`$INSTDIR\pico-env.cmd" && python "`$INSTDIR\pico-project-generator\pico_project.py" --gui'
+  CreateShortcut "`$INSTDIR\Pico Project Generator.lnk" "cmd.exe" '/c (call "`$INSTDIR\pico-env.cmd" && python "`$INSTDIR\pico-project-generator\pico_project.py" --gui) || pause'
 
   ; Reset working dir for pico-setup.cmd launched from the finish page
   SetOutPath "`$INSTDIR"
