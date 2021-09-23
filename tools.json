@@ -3,22 +3,22 @@
     {
       "name": "NSIS",
       "file": "nsis.zip",
-      "href": "https://sourceforge.net/projects/nsis/files/NSIS%203/3.06.1/nsis-3.06.1.zip/download"
+      "href": "https://sourceforge.net/projects/nsis/files/NSIS%203/3.07/nsis-3.07.zip/download"
     },
     {
       "name": "NSIS with logging",
       "file": "nsis-log.zip",
-      "href": "https://sourceforge.net/projects/nsis/files/NSIS%203/3.06.1/nsis-3.06.1-log.zip/download"
+      "href": "https://sourceforge.net/projects/nsis/files/NSIS%203/3.07/nsis-3.07-log.zip/download"
     },
     {
       "name": "MSYS2",
       "file": "msys2.exe",
-      "href": "https://github.com/msys2/msys2-installer/releases/download/2021-06-04/msys2-base-x86_64-20210604.sfx.exe"
+      "href": "https://github.com/msys2/msys2-installer/releases/download/2021-07-25/msys2-base-x86_64-20210725.sfx.exe"
     },
     {
       "name": "Zadig",
       "file": "zadig.exe",
-      "href": "https://github.com/pbatard/libwdi/releases/download/b730/zadig-2.5.exe"
+      "href": "https://github.com/pbatard/libwdi/releases/download/b755/zadig-2.6.exe"
     },
     {
       "name": "libusb",
