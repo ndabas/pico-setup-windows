@@ -22,6 +22,10 @@ Describe 'exec' {
     $cmd = 'Yes'
     exec { cmd /c "echo $cmd" } | Should -Be 'Yes'
   }
+
+  It 'Should throw on script errors' {
+    { exec { xyzzy } } | Should -Throw
+  }
 }
 
 Describe 'mkdirp' {
