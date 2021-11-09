@@ -3,12 +3,12 @@
     {
       "name": "NSIS",
       "file": "nsis.zip",
-      "href": "https://sourceforge.net/projects/nsis/files/NSIS%203/3.07/nsis-3.07.zip/download"
+      "href": "https://sourceforge.net/projects/nsis/files/NSIS%203/3.08/nsis-3.08.zip/download"
     },
     {
       "name": "NSIS with logging",
       "file": "nsis-log.zip",
-      "href": "https://sourceforge.net/projects/nsis/files/NSIS%203/3.07/nsis-3.07-log.zip/download"
+      "href": "https://sourceforge.net/projects/nsis/files/NSIS%203/3.08/nsis-3.08-log.zip/download"
     },
     {
       "name": "MSYS2",
@@ -18,7 +18,7 @@
     {
       "name": "Zadig",
       "file": "zadig.exe",
-      "href": "https://github.com/pbatard/libwdi/releases/download/b755/zadig-2.6.exe"
+      "href": "https://github.com/pbatard/libwdi/releases/download/v1.4.1/zadig-2.7.exe"
     },
     {
       "name": "libusb",
