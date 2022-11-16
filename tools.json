@@ -16,16 +16,6 @@
       "href": "https://github.com/msys2/msys2-installer/releases/download/2022-10-28/msys2-base-x86_64-20221028.sfx.exe"
     },
     {
-      "name": "Zadig",
-      "file": "zadig.exe",
-      "href": "https://github.com/pbatard/libwdi/releases/download/v1.4.1/zadig-2.7.exe"
-    },
-    {
-      "name": "libusb",
-      "file": "libusb.7z",
-      "href": "https://github.com/libusb/libusb/releases/download/v1.0.23/libusb-1.0.23.7z"
-    },
-    {
       "name": "vswhere",
       "file": "vswhere.exe",
       "href": "https://github.com/microsoft/vswhere/releases/download/3.1.1/vswhere.exe"

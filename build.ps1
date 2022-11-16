@@ -107,7 +107,7 @@ if (-not (Test-Path ".\build\openocd-install\mingw$bitness")) {
   # Normal update
   msys 'pacman --noconfirm -Suu'
 
-  msys "pacman -S --noconfirm --needed autoconf automake git libtool make mingw-w64-${mingw_arch}-toolchain mingw-w64-${mingw_arch}-libusb p7zip pkg-config wget"
+  msys "pacman -S --noconfirm --needed autoconf automake git libtool make mingw-w64-${mingw_arch}-toolchain mingw-w64-${mingw_arch}-libusb mingw-w64-${mingw_arch}-hidapi p7zip pkg-config wget"
 
   # Keep it clean
   if (Test-Path .\build\openocd) {
@@ -115,10 +115,6 @@ if (-not (Test-Path ".\build\openocd-install\mingw$bitness")) {
   }
 
   msys "cd build && ../build-openocd.sh $bitness $mingw_arch"
-}
-
-if (-not (Test-Path ".\build\libusb")) {
-  msys '7z x -obuild/libusb ./installers/libusb.7z'
 }
 
 @"
@@ -255,24 +251,14 @@ LangString DESC_SecCodeExts `${LANG_ENGLISH} "Recommended extensions for Visual 
 
 Section "OpenOCD" SecOpenOCD
 
-  SetOutPath "`$INSTDIR\tools\openocd-picoprobe"
+  SetOutPath "`$INSTDIR\tools\openocd"
   File "build\openocd-install\mingw$bitness\bin\*.*"
-  File "build\libusb\mingw$bitness\dll\libusb-1.0.dll"
-  SetOutPath "`$INSTDIR\tools\openocd-picoprobe\scripts"
+  SetOutPath "`$INSTDIR\tools\openocd\scripts"
   File /r "build\openocd-install\mingw$bitness\share\openocd\scripts\*.*"
 
 SectionEnd
 
 LangString DESC_SecOpenOCD `${LANG_ENGLISH} "Open On-Chip Debugger with picoprobe support"
-
-Section /o "Zadig" SecZadig
-
-  SetOutPath "`$INSTDIR\tools"
-  File "installers\zadig.exe"
-
-SectionEnd
-
-LangString DESC_SecZadig `${LANG_ENGLISH} "Zadig is a Windows application that installs generic USB drivers. Used with picoprobe."
 
 Section "Pico environment" SecPico
 
@@ -318,7 +304,6 @@ LangString DESC_SecDocs `${LANG_ENGLISH} "Adds a script to download the latest P
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
   !insertmacro MUI_DESCRIPTION_TEXT `${SecCodeExts} `$(DESC_SecCodeExts)
   !insertmacro MUI_DESCRIPTION_TEXT `${SecOpenOCD} `$(DESC_SecOpenOCD)
-  !insertmacro MUI_DESCRIPTION_TEXT `${SecZadig} `$(DESC_SecZadig)
   !insertmacro MUI_DESCRIPTION_TEXT `${SecPico} `$(DESC_SecPico)
   !insertmacro MUI_DESCRIPTION_TEXT `${SecDocs} `$(DESC_SecDocs)
 $($installers | ForEach-Object {
@@ -332,26 +317,15 @@ Write-Host "Installer saved to $outfile"
 
 # Package OpenOCD separately as well
 
-$tempPath = '.\build\openocd-package'
-if (Test-Path $tempPath) {
-  Remove-Item $tempPath -Recurse -Force
-}
-mkdirp $tempPath
-
-# Copy openocd.exe and required DLLs to a temp dir so we can run it to
-# determine the version.
-Copy-Item ".\build\openocd-install\mingw$bitness\bin\openocd.exe" $tempPath
-Copy-Item ".\build\libusb\MinGW$bitness\dll\libusb-1.0.dll" $tempPath
-
-$version = (cmd /c "$tempPath\openocd.exe" --version '2>&1')[0]
+$version = (cmd /c ".\build\openocd-install\mingw$bitness\bin\openocd.exe" --version '2>&1')[0]
 if (-not ($version -match 'Open On-Chip Debugger (?<version>[a-zA-Z0-9\.\-+]+) \((?<timestamp>[0-9\-:]+)\)')) {
   Write-Error 'Could not determine openocd version'
 }
 
-$filename = 'openocd-picoprobe-{0}-{1}-{2}.zip' -f
+$filename = 'openocd-{0}-{1}-{2}.zip' -f
   ($Matches.version -replace '-dirty$', ''),
   ($Matches.timestamp -replace '[:-]', ''),
   $suffix
 
 Write-Host "Saving OpenOCD package to $filename"
-Compress-Archive "$tempPath\*", ".\build\openocd-install\mingw$bitness\share\openocd\scripts" "bin\$filename" -Force
+tar -a -cf "bin\$filename" -C "build\openocd-install\mingw$bitness\bin" * -C "..\share\openocd" "scripts"

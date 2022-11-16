@@ -94,18 +94,6 @@ function updateDownloadUrl {
       getGitHubReleaseAssetUrl 'msys2/msys2-installer' { $_.name -match "^msys2-base-x86_64-[0-9]+\.sfx\.exe`$" }
     }
 
-    'Zadig' {
-      $newName = 'zadig.exe'
-      $assetFilter = { $_.name -match "^zadig-([0-9]+\.)+[0-9]+\.exe`$" }
-      getGitHubReleaseAssetUrl 'pbatard/libwdi' $assetFilter { $_.assets | Where-Object $assetFilter }
-    }
-
-    'libusb' {
-      $newName = 'libusb.7z'
-      # Do not update libusb currently - 1.0.23 works but 1.0.24 crashes OpenOCD with picoprobe
-      # getGitHubReleaseAssetUrl 'libusb/libusb' { $_.name -match "^libusb-([0-9]+\.)+[0-9]+\.7z`$" }
-    }
-
     'vswhere' {
       $newName = 'vswhere.exe'
       getGitHubReleaseAssetUrl 'microsoft/vswhere' { $_.name -eq 'vswhere.exe' }

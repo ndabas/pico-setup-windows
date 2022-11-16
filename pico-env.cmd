@@ -33,10 +33,10 @@ for %%i in (sdk examples extras playground) do (
   )
 )
 
-if exist "%~dp0tools\openocd-picoprobe" (
-  echo OPENOCD_SCRIPTS=%~dp0tools\openocd-picoprobe\scripts
-  set "OPENOCD_SCRIPTS=%~dp0tools\openocd-picoprobe\scripts"
-  set "PATH=%~dp0tools\openocd-picoprobe;%PATH%"
+if exist "%~dp0tools\openocd" (
+  echo OPENOCD_SCRIPTS=%~dp0tools\openocd\scripts
+  set "OPENOCD_SCRIPTS=%~dp0tools\openocd\scripts"
+  set "PATH=%~dp0tools\openocd;%PATH%"
 )
 
 call :AddToPath "%ProgramFiles(x86)%\doxygen\bin"
