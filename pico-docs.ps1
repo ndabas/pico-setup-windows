@@ -6,7 +6,7 @@ $ProgressPreference = 'SilentlyContinue'
 
 [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 
-crawl 'https://www.raspberrypi.org/documentation/microcontrollers/raspberry-pi-pico.html' |
+crawl 'https://www.raspberrypi.com/documentation/microcontrollers/raspberry-pi-pico.html' |
   Sort-Object -Unique |
   Where-Object { ([uri]$_).Authority -match '\.raspberrypi.com$' } |
   ForEach-Object {
