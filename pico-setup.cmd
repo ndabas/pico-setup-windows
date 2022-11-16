@@ -57,6 +57,9 @@ for %%i in (picoprobe) do (
     set "REPO_URL=%GITHUB_PREFIX%%%i%GITHUB_SUFFIX%"
     echo Cloning !REPO_URL!
     git clone -b %SDK_BRANCH% !REPO_URL! || exit /b 1
+    pushd DEST
+    git submodule update --init
+    popd	
   )
 
   echo Building %%i
