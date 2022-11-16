@@ -6,13 +6,13 @@
       "name": "GNU Arm Embedded Toolchain",
       "file": "gcc-arm-none-eabi-10.3-2021.10-win32.exe",
       "exec": "\"$0\" /S /P /R",
-      "href": "https://developer.arm.com/-/media/Files/downloads/gnu-rm/10.3-2021.10/gcc-arm-none-eabi-10.3-2021.10-win32.exe"
+      "href": "https://developer.arm.com/-/media/Files/downloads/gnu-rm/10.3-2021.10/gcc-arm-none-eabi-10.3-2021.10-win32.exe?rev=29bb46cfa0434fbda93abb33c1d480e6&hash=B2C5AAE07841929A0D0BF460896D6E52"
     },
     {
       "name": "CMake",
-      "file": "cmake-3.20.6-windows-i386.msi",
+      "file": "cmake-3.25.0-windows-i386.msi",
       "exec": "msiexec /i \"$0\" /qn /norestart ADD_CMAKE_TO_PATH=System",
-      "href": "https://github.com/Kitware/CMake/releases/download/v3.20.6/cmake-3.20.6-windows-i386.msi"
+      "href": "https://github.com/Kitware/CMake/releases/download/v3.25.0/cmake-3.25.0-windows-i386.msi"
     },
     {
       "name": "Build Tools for Visual Studio 2019",
@@ -29,15 +29,15 @@
     },
     {
       "name": "Python 3.9",
-      "file": "python-3.9.8.exe",
+      "file": "python-3.9.13.exe",
       "exec": "\"$0\" /quiet InstallAllUsers=1 PrependPath=1",
-      "href": "https://www.python.org/ftp/python/3.9.8/python-3.9.8.exe"
+      "href": "https://www.python.org/ftp/python/3.9.13/python-3.9.13.exe"
     },
     {
       "name": "Git for Windows",
-      "file": "Git-2.33.1-32-bit.exe",
+      "file": "Git-2.38.1-32-bit.exe",
       "exec": "\"$0\" /VERYSILENT /NORESTART /NOCANCEL /SP- /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS /SKIPDOWNGRADE=1 \"/LOADINF=$PLUGINSDIR\\git.inf\"",
-      "href": "https://github.com/git-for-windows/git/releases/download/v2.33.1.windows.1/Git-2.33.1-32-bit.exe",
+      "href": "https://github.com/git-for-windows/git/releases/download/v2.38.1.windows.1/Git-2.38.1-32-bit.exe",
       "additionalFiles": [
         "git.inf"
       ]
@@ -50,15 +50,15 @@
     },
     {
       "name": "Doxygen",
-      "file": "doxygen-1.9.2-setup.exe",
+      "file": "doxygen-1.9.5-setup.exe",
       "exec": "\"$0\" /VERYSILENT /NORESTART /NOCANCEL /SP- /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS",
-      "href": "https://www.doxygen.nl/files/doxygen-1.9.2-setup.exe"
+      "href": "https://www.doxygen.nl/files/doxygen-1.9.5-setup.exe"
     },
     {
       "name": "Graphviz",
-      "file": "stable_windows_10_cmake_Release_Win32_graphviz-install-2.49.3-win32.exe",
+      "file": "windows_10_cmake_Release_graphviz-install-7.0.1-win32.exe",
       "exec": "\"$0\" /S",
-      "href": "https://gitlab.com/api/v4/projects/4207231/packages/generic/graphviz-releases/2.49.3/stable_windows_10_cmake_Release_Win32_graphviz-install-2.49.3-win32.exe"
+      "href": "https://gitlab.com/api/v4/projects/4207231/packages/generic/graphviz-releases/7.0.1/windows_10_cmake_Release_graphviz-install-7.0.1-win32.exe"
     }
   ]
 }
