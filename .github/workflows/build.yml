@@ -68,7 +68,7 @@ jobs:
       fail-fast: false
       matrix:
         bitness: ['x86', 'x64']
-        winver: ['2016', '2019']
+        winver: ['2019', '2022']
     steps:
 
       - name: Checkout
