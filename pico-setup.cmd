@@ -45,33 +45,6 @@ for %%i in (blink hello_world) do (
 
 popd
 
-rem Build picoprobe and picotool
-rem Not building picotool currently because we need to auto-install and
-rem configure libusb
-for %%i in (picoprobe) do (
-  set "DEST=%~dp0%%i"
-
-  if exist "!DEST!" (
-    echo !DEST! exists, skipping clone
-  ) else (
-    set "REPO_URL=%GITHUB_PREFIX%%%i%GITHUB_SUFFIX%"
-    echo Cloning !REPO_URL!
-    git clone -b %SDK_BRANCH% !REPO_URL! || exit /b 1
-    pushd "!DEST!"
-    git submodule update --init || exit /b 1
-    popd
-  )
-
-  echo Building %%i
-  mkdir %%i\build
-  pushd %%i\build
-
-  cmake -G "NMake Makefiles" .. || exit /b 1
-  nmake || exit /b 1
-
-  popd
-)
-
 if exist "%~dp0pico-docs.ps1" (
   echo Downloading Pico documents and files...
   powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "%~dp0pico-docs.ps1" || exit /b 1
