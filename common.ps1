@@ -19,9 +19,13 @@ function crawl {
 }
 
 function mkdirp {
-  param ([string] $dir)
+  param ([string] $dir, [switch] $clean)
 
   New-Item -Path $dir -Type Directory -Force | Out-Null
+
+  if ($clean) {
+    Remove-Item -Path "$dir\*" -Recurse -Force
+  }
 }
 
 function exec {

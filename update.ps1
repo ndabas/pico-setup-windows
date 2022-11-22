@@ -33,28 +33,50 @@ function updateDownloadUrl {
   [uri]$newUrl = switch ($Download.name) {
 
     'GNU Arm Embedded Toolchain' {
+      $ext = $Download.file -match '\.exe$' ? 'exe' : 'zip'
+
       crawl 'https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm/downloads' |
-        Where-Object { $_ -match "-win32\.exe" } | # There is no 64-bit build for Windows currently
+        Where-Object { $_ -match "-win32\.$ext" } | # There is no 64-bit build for Windows currently
         Select-Object -First 1
     }
 
     'CMake' {
       $suffix = $Config.bitness -eq 64 ? 'x86_64' : 'i386'
+      $ext = $Download.file -match '\.msi$' ? "msi" : "zip"
 
       # CMake does not mark prereleases as such, so we filter based on the tag
-      getGitHubReleaseAssetUrl 'Kitware/CMake' { $_.name -match "windows-$suffix\.msi`$" } { $_.tag_name -match '^v([0-9]+\.)+[0-9]$' }
+      getGitHubReleaseAssetUrl 'Kitware/CMake' { $_.name -match "windows-$suffix\.$ext`$" } { $_.tag_name -match '^v([0-9]+\.)+[0-9]$' }
+    }
+
+    'Ninja' {
+      $newName = 'ninja-win.zip'
+      getGitHubReleaseAssetUrl 'ninja-build/ninja' { $_.name -eq 'ninja-win.zip' }
     }
 
     'Python 3.9' {
-      $suffix = $Config.bitness -eq 64 ? '-amd64' : ''
+      $suffix = ''
+
+      if ($Download.file -match '\.exe$') {
+        $suffix = $Config.bitness -eq 64 ? '-amd64\.exe' : '\.exe'
+      } else {
+        $suffix = $Config.bitness -eq 64 ? '-embed-amd64\.zip' : '-embed-win32\.zip'
+      }
 
       crawl 'https://www.python.org/downloads/windows/' |
-        Where-Object { $_ -match "python-3\.9\.[0-9]+$suffix\.exe`$" } |
+        Where-Object { $_ -match "python-3\.9\.[0-9]+$suffix`$" } |
         Select-Object -First 1
     }
 
     'Git for Windows' {
-      getGitHubReleaseAssetUrl 'git-for-windows/git' { $_.name -match "^Git-([0-9]+\.)+[0-9]+-$($Config.bitness)-bit\.exe`$" }
+      $prefix = ''
+      $ext = 'exe'
+
+      if ($Download.file -match '\.zip$') {
+        $prefix = 'Min'
+        $ext = 'zip'
+      }
+
+      getGitHubReleaseAssetUrl 'git-for-windows/git' { $_.name -match "^${prefix}Git-([0-9]+\.)+[0-9]+-$($Config.bitness)-bit\.$ext`$" }
     }
 
     'Doxygen' {
@@ -112,10 +134,10 @@ function updateDownloadUrl {
   }
 }
 
-foreach ($arch in @('x86.json', 'x64.json')) {
+foreach ($arch in @('x86.json', 'x64.json', 'x64-standalone.json')) {
   $config = Get-Content $arch | ConvertFrom-Json
 
-  foreach ($i in $config.installers) {
+  foreach ($i in $config.downloads) {
     updateDownloadUrl $i $config
   }
 

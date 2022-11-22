@@ -28,26 +28,33 @@ Write-Host "Building from $ConfigFile"
 $basename = "pico-setup-windows"
 $version = (Get-Content "$PSScriptRoot\version.txt").Trim()
 $suffix = [io.path]::GetFileNameWithoutExtension($ConfigFile)
-$outfile = "bin\$basename-$version-$suffix.exe"
+$binfile = "bin\$basename-$version-$suffix.exe"
 
 $tools = (Get-Content '.\tools.json' | ConvertFrom-Json).tools
+$repositories = (Get-Content '.\repositories.json' | ConvertFrom-Json).repositories
 $config = Get-Content $ConfigFile | ConvertFrom-Json
 $bitness = $config.bitness
 $mingw_arch = $config.mingw_arch
-$installers = $config.installers
+$downloads = $config.downloads
 
-($installers + $tools) | ForEach-Object {
+$product = "Raspberry Pi Pico SDK $version"
+
+mkdirp "build"
+mkdirp "bin"
+
+($downloads + $tools) | ForEach-Object {
   $_ | Add-Member -NotePropertyName 'shortName' -NotePropertyValue ($_.name -replace '[^a-zA-Z0-9]', '')
+  $outfile = "downloads/$($_.file)"
 
   if ($SkipDownload) {
     Write-Host "Checking $($_.name): " -NoNewline
-    if (-not (Test-Path "installers/$($_.file)")) {
-      Write-Error "installers/$($_.file) not found"
+    if (-not (Test-Path $outfile)) {
+      Write-Error "$outfile not found"
     }
   }
   else {
     Write-Host "Downloading $($_.name): " -NoNewline
-    exec { curl.exe --fail --silent --show-error --url "$($_.href)" --location --output "installers/$($_.file)" --create-dirs --remote-time --time-cond "installers/$($_.file)" }
+    exec { curl.exe --fail --silent --show-error --url "$($_.href)" --location --output "$outfile" --create-dirs --remote-time --time-cond "downloads/$($_.file)" }
   }
 
   # Display versions of packaged installers, for information only. We try to
@@ -58,34 +65,59 @@ $installers = $config.installers
   #
   # This fails for MSYS2, because there is no version number (only a timestamp)
   # and the version that gets reported is 7-zip SFX version.
-  $version = ''
+  $fileVersion = ''
   $versionRegEx = '([0-9]+\.)+[0-9]+'
   if ($_.file -match $versionRegEx -or $_.href -match $versionRegEx) {
-    $version = $Matches[0]
+    $fileVersion = $Matches[0]
   } else {
-    $version = (Get-ChildItem ".\installers\$($_.file)").VersionInfo.ProductVersion
+    $fileVersion = (Get-ChildItem $outfile).VersionInfo.ProductVersion
   }
 
-  if ($version) {
-    Write-Host $version
+  if ($fileVersion) {
+    Write-Host $fileVersion
   } else {
     Write-Host $_.file
   }
+
+  if ($_ | Get-Member prebuild) {
+    $0 = $outfile
+    Invoke-Expression $_.prebuild
+  }
 }
 
-mkdirp "build"
-mkdirp "bin"
+$repositories | ForEach-Object {
+  $repodir = Join-Path 'build' ([IO.Path]::GetFileNameWithoutExtension($_.href))
+
+  if ($SkipDownload) {
+    Write-Host "Checking ${repodir}: " -NoNewline
+    if (-not (Test-Path $repodir)) {
+      Write-Error "$repodir not found"
+    }
+    exec { git -C "$repodir" describe --all }
+  }
+  else {
+    if (Test-Path $repodir) {
+      Remove-Item $repodir -Recurse -Force
+    }
+
+    exec { git clone -b "$($_.tree)" --depth=1 -c advice.detachedHead=false "$($_.href)" "$repodir" }
+
+    if ($_ | Get-Member submodules) {
+      exec { git -C "$repodir" submodule update --init --depth=1 }
+    }
+  }
+}
 
 if (-not (Test-Path $MSYS2Path)) {
   Write-Host 'Extracting MSYS2'
-  exec { & .\installers\msys2.exe -y "-o$(Resolve-Path (Split-Path $MSYS2Path -Parent))" }
+  exec { & .\downloads\msys2.exe -y "-o$(Resolve-Path (Split-Path $MSYS2Path -Parent))" }
 }
 
 if (-not (Test-Path build\NSIS)) {
   Write-Host 'Extracting NSIS'
-  Expand-Archive '.\installers\nsis.zip' -DestinationPath '.\build'
+  Expand-Archive '.\downloads\nsis.zip' -DestinationPath '.\build'
   Rename-Item (Resolve-Path '.\build\nsis-*').Path 'NSIS'
-  Expand-Archive '.\installers\nsis-log.zip' -DestinationPath '.\build\NSIS' -Force
+  Expand-Archive '.\downloads\nsis-log.zip' -DestinationPath '.\build\NSIS' -Force
 }
 
 function msys {
@@ -99,7 +131,7 @@ $env:CHERE_INVOKING = 'yes'
 # Start MINGW32/64 environment
 $env:MSYSTEM = "MINGW$bitness"
 
-if (-not (Test-Path ".\build\openocd-install\mingw$bitness")) {
+if (-not $SkipDownload) {
   # First run setup
   msys 'uname -a'
   # Core update
@@ -107,21 +139,29 @@ if (-not (Test-Path ".\build\openocd-install\mingw$bitness")) {
   # Normal update
   msys 'pacman --noconfirm -Suu'
 
-  msys "pacman -S --noconfirm --needed autoconf automake git libtool make mingw-w64-${mingw_arch}-toolchain mingw-w64-${mingw_arch}-libusb mingw-w64-${mingw_arch}-hidapi p7zip pkg-config wget"
+  msys "pacman -S --noconfirm --needed autoconf automake mingw-w64-${mingw_arch}-cmake git libtool make mingw-w64-${mingw_arch}-ninja mingw-w64-${mingw_arch}-toolchain mingw-w64-${mingw_arch}-libusb mingw-w64-${mingw_arch}-hidapi pkg-config wget"
+}
 
-  # Keep it clean
-  if (Test-Path .\build\openocd) {
-    Remove-Item .\build\openocd -Recurse -Force
-  }
-
+if (-not (Test-Path ".\build\openocd-install\mingw$bitness")) {
   msys "cd build && ../build-openocd.sh $bitness $mingw_arch"
+}
+
+if (-not (Test-Path ".\build\picotool-install\mingw$bitness")) {
+  msys "cd build && ../build-picotool.sh $bitness $mingw_arch"
 }
 
 @"
 !include "MUI2.nsh"
 !include "WordFunc.nsh"
 
-!define TITLE "Pico setup for Windows"
+!define TITLE "$product"
+!define PICO_INSTALL_DIR "`$PROGRAMFILES64\$product"
+; The repos need to be cloned into a dir with a fairly short name, because
+; CMake generates build defs with long hashes in the paths. Both CMake and
+; Ninja currently have problems working with long paths on Windows.
+; !define PICO_REPOS_DIR "`$LOCALAPPDATA\Programs\$product"
+!define PICO_REPOS_DIR "`$DOCUMENTS\Pico"
+!define PICO_SHORTCUTS_DIR "`$SMPROGRAMS\$product"
 
 Name "`${TITLE}"
 Caption "`${TITLE}"
@@ -134,16 +174,16 @@ VIAddVersionKey "LegalCopyright" ""
 VIFileVersion $version.0
 VIProductVersion $version.0
 
-OutFile "$outfile"
+OutFile "$binfile"
 Unicode True
 
 ; Since we're packaging up a bunch of installers, the "Space required" shown is inaccurate
 SpaceTexts "none"
 
-InstallDir "`$DOCUMENTS\Pico"
+InstallDir "`${PICO_INSTALL_DIR}"
 
 ;Get installation folder from registry if available
-InstallDirRegKey HKCU "Software\$basename" ""
+InstallDirRegKey HKCU "Software\$basename" "InstallPath"
 
 !define MUI_ABORTWARNING
 
@@ -155,14 +195,14 @@ InstallDirRegKey HKCU "Software\$basename" ""
 !define MUI_FINISHPAGE_RUN
 !define MUI_FINISHPAGE_RUN_FUNCTION RunBuild
 
-!define MUI_FINISHPAGE_SHOWREADME "`$INSTDIR\ReadMe.txt"
+!define MUI_FINISHPAGE_SHOWREADME "`${PICO_REPOS_DIR}\ReadMe.txt"
 !define MUI_FINISHPAGE_SHOWREADME_TEXT "Show ReadMe"
 
 !define MUI_FINISHPAGE_NOAUTOCLOSE
 
 !insertmacro MUI_PAGE_WELCOME
 ;!insertmacro MUI_PAGE_LICENSE "`${NSISDIR}\Docs\Modern UI\License.txt"
-!insertmacro MUI_PAGE_COMPONENTS
+;!insertmacro MUI_PAGE_COMPONENTS
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_PAGE_FINISH
@@ -195,9 +235,17 @@ Section
   InitPluginsDir
   File /oname=`$TEMP\RefreshEnv.cmd RefreshEnv.cmd
 
+  WriteRegStr HKCU "Software\$basename" "InstallPath" "`$INSTDIR"
+  WriteRegStr HKCU "Software\$basename\v$version" "InstallPath" "`$INSTDIR"
+
+  CreateDirectory "`${PICO_REPOS_DIR}"
+  CreateDirectory "`${PICO_SHORTCUTS_DIR}"
+
+  File /r resources
+
 SectionEnd
 
-$($installers | ForEach-Object {
+$($downloads | ForEach-Object {
 @"
 
 Section "$($_.name)" Sec$($_.shortName)
@@ -210,23 +258,32 @@ Section "$($_.name)" Sec$($_.shortName)
     }
   })
 
-  SetOutPath "`$TEMP"
-  File "installers\$($_.file)"
-  StrCpy `$0 "`$TEMP\$($_.file)"
-  ExecWait '$($_.exec)' `$1
-  DetailPrint "$($_.name) returned `$1"
-  Delete /REBOOTOK "`$0"
+  $(if ($_ | Get-Member exec) {
+@"
+    SetOutPath "`$TEMP"
+    File "downloads\$($_.file)"
+    StrCpy `$0 "`$TEMP\$($_.file)"
+    ExecWait '$($_.exec)' `$1
+    DetailPrint "$($_.name) returned `$1"
+    Delete /REBOOTOK "`$0"
 
-  `${If} `${Errors}
-    Abort "Installation of $($_.name) failed"
-  $(if ($_ | Get-Member rebootExitCodes) {
-    $_.rebootExitCodes | ForEach-Object {
-      "`${ElseIf} `$1 = $_`r`n    SetRebootFlag true"
-    }
+    `${If} `${Errors}
+      Abort "Installation of $($_.name) failed"
+    $(if ($_ | Get-Member rebootExitCodes) {
+      $_.rebootExitCodes | ForEach-Object {
+        "`${ElseIf} `$1 = $_`r`n    SetRebootFlag true"
+      }
+    })
+    `${ElseIf} `$1 <> 0
+      Abort "Installation of $($_.name) failed"
+    `${EndIf}
+"@
   })
-  `${ElseIf} `$1 <> 0
-    Abort "Installation of $($_.name) failed"
-  `${EndIf}
+
+  $(if ($_ | Get-Member copy) {
+    "SetOutPath '`$INSTDIR'`r`n"
+    "File $($_.copy)"
+  })
 
 SectionEnd
 
@@ -244,6 +301,8 @@ Section "VS Code Extensions" SecCodeExts
   Pop `$1
   nsExec::ExecToLog '"`$0" /c call "`$TEMP\RefreshEnv.cmd" && code --install-extension ms-vscode.cpptools'
   Pop `$1
+  nsExec::ExecToLog '"`$0" /c call "`$TEMP\RefreshEnv.cmd" && code --install-extension ms-vscode.cpptools-extension-pack'
+  Pop `$1
 
 SectionEnd
 
@@ -251,9 +310,9 @@ LangString DESC_SecCodeExts `${LANG_ENGLISH} "Recommended extensions for Visual 
 
 Section "OpenOCD" SecOpenOCD
 
-  SetOutPath "`$INSTDIR\tools\openocd"
+  SetOutPath "`$INSTDIR\openocd"
   File "build\openocd-install\mingw$bitness\bin\*.*"
-  SetOutPath "`$INSTDIR\tools\openocd\scripts"
+  SetOutPath "`$INSTDIR\openocd\scripts"
   File /r "build\openocd-install\mingw$bitness\share\openocd\scripts\*.*"
 
 SectionEnd
@@ -262,23 +321,45 @@ LangString DESC_SecOpenOCD `${LANG_ENGLISH} "Open On-Chip Debugger with picoprob
 
 Section "Pico environment" SecPico
 
-  SetOutPath "`$INSTDIR"
+  SetOutPath "`${PICO_REPOS_DIR}\pico-sdk"
+  File /r "build\pico-sdk\*.*"
+
+  SetOutPath "`${PICO_REPOS_DIR}\pico-examples"
+  File /r "build\pico-examples\*.*"
+  SetOutPath "`${PICO_REPOS_DIR}\pico-examples\.vscode"
+  File /oname=launch.json "packages\pico-examples\vscode-launch.json"
+
+  SetOutPath "`$INSTDIR\pico-sdk-tools"
+  File "build\pico-sdk-tools\mingw$bitness\*.*"
+  WriteRegStr HKCU "Software\Kitware\CMake\Packages\pico-sdk-tools" "v$version" "`$INSTDIR\pico-sdk-tools"
+
+  SetOutPath "`$INSTDIR\picotool"
+  File "build\picotool-install\mingw$bitness\*.*"
+
+  SetOutPath "`${PICO_REPOS_DIR}"
+  File "version.txt"
   File "pico-env.cmd"
   File "pico-setup.cmd"
   File "docs\ReadMe.txt"
 
-  CreateShortcut "`$INSTDIR\Developer Command Prompt for Pico.lnk" "cmd.exe" '/k "`$INSTDIR\pico-env.cmd"'
+  CreateShortcut "`${PICO_SHORTCUTS_DIR}\Developer Command Prompt for Pico.lnk" "cmd.exe" '/k "`${PICO_REPOS_DIR}\pico-env.cmd"'
+
+  CreateShortcut "`${PICO_SHORTCUTS_DIR}\Open pico-examples in Visual Studio Code.lnk" "cmd.exe" '/c (call "`${PICO_REPOS_DIR}\pico-env.cmd" && code --disable-workspace-trust "`${PICO_REPOS_DIR}\pico-examples") || pause' "`$INSTDIR\resources\vscode.ico"
+
+  WriteINIStr "`${PICO_SHORTCUTS_DIR}\Raspberry Pi microcontrollers documentation.url" "InternetShortcut" "URL" "https://www.raspberrypi.com/documentation/microcontrollers/"
+
+  WriteINIStr "`${PICO_SHORTCUTS_DIR}\Raspberry Pi Pico C-C++ SDK documentation.url" "InternetShortcut" "URL" "https://www.raspberrypi.com/documentation/microcontrollers/c_sdk.html"
 
   ; Unconditionally create a shortcut for VS Code -- in case the user had it
   ; installed already, or if they install it later
-  CreateShortcut "`$INSTDIR\Visual Studio Code for Pico.lnk" "cmd.exe" '/c (call "`$INSTDIR\pico-env.cmd" && code) || pause'
+  CreateShortcut "`${PICO_SHORTCUTS_DIR}\Visual Studio Code for Pico.lnk" "cmd.exe" '/c (call "`${PICO_REPOS_DIR}\pico-env.cmd" && code) || pause' "`$INSTDIR\resources\vscode.ico"
 
   ; SetOutPath is needed here to set the working directory for the shortcut
   SetOutPath "`$INSTDIR\pico-project-generator"
-  CreateShortcut "`$INSTDIR\Pico Project Generator.lnk" "cmd.exe" '/c (call "`$INSTDIR\pico-env.cmd" && python "`$INSTDIR\pico-project-generator\pico_project.py" --gui) || pause'
+  CreateShortcut "`${PICO_SHORTCUTS_DIR}\Pico Project Generator.lnk" "cmd.exe" '/c (call "`${PICO_REPOS_DIR}\pico-env.cmd" && python "`${PICO_REPOS_DIR}\pico-project-generator\pico_project.py" --gui) || pause'
 
   ; Reset working dir for pico-setup.cmd launched from the finish page
-  SetOutPath "`$INSTDIR"
+  SetOutPath "`${PICO_REPOS_DIR}"
 
 SectionEnd
 
@@ -295,7 +376,7 @@ SectionEnd
 Function RunBuild
 
   ReadEnvStr `$0 COMSPEC
-  Exec '"`$0" /k call "`$TEMP\RefreshEnv.cmd" && del "`$TEMP\RefreshEnv.cmd" && call "`$INSTDIR\pico-setup.cmd" 1'
+  Exec '"`$0" /k call "`$TEMP\RefreshEnv.cmd" && del "`$TEMP\RefreshEnv.cmd" && call "`${PICO_REPOS_DIR}\pico-setup.cmd" 1'
 
 FunctionEnd
 
@@ -306,14 +387,14 @@ LangString DESC_SecDocs `${LANG_ENGLISH} "Adds a script to download the latest P
   !insertmacro MUI_DESCRIPTION_TEXT `${SecOpenOCD} `$(DESC_SecOpenOCD)
   !insertmacro MUI_DESCRIPTION_TEXT `${SecPico} `$(DESC_SecPico)
   !insertmacro MUI_DESCRIPTION_TEXT `${SecDocs} `$(DESC_SecDocs)
-$($installers | ForEach-Object {
+$($downloads | ForEach-Object {
   "  !insertmacro MUI_DESCRIPTION_TEXT `${Sec$($_.shortName)} `$(DESC_Sec$($_.shortName))`n"
 })
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 "@ | Set-Content ".\$basename-$suffix.nsi"
 
 exec { .\build\NSIS\makensis ".\$basename-$suffix.nsi" }
-Write-Host "Installer saved to $outfile"
+Write-Host "Installer saved to $binfile"
 
 # Package OpenOCD separately as well
 
@@ -328,4 +409,4 @@ $filename = 'openocd-{0}-{1}-{2}.zip' -f
   $suffix
 
 Write-Host "Saving OpenOCD package to $filename"
-tar -a -cf "bin\$filename" -C "build\openocd-install\mingw$bitness\bin" * -C "..\share\openocd" "scripts"
+exec { tar -a -cf "bin\$filename" -C "build\openocd-install\mingw$bitness\bin" * -C "..\share\openocd" "scripts" }

@@ -1,11 +1,11 @@
 param (
   [ValidateNotNullOrEmpty()]
   [string]
-  $VSInstallerPath = '.\installers\vs_BuildTools.exe',
+  $VSInstallerPath = '.\downloads\vs_BuildTools.exe',
 
   [ValidateNotNullOrEmpty()]
   [string]
-  $VSWherePath = '.\installers\vswhere.exe'
+  $VSWherePath = '.\downloads\vswhere.exe'
 )
 
 Set-StrictMode -Version Latest

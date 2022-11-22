@@ -1,5 +1,5 @@
-# Downloaded installers
-installers/
+# Downloaded files
+downloads/
 
 # Generated NSIS scripts
 *.nsi
@@ -7,5 +7,5 @@ installers/
 # Built installers
 bin/
 
-# Build tools
+# Builds/staging
 build/

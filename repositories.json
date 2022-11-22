@@ -1,0 +1,21 @@
+{
+  "repositories": [
+    {
+      "href": "https://github.com/ndabas/pico-sdk.git",
+      "tree": "master",
+      "submodules": true
+    },
+    {
+      "href": "https://github.com/raspberrypi/pico-examples.git",
+      "tree": "sdk-1.4.0"
+    },
+    {
+      "href": "https://github.com/raspberrypi/picotool.git",
+      "tree": "1.1.0"
+    },
+    {
+      "href": "https://github.com/openocd-org/openocd.git",
+      "tree": "v0.12.0-rc2"
+    }
+  ]
+}

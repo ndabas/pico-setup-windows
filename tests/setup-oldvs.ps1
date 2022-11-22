@@ -12,11 +12,11 @@ $href = "https://download.visualstudio.microsoft.com/download/pr/755cef87-e337-4
 $file = "vs_BuildTools.exe"
 
 Write-Host "Downloading $file"
-exec { curl.exe --fail --silent --show-error --url $href --location --output "installers/$file" --create-dirs }
+exec { curl.exe --fail --silent --show-error --url $href --location --output "downloads/$file" --create-dirs }
 
 Write-Host "Starting $file"
 $process = $null
-$elapsed = Measure-Command { $process = Start-Process -FilePath ".\installers\$file" -ArgumentList '--add Microsoft.VisualStudio.Workload.DataBuildTools --quiet --wait --norestart' -Wait -PassThru }
+$elapsed = Measure-Command { $process = Start-Process -FilePath ".\downloads\$file" -ArgumentList '--add Microsoft.VisualStudio.Workload.DataBuildTools --quiet --wait --norestart' -Wait -PassThru }
 Write-Host ("Finished in {0:hh':'mm':'ss}" -f $elapsed)
 
 if ($process.ExitCode -ne 0) {

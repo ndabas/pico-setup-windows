@@ -24,6 +24,31 @@ goto main
 
 :main
 
+pushd "%~dp0"
+
+for /f %%i in (version.txt) do (
+  echo PICO_INSTALL_VERSION=%%i
+  set "PICO_INSTALL_VERSION=%%i"
+)
+
+if not defined PICO_INSTALL_VERSION (
+  echo ERROR: Unable to determine Pico installer version.
+  set /a errors += 1
+)
+
+rem https://stackoverflow.com/questions/22352793/reading-a-registry-value-to-a-batch-variable-handling-spaces-in-value
+for /f "usebackq skip=1 tokens=2,*" %%h in (
+  `reg query "HKCU\Software\pico-setup-windows\v%PICO_INSTALL_VERSION%" /v "InstallPath"`
+  ) do (
+  echo PICO_INSTALL_PATH=%%i
+  set "PICO_INSTALL_PATH=%%i"
+)
+
+if not defined PICO_INSTALL_PATH (
+  echo ERROR: Unable to determine Pico install path.
+  set /a errors += 1
+)
+
 for %%i in (sdk examples extras playground) do (
   rem Environment variables in Windows aren't case-sensitive, so we don't need
   rem to bother with uppercasing the env var name.
@@ -33,35 +58,43 @@ for %%i in (sdk examples extras playground) do (
   )
 )
 
-if exist "%~dp0tools\openocd" (
-  echo OPENOCD_SCRIPTS=%~dp0tools\openocd\scripts
-  set "OPENOCD_SCRIPTS=%~dp0tools\openocd\scripts"
-  set "PATH=%~dp0tools\openocd;%PATH%"
+popd
+
+if exist "%PICO_INSTALL_PATH%\openocd" (
+  echo OPENOCD_SCRIPTS=%PICO_INSTALL_PATH%\openocd\scripts
+  set "OPENOCD_SCRIPTS=%PICO_INSTALL_PATH%\openocd\scripts"
+  set "PATH=%PICO_INSTALL_PATH%\openocd;%PATH%"
 )
 
-call :AddToPath "%ProgramFiles(x86)%\doxygen\bin"
-call :AddToPath "%ProgramFiles%\doxygen\bin"
-call :AddToPath "%ProgramW6432%\doxygen\bin"
-
-call :AddToPath "%ProgramFiles(x86)%\Graphviz\bin"
-call :AddToPath "%ProgramFiles%\Graphviz\bin"
-call :AddToPath "%ProgramW6432%\Graphviz\bin"
-
-call :AddToPath "%ProgramFiles(x86)%\Microsoft Visual Studio\Installer"
-call :AddToPath "%ProgramFiles%\Microsoft Visual Studio\Installer"
-
-rem https://github.com/microsoft/vswhere/wiki/Start-Developer-Command-Prompt
-
-for /f "usebackq delims=" %%i in (`vswhere.exe -products * -requires "Microsoft.VisualStudio.Component.VC.Tools.x86.x64" -latest -property installationPath`) do (
-  if exist "%%i\Common7\Tools\vsdevcmd.bat" (
-    call "%%i\Common7\Tools\vsdevcmd.bat"
-  )
-)
+call :AddToPath "%PICO_INSTALL_PATH%\cmake\bin"
+call :AddToPath "%PICO_INSTALL_PATH%\gcc-arm-none-eabi\bin"
+call :AddToPath "%PICO_INSTALL_PATH%\ninja"
+call :AddToPath "%PICO_INSTALL_PATH%\python"
+call :AddToPath "%PICO_INSTALL_PATH%\git\cmd"
+call :AddToPath "%PICO_INSTALL_PATH%\pico-sdk-tools"
+call :AddToPath "%PICO_INSTALL_PATH%\picotool"
 
 call :VerifyExe "GNU Arm Embedded Toolchain" "arm-none-eabi-gcc --version"
 call :VerifyExe "CMake" "cmake --version"
-call :VerifyExe "Visual Studio" "cl"
+call :VerifyExe "Ninja" "ninja --version"
 call :VerifyExe "Python 3" "python --version"
 call :VerifyExe "Git" "git --version"
+
+rem We need Visual Studio Build Tools to compile pioasm and elf2uf2, but only
+rem if we do not have pre-compiled versions available.
+if not exist "%PICO_INSTALL_PATH%\pico-sdk-tools" (
+  call :AddToPath "%ProgramFiles(x86)%\Microsoft Visual Studio\Installer"
+  call :AddToPath "%ProgramFiles%\Microsoft Visual Studio\Installer"
+
+  rem https://github.com/microsoft/vswhere/wiki/Start-Developer-Command-Prompt
+
+  for /f "usebackq delims=" %%i in (`vswhere.exe -products * -requires "Microsoft.VisualStudio.Component.VC.Tools.x86.x64" -latest -property installationPath`) do (
+    if exist "%%i\Common7\Tools\vsdevcmd.bat" (
+      call "%%i\Common7\Tools\vsdevcmd.bat"
+    )
+  )
+
+  call :VerifyExe "Visual Studio" "cl"
+)
 
 exit /b %errors%

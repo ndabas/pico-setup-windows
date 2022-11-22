@@ -34,13 +34,11 @@ for %%i in (sdk examples extras playground project-generator) do (
 rem Build a couple of examples
 mkdir "%~dp0pico-examples\build"
 pushd "%~dp0pico-examples\build"
-cmake -G "NMake Makefiles" .. -DCMAKE_BUILD_TYPE=Debug || exit /b 1
+cmake -G Ninja .. -DCMAKE_BUILD_TYPE=Debug --fresh || exit /b 1
 
-for %%i in (blink hello_world) do (
+for %%i in (blink "hello_world/all") do (
   echo Building %%i
-  pushd %%i
-  nmake || exit /b 1
-  popd
+  ninja "%%i" || exit /b 1
 )
 
 popd
