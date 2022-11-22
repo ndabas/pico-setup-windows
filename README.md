@@ -14,13 +14,11 @@ The installers attempt to install the required tools silently, without user inte
 
 - [GNU Arm Embedded Toolchain](https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm/downloads) - the official guide refers to this as "ARM GCC Compiler"
 - [CMake](https://cmake.org/download/)
-- [Build Tools for Visual Studio 2019](https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2019)
+- [Ninja](https://github.com/ninja-build/ninja/releases)
 - [Python 3.9](https://www.python.org/downloads/windows/)
 - [Git for Windows](https://git-scm.com/download/win)
 - [Visual Studio Code](https://code.visualstudio.com/)
-- [OpenOCD with picoprobe support](https://github.com/raspberrypi/openocd)
-- [Doxygen](https://www.doxygen.nl/download.html)
-- [Graphviz](https://graphviz.org/download/)
+- [OpenOCD](https://github.com/openocd-org/openocd/)
 
 # Building
 

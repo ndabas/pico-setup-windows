@@ -91,29 +91,3 @@ jobs:
         with:
           name: Installer-Logs-Windows-${{ matrix.winver }}-${{ matrix.bitness }}
           path: logs/
-
-  Test-Installer-ExistingVS:
-    runs-on: windows-2019
-    needs: Build
-    steps:
-
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      - name: Download installer artifact
-        uses: actions/download-artifact@v2
-        with:
-          name: Package-x64
-          path: bin
-
-      - name: Test installer
-        shell: pwsh
-        run: docker run --rm -v "$(Get-Location):C:\repo" mcr.microsoft.com/windows/servercore:ltsc2019
-          powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "cd C:\repo; .\tests\setup-oldvs.ps1; .\tests\setup.ps1"
-
-      - name: Upload installer logs
-        uses: actions/upload-artifact@v2
-        if: ${{ always() }}
-        with:
-          name: Installer-Logs-Windows-2019-x64-ExistingVS
-          path: logs/

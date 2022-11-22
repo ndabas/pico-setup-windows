@@ -1,7 +1,7 @@
 {
   "bitness": 32,
   "mingw_arch": "i686",
-  "installers": [
+  "downloads": [
     {
       "name": "GNU Arm Embedded Toolchain",
       "file": "gcc-arm-none-eabi-10.3-2021.10-win32.exe",
@@ -13,19 +13,6 @@
       "file": "cmake-3.25.0-windows-i386.msi",
       "exec": "msiexec /i \"$0\" /qn /norestart ADD_CMAKE_TO_PATH=System",
       "href": "https://github.com/Kitware/CMake/releases/download/v3.25.0/cmake-3.25.0-windows-i386.msi"
-    },
-    {
-      "name": "Build Tools for Visual Studio 2019",
-      "file": "vs_BuildTools.exe",
-      "exec": "powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Minimized -File \"$PLUGINSDIR\\vssetup.ps1\" -VSInstallerPath \"$0\" -VSWherePath \"$PLUGINSDIR\\vswhere.exe\"",
-      "href": "https://aka.ms/vs/16/release/vs_buildtools.exe",
-      "additionalFiles": [
-        "installers\\vswhere.exe",
-        "vssetup.ps1"
-      ],
-      "rebootExitCodes": [
-        3010
-      ]
     },
     {
       "name": "Python 3.9",
@@ -47,18 +34,6 @@
       "file": "VSCodeUserSetup-ia32.exe",
       "exec": "\"$0\" /VERYSILENT /NORESTART /NOCANCEL /SP- /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS /MERGETASKS=!runcode",
       "href": "https://code.visualstudio.com/sha/download?build=stable&os=win32-user"
-    },
-    {
-      "name": "Doxygen",
-      "file": "doxygen-1.9.5-setup.exe",
-      "exec": "\"$0\" /VERYSILENT /NORESTART /NOCANCEL /SP- /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS",
-      "href": "https://www.doxygen.nl/files/doxygen-1.9.5-setup.exe"
-    },
-    {
-      "name": "Graphviz",
-      "file": "windows_10_cmake_Release_graphviz-install-7.0.1-win32.exe",
-      "exec": "\"$0\" /S",
-      "href": "https://gitlab.com/api/v4/projects/4207231/packages/generic/graphviz-releases/7.0.1/windows_10_cmake_Release_graphviz-install-7.0.1-win32.exe"
     }
   ]
 }
