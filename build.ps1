@@ -37,8 +37,6 @@ $bitness = $config.bitness
 $mingw_arch = $config.mingw_arch
 $downloads = $config.downloads
 
-$product = "Raspberry Pi Pico SDK $version"
-
 mkdirp "build"
 mkdirp "bin"
 
@@ -84,6 +82,9 @@ mkdirp "bin"
     Invoke-Expression $_.prebuild
   }
 }
+
+$sdkVersion = (.\build\cmake\bin\cmake.exe -P .\packages\pico-setup-windows\pico-sdk-version.cmake -N | Select-String -Pattern '([0-9]+\.)+[0-9]+').Matches.Value
+$product = "Raspberry Pi Pico SDK $sdkVersion"
 
 $repositories | ForEach-Object {
   $repodir = Join-Path 'build' ([IO.Path]::GetFileNameWithoutExtension($_.href))
@@ -328,6 +329,7 @@ Section "Pico environment" SecPico
   File /r "build\pico-examples\*.*"
   SetOutPath "`${PICO_REPOS_DIR}\pico-examples\.vscode"
   File /oname=launch.json "packages\pico-examples\vscode-launch.json"
+  File "build\pico-examples\ide\vscode\settings.json"
 
   SetOutPath "`$INSTDIR\pico-sdk-tools"
   File "build\pico-sdk-tools\mingw$bitness\*.*"
