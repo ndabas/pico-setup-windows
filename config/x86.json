@@ -26,7 +26,7 @@
       "exec": "\"$0\" /VERYSILENT /NORESTART /NOCANCEL /SP- /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS /SKIPDOWNGRADE=1 \"/LOADINF=$PLUGINSDIR\\git.inf\"",
       "href": "https://github.com/git-for-windows/git/releases/download/v2.38.1.windows.1/Git-2.38.1-32-bit.exe",
       "additionalFiles": [
-        "git.inf"
+        "packages\\pico-setup-windows\\git.inf"
       ]
     },
     {

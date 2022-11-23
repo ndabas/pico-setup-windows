@@ -53,7 +53,7 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $ProgressPreference = 'SilentlyContinue'
 
-          .\build.ps1 .\${{ matrix.bitness }}.json -MSYS2Path C:\msys64
+          .\build.ps1 .\config\${{ matrix.bitness }}.json -MSYS2Path C:\msys64
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v2

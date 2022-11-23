@@ -33,8 +33,8 @@ It is highly recommended to use a dedicated copy of MSYS2 for this build.
 To build:
 
 ```powershell
-.\build.ps1 .\x64.json -MSYS2Path ~\Downloads\msys64
-.\build.ps1 .\x86.json -MSYS2Path ~\Downloads\msys64
+.\build.ps1 .\config\x64.json -MSYS2Path ~\Downloads\msys64
+.\build.ps1 .\config\x86.json -MSYS2Path ~\Downloads\msys64
 ```
 
 The built installers will be saved to the `bin` directory.
@@ -51,4 +51,4 @@ Invoke-Pester -Output Detailed
 
 # Credits
 
-[RefreshEnv.cmd](RefreshEnv.cmd) is from [Chocolatey](https://github.com/chocolatey/choco/blob/master/src/chocolatey.resources/redirects/RefreshEnv.cmd).
+[packages/pico-setup-windows/RefreshEnv.cmd](RefreshEnv.cmd) is from [Chocolatey](https://github.com/chocolatey/choco/blob/master/src/chocolatey.resources/redirects/RefreshEnv.cmd).

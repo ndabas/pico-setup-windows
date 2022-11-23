@@ -30,8 +30,8 @@ $version = (Get-Content "$PSScriptRoot\version.txt").Trim()
 $suffix = [io.path]::GetFileNameWithoutExtension($ConfigFile)
 $binfile = "bin\$basename-$version-$suffix.exe"
 
-$tools = (Get-Content '.\tools.json' | ConvertFrom-Json).tools
-$repositories = (Get-Content '.\repositories.json' | ConvertFrom-Json).repositories
+$tools = (Get-Content '.\config\tools.json' | ConvertFrom-Json).tools
+$repositories = (Get-Content '.\config\repositories.json' | ConvertFrom-Json).repositories
 $config = Get-Content $ConfigFile | ConvertFrom-Json
 $bitness = $config.bitness
 $mingw_arch = $config.mingw_arch
@@ -143,11 +143,11 @@ if (-not $SkipDownload) {
 }
 
 if (-not (Test-Path ".\build\openocd-install\mingw$bitness")) {
-  msys "cd build && ../build-openocd.sh $bitness $mingw_arch"
+  msys "cd build && ../packages/openocd/build-openocd.sh $bitness $mingw_arch"
 }
 
 if (-not (Test-Path ".\build\picotool-install\mingw$bitness")) {
-  msys "cd build && ../build-picotool.sh $bitness $mingw_arch"
+  msys "cd build && ../packages/picotool/build-picotool.sh $bitness $mingw_arch"
 }
 
 @"
@@ -155,7 +155,7 @@ if (-not (Test-Path ".\build\picotool-install\mingw$bitness")) {
 !include "WordFunc.nsh"
 
 !define TITLE "$product"
-!define PICO_INSTALL_DIR "`$PROGRAMFILES64\$product"
+!define PICO_INSTALL_DIR "`$PROGRAMFILES$bitness\$product"
 ; The repos need to be cloned into a dir with a fairly short name, because
 ; CMake generates build defs with long hashes in the paths. Both CMake and
 ; Ninja currently have problems working with long paths on Windows.
@@ -233,7 +233,7 @@ Section
   ClearErrors
 
   InitPluginsDir
-  File /oname=`$TEMP\RefreshEnv.cmd RefreshEnv.cmd
+  File /oname=`$TEMP\RefreshEnv.cmd "packages\pico-setup-windows\RefreshEnv.cmd"
 
   WriteRegStr HKCU "Software\$basename" "InstallPath" "`$INSTDIR"
   WriteRegStr HKCU "Software\$basename\v$version" "InstallPath" "`$INSTDIR"
@@ -338,9 +338,9 @@ Section "Pico environment" SecPico
 
   SetOutPath "`${PICO_REPOS_DIR}"
   File "version.txt"
-  File "pico-env.cmd"
-  File "pico-setup.cmd"
-  File "docs\ReadMe.txt"
+  File "packages\pico-setup-windows\pico-env.cmd"
+  File "packages\pico-setup-windows\pico-setup.cmd"
+  File "packages\pico-setup-windows\ReadMe.txt"
 
   CreateShortcut "`${PICO_SHORTCUTS_DIR}\Developer Command Prompt for Pico.lnk" "cmd.exe" '/k "`${PICO_REPOS_DIR}\pico-env.cmd"'
 
@@ -367,9 +367,9 @@ LangString DESC_SecPico `${LANG_ENGLISH} "Scripts for cloning the Pico SDK and t
 
 Section "Download documents and files" SecDocs
 
-  SetOutPath "`$INSTDIR"
+  SetOutPath "`${PICO_REPOS_DIR}"
   File "common.ps1"
-  File "pico-docs.ps1"
+  File "packages\pico-setup-windows\pico-docs.ps1"
 
 SectionEnd
 

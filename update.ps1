@@ -114,19 +114,19 @@ function updateDownloadUrl {
 }
 
 foreach ($arch in @('x86.json', 'x64.json', 'x64-standalone.json')) {
-  $config = Get-Content $arch | ConvertFrom-Json
+  $config = Get-Content ".\config\$arch" | ConvertFrom-Json
 
   foreach ($i in $config.downloads) {
     updateDownloadUrl $i $config
   }
 
-  $config | ConvertTo-Json -Depth 3 | Set-Content $arch
+  $config | ConvertTo-Json -Depth 3 | Set-Content ".\config\$arch"
 }
 
-$tools = Get-Content '.\tools.json' | ConvertFrom-Json
+$tools = Get-Content '.\config\tools.json' | ConvertFrom-Json
 
 foreach ($i in $tools.tools) {
   updateDownloadUrl $i $tools
 }
 
-$tools | ConvertTo-Json -Depth 3 | Set-Content '.\tools.json'
+$tools | ConvertTo-Json -Depth 3 | Set-Content '.\config\tools.json'
