@@ -83,9 +83,6 @@ mkdirp "bin"
   }
 }
 
-$sdkVersion = (.\build\cmake\bin\cmake.exe -P .\packages\pico-setup-windows\pico-sdk-version.cmake -N | Select-String -Pattern '([0-9]+\.)+[0-9]+').Matches.Value
-$product = "Raspberry Pi Pico SDK $sdkVersion"
-
 $repositories | ForEach-Object {
   $repodir = Join-Path 'build' ([IO.Path]::GetFileNameWithoutExtension($_.href))
 
@@ -108,6 +105,12 @@ $repositories | ForEach-Object {
     }
   }
 }
+
+$sdkVersion = (.\build\cmake\bin\cmake.exe -P .\packages\pico-setup-windows\pico-sdk-version.cmake -N | Select-String -Pattern 'PICO_SDK_VERSION_STRING=(.*)$').Matches.Groups[1].Value
+$product = "Raspberry Pi Pico SDK $sdkVersion"
+
+Write-Host "SDK version: $sdkVersion"
+Write-Host "Installer version: $version"
 
 if (-not (Test-Path $MSYS2Path)) {
   Write-Host 'Extracting MSYS2'
