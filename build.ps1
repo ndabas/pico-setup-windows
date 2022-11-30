@@ -107,7 +107,7 @@ $repositories | ForEach-Object {
 }
 
 $sdkVersion = (.\build\cmake\bin\cmake.exe -P .\packages\pico-setup-windows\pico-sdk-version.cmake -N | Select-String -Pattern 'PICO_SDK_VERSION_STRING=(.*)$').Matches.Groups[1].Value
-$product = "Raspberry Pi Pico SDK $sdkVersion"
+$product = "Raspberry Pi Pico SDK v$sdkVersion"
 
 Write-Host "SDK version: $sdkVersion"
 Write-Host "Installer version: $version"
@@ -164,8 +164,10 @@ if (-not (Test-Path ".\build\picotool-install\mingw$bitness")) {
 ; CMake generates build defs with long hashes in the paths. Both CMake and
 ; Ninja currently have problems working with long paths on Windows.
 ; !define PICO_REPOS_DIR "`$LOCALAPPDATA\Programs\$product"
-!define PICO_REPOS_DIR "`$DOCUMENTS\Pico"
-!define PICO_SHORTCUTS_DIR "`$SMPROGRAMS\$product"
+!define PICO_REPOS_DIR "`$DOCUMENTS\Pico-v$sdkVersion"
+!define PICO_SHORTCUTS_DIR "`$SMPROGRAMS\Raspberry Pi\Pico SDK v$sdkVersion"
+!define PICO_REG_ROOT HKCU
+!define PICO_REG_KEY "Software\Raspberry Pi\$basename"
 
 Name "`${TITLE}"
 Caption "`${TITLE}"
@@ -187,7 +189,7 @@ SpaceTexts "none"
 InstallDir "`${PICO_INSTALL_DIR}"
 
 ;Get installation folder from registry if available
-InstallDirRegKey HKCU "Software\$basename" "InstallPath"
+InstallDirRegKey `${PICO_REG_ROOT} "`${PICO_REG_KEY}" "InstallPath"
 
 !define MUI_ABORTWARNING
 
@@ -222,8 +224,8 @@ Section
   InitPluginsDir
   File /oname=`$TEMP\RefreshEnv.cmd "packages\pico-setup-windows\RefreshEnv.cmd"
 
-  WriteRegStr HKCU "Software\$basename" "InstallPath" "`$INSTDIR"
-  WriteRegStr HKCU "Software\$basename\v$version" "InstallPath" "`$INSTDIR"
+  WriteRegStr `${PICO_REG_ROOT} "`${PICO_REG_KEY}" "InstallPath" "`$INSTDIR"
+  WriteRegStr `${PICO_REG_ROOT} "`${PICO_REG_KEY}\v$version" "InstallPath" "`$INSTDIR"
 
   CreateDirectory "`${PICO_REPOS_DIR}"
   CreateDirectory "`${PICO_SHORTCUTS_DIR}"
@@ -290,6 +292,8 @@ Section "VS Code Extensions" SecCodeExts
   Pop `$1
   nsExec::ExecToLog '"`$0" /c call "`$TEMP\RefreshEnv.cmd" && code --install-extension ms-vscode.cpptools-extension-pack'
   Pop `$1
+  nsExec::ExecToLog '"`$0" /c call "`$TEMP\RefreshEnv.cmd" && code --install-extension ms-vscode.vscode-serial-monitor'
+  Pop `$1
 
 SectionEnd
 
@@ -319,32 +323,29 @@ Section "Pico environment" SecPico
 
   SetOutPath "`$INSTDIR\pico-sdk-tools"
   File "build\pico-sdk-tools\mingw$bitness\*.*"
-  WriteRegStr HKCU "Software\Kitware\CMake\Packages\pico-sdk-tools" "v$version" "`$INSTDIR\pico-sdk-tools"
+  WriteRegStr `${PICO_REG_ROOT} "Software\Kitware\CMake\Packages\pico-sdk-tools" "v$version" "`$INSTDIR\pico-sdk-tools"
 
   SetOutPath "`$INSTDIR\picotool"
   File "build\picotool-install\mingw$bitness\*.*"
 
   SetOutPath "`${PICO_REPOS_DIR}"
   File "version.txt"
+  File "packages\pico-setup-windows\pico-code.ps1"
+  File "packages\pico-setup-windows\pico-env.ps1"
   File "packages\pico-setup-windows\pico-env.cmd"
   File "packages\pico-setup-windows\pico-setup.cmd"
   File "packages\pico-setup-windows\ReadMe.txt"
 
-  CreateShortcut "`${PICO_SHORTCUTS_DIR}\Developer Command Prompt for Pico.lnk" "cmd.exe" '/k "`${PICO_REPOS_DIR}\pico-env.cmd"'
+  CreateDirectory "`${PICO_SHORTCUTS_DIR}\Pico - Documentation"
 
-  CreateShortcut "`${PICO_SHORTCUTS_DIR}\Open pico-examples in Visual Studio Code.lnk" "cmd.exe" '/c (call "`${PICO_REPOS_DIR}\pico-env.cmd" && code --disable-workspace-trust "`${PICO_REPOS_DIR}\pico-examples") || pause' "`$INSTDIR\resources\vscode.ico"
+  CreateShortcut "`${PICO_SHORTCUTS_DIR}\Pico - Developer Command Prompt.lnk" "cmd.exe" '/k "`${PICO_REPOS_DIR}\pico-env.cmd"'
+  CreateShortcut "`${PICO_SHORTCUTS_DIR}\Pico - Developer PowerShell.lnk" "powershell.exe" '-NoExit -ExecutionPolicy Bypass -File "`${PICO_REPOS_DIR}\pico-env.ps1"'
+  CreateShortcut "`${PICO_SHORTCUTS_DIR}\Pico - Visual Studio Code.lnk" "powershell.exe" 'powershell -WindowStyle Hidden -ExecutionPolicy Bypass -File "`${PICO_REPOS_DIR}\pico-code.ps1"' "`$INSTDIR\resources\vscode.ico" "" SW_SHOWMINIMIZED
 
-  WriteINIStr "`${PICO_SHORTCUTS_DIR}\Raspberry Pi microcontrollers documentation.url" "InternetShortcut" "URL" "https://www.raspberrypi.com/documentation/microcontrollers/"
-
-  WriteINIStr "`${PICO_SHORTCUTS_DIR}\Raspberry Pi Pico C-C++ SDK documentation.url" "InternetShortcut" "URL" "https://www.raspberrypi.com/documentation/microcontrollers/c_sdk.html"
-
-  ; Unconditionally create a shortcut for VS Code -- in case the user had it
-  ; installed already, or if they install it later
-  CreateShortcut "`${PICO_SHORTCUTS_DIR}\Visual Studio Code for Pico.lnk" "cmd.exe" '/c (call "`${PICO_REPOS_DIR}\pico-env.cmd" && code) || pause' "`$INSTDIR\resources\vscode.ico"
-
-  ; SetOutPath is needed here to set the working directory for the shortcut
-  SetOutPath "`$INSTDIR\pico-project-generator"
-  CreateShortcut "`${PICO_SHORTCUTS_DIR}\Pico Project Generator.lnk" "cmd.exe" '/c (call "`${PICO_REPOS_DIR}\pico-env.cmd" && python "`${PICO_REPOS_DIR}\pico-project-generator\pico_project.py" --gui) || pause'
+  WriteINIStr "`${PICO_SHORTCUTS_DIR}\Pico - Documentation\Pico Datasheet.url" "InternetShortcut" "URL" "https://datasheets.raspberrypi.com/pico/pico-datasheet.pdf"
+  WriteINIStr "`${PICO_SHORTCUTS_DIR}\Pico - Documentation\Pico W Datasheet.url" "InternetShortcut" "URL" "https://datasheets.raspberrypi.com/picow/pico-w-datasheet.pdf"
+  WriteINIStr "`${PICO_SHORTCUTS_DIR}\Pico - Documentation\Pico C C++ SDK.url" "InternetShortcut" "URL" "https://datasheets.raspberrypi.com/pico/raspberry-pi-pico-c-sdk.pdf"
+  WriteINIStr "`${PICO_SHORTCUTS_DIR}\Pico - Documentation\Pico Python SDK.url" "InternetShortcut" "URL" "https://datasheets.raspberrypi.com/pico/raspberry-pi-pico-python-sdk.pdf"
 
   ; Reset working dir for pico-setup.cmd launched from the finish page
   SetOutPath "`${PICO_REPOS_DIR}"
@@ -353,14 +354,6 @@ SectionEnd
 
 LangString DESC_SecPico `${LANG_ENGLISH} "Scripts for cloning the Pico SDK and tools repos, and for setting up your Pico development environment."
 
-Section "Download documents and files" SecDocs
-
-  SetOutPath "`${PICO_REPOS_DIR}"
-  File "common.ps1"
-  File "packages\pico-setup-windows\pico-docs.ps1"
-
-SectionEnd
-
 Function RunBuild
 
   ReadEnvStr `$0 COMSPEC
@@ -368,13 +361,10 @@ Function RunBuild
 
 FunctionEnd
 
-LangString DESC_SecDocs `${LANG_ENGLISH} "Adds a script to download the latest Pico documents, design files, and UF2 files."
-
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
   !insertmacro MUI_DESCRIPTION_TEXT `${SecCodeExts} `$(DESC_SecCodeExts)
   !insertmacro MUI_DESCRIPTION_TEXT `${SecOpenOCD} `$(DESC_SecOpenOCD)
   !insertmacro MUI_DESCRIPTION_TEXT `${SecPico} `$(DESC_SecPico)
-  !insertmacro MUI_DESCRIPTION_TEXT `${SecDocs} `$(DESC_SecDocs)
 $($downloads | ForEach-Object {
   "  !insertmacro MUI_DESCRIPTION_TEXT `${Sec$($_.shortName)} `$(DESC_Sec$($_.shortName))`n"
 })

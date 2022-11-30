@@ -38,7 +38,7 @@ if not defined PICO_INSTALL_VERSION (
 
 rem https://stackoverflow.com/questions/22352793/reading-a-registry-value-to-a-batch-variable-handling-spaces-in-value
 for /f "usebackq skip=1 tokens=2,*" %%h in (
-  `reg query "HKCU\Software\pico-setup-windows\v%PICO_INSTALL_VERSION%" /v "InstallPath"`
+  `reg query "HKCU\Software\Raspberry Pi\pico-setup-windows\v%PICO_INSTALL_VERSION%" /v "InstallPath"`
   ) do (
   echo PICO_INSTALL_PATH=%%i
   set "PICO_INSTALL_PATH=%%i"
