@@ -22,6 +22,23 @@ goto main
 
   goto :EOF
 
+:SetEnvFromRegistry
+
+  rem https://stackoverflow.com/questions/22352793/reading-a-registry-value-to-a-batch-variable-handling-spaces-in-value
+  for /f "usebackq skip=2 tokens=2,*" %%h in (
+    `reg query "HKCU\Software\Raspberry Pi\pico-setup-windows\v%PICO_INSTALL_VERSION%" /v "%1Path"`
+    ) do (
+    echo PICO_%1_PATH=%%i
+    set "PICO_%1_PATH=%%i"
+  )
+
+  if not defined PICO_%1_PATH (
+    echo ERROR: Unable to determine Pico %1 path.
+    set /a errors += 1
+  )
+
+  goto :EOF
+
 :main
 
 pushd "%~dp0"
@@ -36,25 +53,15 @@ if not defined PICO_INSTALL_VERSION (
   set /a errors += 1
 )
 
-rem https://stackoverflow.com/questions/22352793/reading-a-registry-value-to-a-batch-variable-handling-spaces-in-value
-for /f "usebackq skip=1 tokens=2,*" %%h in (
-  `reg query "HKCU\Software\Raspberry Pi\pico-setup-windows\v%PICO_INSTALL_VERSION%" /v "InstallPath"`
-  ) do (
-  echo PICO_INSTALL_PATH=%%i
-  set "PICO_INSTALL_PATH=%%i"
-)
-
-if not defined PICO_INSTALL_PATH (
-  echo ERROR: Unable to determine Pico install path.
-  set /a errors += 1
-)
+call :SetEnvFromRegistry install
+call :SetEnvFromRegistry repos
 
 for %%i in (sdk examples extras playground) do (
   rem Environment variables in Windows aren't case-sensitive, so we don't need
   rem to bother with uppercasing the env var name.
-  if exist "%~dp0pico-%%i" (
-    echo PICO_%%i_PATH=%~dp0pico-%%i
-    set "PICO_%%i_PATH=%~dp0pico-%%i"
+  if exist "%PICO_REPOS_PATH%\pico-%%i" (
+    echo PICO_%%i_PATH=%PICO_REPOS_PATH%\pico-%%i
+    set "PICO_%%i_PATH=%PICO_REPOS_PATH%\pico-%%i"
   )
 )
 

@@ -10,10 +10,10 @@ set "GITHUB_PREFIX=https://github.com/raspberrypi/"
 set "GITHUB_SUFFIX=.git"
 set "SDK_BRANCH=master"
 
-pushd "%~dp0"
+pushd "%PICO_REPOS_PATH%"
 
 for %%i in (sdk examples extras playground project-generator) do (
-  set "DEST=%~dp0pico-%%i"
+  set "DEST=%PICO_REPOS_PATH%\pico-%%i"
 
   if exist "!DEST!\.git" (
     echo !DEST! exists, skipping clone
@@ -32,8 +32,8 @@ for %%i in (sdk examples extras playground project-generator) do (
 )
 
 rem Build a couple of examples
-mkdir "%~dp0pico-examples\build"
-pushd "%~dp0pico-examples\build"
+mkdir "%PICO_REPOS_PATH%\pico-examples\build"
+pushd "%PICO_REPOS_PATH%\pico-examples\build"
 cmake -G Ninja .. -DCMAKE_BUILD_TYPE=Debug --fresh || exit /b 1
 
 for %%i in (blink "hello_world/all") do (
@@ -42,11 +42,6 @@ for %%i in (blink "hello_world/all") do (
 )
 
 popd
-
-if exist "%~dp0pico-docs.ps1" (
-  echo Downloading Pico documents and files...
-  powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "%~dp0pico-docs.ps1" || exit /b 1
-)
 
 if "%interactive%" equ "1" (
   rem Open repo folder in Explorer

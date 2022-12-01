@@ -188,8 +188,9 @@ SpaceTexts "none"
 
 InstallDir "`${PICO_INSTALL_DIR}"
 
-;Get installation folder from registry if available
-InstallDirRegKey `${PICO_REG_ROOT} "`${PICO_REG_KEY}" "InstallPath"
+; Get installation folder from registry if available
+; We use a version-specific key here so that multiple versions can be installed side-by-side
+InstallDirRegKey `${PICO_REG_ROOT} "`${PICO_REG_KEY}\v$version" "InstallPath"
 
 !define MUI_ABORTWARNING
 
@@ -201,7 +202,7 @@ InstallDirRegKey `${PICO_REG_ROOT} "`${PICO_REG_KEY}" "InstallPath"
 !define MUI_FINISHPAGE_RUN
 !define MUI_FINISHPAGE_RUN_FUNCTION RunBuild
 
-!define MUI_FINISHPAGE_SHOWREADME "`${PICO_REPOS_DIR}\ReadMe.txt"
+!define MUI_FINISHPAGE_SHOWREADME "`$INSTDIR\ReadMe.txt"
 !define MUI_FINISHPAGE_SHOWREADME_TEXT "Show ReadMe"
 
 !define MUI_FINISHPAGE_NOAUTOCLOSE
@@ -224,8 +225,8 @@ Section
   InitPluginsDir
   File /oname=`$TEMP\RefreshEnv.cmd "packages\pico-setup-windows\RefreshEnv.cmd"
 
-  WriteRegStr `${PICO_REG_ROOT} "`${PICO_REG_KEY}" "InstallPath" "`$INSTDIR"
   WriteRegStr `${PICO_REG_ROOT} "`${PICO_REG_KEY}\v$version" "InstallPath" "`$INSTDIR"
+  WriteRegStr `${PICO_REG_ROOT} "`${PICO_REG_KEY}\v$version" "ReposPath" "`${PICO_REPOS_DIR}"
 
   CreateDirectory "`${PICO_REPOS_DIR}"
   CreateDirectory "`${PICO_SHORTCUTS_DIR}"
@@ -328,7 +329,7 @@ Section "Pico environment" SecPico
   SetOutPath "`$INSTDIR\picotool"
   File "build\picotool-install\mingw$bitness\*.*"
 
-  SetOutPath "`${PICO_REPOS_DIR}"
+  SetOutPath "`$INSTDIR"
   File "version.txt"
   File "packages\pico-setup-windows\pico-code.ps1"
   File "packages\pico-setup-windows\pico-env.ps1"
@@ -338,9 +339,9 @@ Section "Pico environment" SecPico
 
   CreateDirectory "`${PICO_SHORTCUTS_DIR}\Pico - Documentation"
 
-  CreateShortcut "`${PICO_SHORTCUTS_DIR}\Pico - Developer Command Prompt.lnk" "cmd.exe" '/k "`${PICO_REPOS_DIR}\pico-env.cmd"'
-  CreateShortcut "`${PICO_SHORTCUTS_DIR}\Pico - Developer PowerShell.lnk" "powershell.exe" '-NoExit -ExecutionPolicy Bypass -File "`${PICO_REPOS_DIR}\pico-env.ps1"'
-  CreateShortcut "`${PICO_SHORTCUTS_DIR}\Pico - Visual Studio Code.lnk" "powershell.exe" 'powershell -WindowStyle Hidden -ExecutionPolicy Bypass -File "`${PICO_REPOS_DIR}\pico-code.ps1"' "`$INSTDIR\resources\vscode.ico" "" SW_SHOWMINIMIZED
+  CreateShortcut "`${PICO_SHORTCUTS_DIR}\Pico - Developer Command Prompt.lnk" "cmd.exe" '/k "`$INSTDIR\pico-env.cmd"'
+  CreateShortcut "`${PICO_SHORTCUTS_DIR}\Pico - Developer PowerShell.lnk" "powershell.exe" '-NoExit -ExecutionPolicy Bypass -File "`$INSTDIR\pico-env.ps1"'
+  CreateShortcut "`${PICO_SHORTCUTS_DIR}\Pico - Visual Studio Code.lnk" "powershell.exe" '-WindowStyle Hidden -ExecutionPolicy Bypass -File "`$INSTDIR\pico-code.ps1"' "`$INSTDIR\resources\vscode.ico" "" SW_SHOWMINIMIZED
 
   WriteINIStr "`${PICO_SHORTCUTS_DIR}\Pico - Documentation\Pico Datasheet.url" "InternetShortcut" "URL" "https://datasheets.raspberrypi.com/pico/pico-datasheet.pdf"
   WriteINIStr "`${PICO_SHORTCUTS_DIR}\Pico - Documentation\Pico W Datasheet.url" "InternetShortcut" "URL" "https://datasheets.raspberrypi.com/picow/pico-w-datasheet.pdf"
@@ -348,7 +349,7 @@ Section "Pico environment" SecPico
   WriteINIStr "`${PICO_SHORTCUTS_DIR}\Pico - Documentation\Pico Python SDK.url" "InternetShortcut" "URL" "https://datasheets.raspberrypi.com/pico/raspberry-pi-pico-python-sdk.pdf"
 
   ; Reset working dir for pico-setup.cmd launched from the finish page
-  SetOutPath "`${PICO_REPOS_DIR}"
+  SetOutPath "`$INSTDIR"
 
 SectionEnd
 
@@ -357,7 +358,7 @@ LangString DESC_SecPico `${LANG_ENGLISH} "Scripts for cloning the Pico SDK and t
 Function RunBuild
 
   ReadEnvStr `$0 COMSPEC
-  Exec '"`$0" /k call "`$TEMP\RefreshEnv.cmd" && del "`$TEMP\RefreshEnv.cmd" && call "`${PICO_REPOS_DIR}\pico-setup.cmd" 1'
+  Exec '"`$0" /k call "`$TEMP\RefreshEnv.cmd" && del "`$TEMP\RefreshEnv.cmd" && call "`$INSTDIR\pico-setup.cmd" 1'
 
 FunctionEnd
 
