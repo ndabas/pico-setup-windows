@@ -7,35 +7,35 @@
       "file": "gcc-arm-none-eabi-10.3-2021.10-win32.zip",
       "href": "https://developer.arm.com/-/media/Files/downloads/gnu-rm/10.3-2021.10/gcc-arm-none-eabi-10.3-2021.10-win32.zip?rev=8f4a92e2ec2040f89912f372a55d8cf3&hash=8A9EAF77EF1957B779C59EADDBF2DAC118170BBF",
       "prebuild": "mkdirp build\\gcc-arm-none-eabi -clean && tar -xf $0 -C build\\gcc-arm-none-eabi --strip-components 1",
-      "copy": "/r build\\gcc-arm-none-eabi"
+      "copy": "gcc-arm-none-eabi"
     },
     {
       "name": "CMake",
       "file": "cmake-3.25.0-windows-x86_64.zip",
       "href": "https://github.com/Kitware/CMake/releases/download/v3.25.0/cmake-3.25.0-windows-x86_64.zip",
       "prebuild": "mkdirp build\\cmake -clean && tar -xf $0 -C build\\cmake --strip-components 1",
-      "copy": "/r build\\cmake"
+      "copy": "cmake"
     },
     {
       "name": "Ninja",
       "file": "ninja-win.zip",
       "href": "https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-win.zip",
       "prebuild": "mkdirp build\\ninja -clean && tar -xf $0 -C build\\ninja",
-      "copy": "/r build\\ninja"
+      "copy": "ninja"
     },
     {
       "name": "Python 3.9",
       "file": "python-3.9.13-embed-amd64.zip",
       "href": "https://www.python.org/ftp/python/3.9.13/python-3.9.13-embed-amd64.zip",
       "prebuild": "mkdirp build\\python -clean && tar -xf $0 -C build\\python",
-      "copy": "/r build\\python"
+      "copy": "python"
     },
     {
       "name": "Git for Windows",
       "file": "MinGit-2.38.1-64-bit.zip",
       "href": "https://github.com/git-for-windows/git/releases/download/v2.38.1.windows.1/MinGit-2.38.1-64-bit.zip",
       "prebuild": "mkdirp build\\git -clean && tar -xf $0 -C build\\git",
-      "copy": "/r build\\git"
+      "copy": "git"
     },
     {
       "name": "Visual Studio Code",

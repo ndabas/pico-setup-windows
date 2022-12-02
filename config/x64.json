@@ -19,7 +19,7 @@
       "file": "ninja-win.zip",
       "href": "https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-win.zip",
       "prebuild": "mkdirp build\\ninja -clean && tar -xf $0 -C build\\ninja",
-      "copy": "/r build\\ninja"
+      "copy": "ninja"
     },
     {
       "name": "Python 3.9",

@@ -108,6 +108,7 @@ $repositories | ForEach-Object {
 
 $sdkVersion = (.\build\cmake\bin\cmake.exe -P .\packages\pico-setup-windows\pico-sdk-version.cmake -N | Select-String -Pattern 'PICO_SDK_VERSION_STRING=(.*)$').Matches.Groups[1].Value
 $product = "Raspberry Pi Pico SDK v$sdkVersion"
+$company = "Raspberry Pi Ltd"
 
 Write-Host "SDK version: $sdkVersion"
 Write-Host "Installer version: $version"
@@ -168,19 +169,23 @@ if (-not (Test-Path ".\build\picotool-install\mingw$bitness")) {
 !define PICO_SHORTCUTS_DIR "`$SMPROGRAMS\Raspberry Pi\Pico SDK v$sdkVersion"
 !define PICO_REG_ROOT HKCU
 !define PICO_REG_KEY "Software\Raspberry Pi\$basename"
+!define UNINSTALL_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\$basename-$version"
 
 Name "`${TITLE}"
 Caption "`${TITLE}"
+XPStyle on
+
+SetCompressor lzma
 
 VIAddVersionKey "FileDescription" "`${TITLE}"
 VIAddVersionKey "InternalName" "$basename"
 VIAddVersionKey "ProductName" "`${TITLE}"
 VIAddVersionKey "FileVersion" "$version"
-VIAddVersionKey "LegalCopyright" ""
+VIAddVersionKey "LegalCopyright" "$company"
+VIAddVersionKey "CompanyName" "$company"
 VIFileVersion $version.0
 VIProductVersion $version.0
 
-OutFile "$binfile"
 Unicode True
 
 ; Since we're packaging up a bunch of installers, the "Space required" shown is inaccurate
@@ -192,11 +197,91 @@ InstallDir "`${PICO_INSTALL_DIR}"
 ; We use a version-specific key here so that multiple versions can be installed side-by-side
 InstallDirRegKey `${PICO_REG_ROOT} "`${PICO_REG_KEY}\v$version" "InstallPath"
 
+!ifdef BUILD_UNINSTALLER
+
+RequestExecutionLevel user
+OutFile "build\build-uninstaller-$suffix.exe"
+
+!insertmacro MUI_PAGE_INSTFILES
+!insertmacro MUI_PAGE_FINISH
+
+!insertmacro MUI_UNPAGE_CONFIRM
+!insertmacro MUI_UNPAGE_INSTFILES
+!insertmacro MUI_UNPAGE_FINISH
+
+!insertmacro MUI_LANGUAGE "English"
+
+Function un.onInit
+
+  ReadRegStr `$R0 `${PICO_REG_ROOT} "`${PICO_REG_KEY}\v$version" "InstallPath"
+  DetailPrint "Install path: `$R0"
+  StrCpy `$INSTDIR `$R0
+
+  ReadRegStr `$R1 `${PICO_REG_ROOT} "`${PICO_REG_KEY}\v$version" "ReposPath"
+  DetailPrint "Repos path: `$R1"
+
+FunctionEnd
+
+Section "Uninstall"
+
+  RMDir /r /REBOOTOK "`${PICO_SHORTCUTS_DIR}"
+
+  RMDir /r /REBOOTOK "`$INSTDIR\cmake"
+  RMDir /r /REBOOTOK "`$INSTDIR\gcc-arm-none-eabi"
+  RMDir /r /REBOOTOK "`$INSTDIR\git"
+  RMDir /r /REBOOTOK "`$INSTDIR\ninja"
+  RMDir /r /REBOOTOK "`$INSTDIR\openocd"
+  RMDir /r /REBOOTOK "`$INSTDIR\python"
+
+  RMDir /r /REBOOTOK "`$INSTDIR\pico-sdk-tools"
+  RMDir /r /REBOOTOK "`$INSTDIR\picotool"
+  RMDir /r /REBOOTOK "`$INSTDIR\resources"
+
+  Delete /REBOOTOK "`$INSTDIR\install.log"
+  Delete /REBOOTOK "`$INSTDIR\pico-code.ps1"
+  Delete /REBOOTOK "`$INSTDIR\pico-env.cmd"
+  Delete /REBOOTOK "`$INSTDIR\pico-env.ps1"
+  Delete /REBOOTOK "`$INSTDIR\pico-setup.cmd"
+  Delete /REBOOTOK "`$INSTDIR\ReadMe.txt"
+  Delete /REBOOTOK "`$INSTDIR\version.txt"
+
+  Delete /REBOOTOK "`$INSTDIR\uninstall.exe"
+  RMDir /REBOOTOK "`$INSTDIR"
+
+  RMDir /r /REBOOTOK "`$R1\pico-examples"
+  RMDir /r /REBOOTOK "`$R1\pico-extras"
+  RMDir /r /REBOOTOK "`$R1\pico-playground"
+  RMDir /r /REBOOTOK "`$R1\pico-project-generator"
+  RMDir /r /REBOOTOK "`$R1\pico-sdk"
+
+  RMDir /REBOOTOK "`$R1"
+
+  DeleteRegValue `${PICO_REG_ROOT} "Software\Kitware\CMake\Packages\pico-sdk-tools" "v$version"
+  DeleteRegKey /ifempty `${PICO_REG_ROOT} "Software\Kitware\CMake\Packages\pico-sdk-tools"
+
+  DeleteRegKey `${PICO_REG_ROOT} "`${PICO_REG_KEY}\v$version"
+  DeleteRegKey /ifempty `${PICO_REG_ROOT} "`${PICO_REG_KEY}"
+
+  DeleteRegKey `${PICO_REG_ROOT} "`${UNINSTALL_KEY}"
+
+SectionEnd
+
+Section
+
+  WriteUninstaller `$INSTDIR\uninstall-$suffix.exe
+
+SectionEnd
+
+!else
+
+RequestExecutionLevel admin
+OutFile "$binfile"
+
 !define MUI_ABORTWARNING
 
 !define MUI_WELCOMEPAGE_TITLE "`${TITLE}"
 
-!define MUI_COMPONENTSPAGE_SMALLDESC
+;!define MUI_COMPONENTSPAGE_SMALLDESC
 
 !define MUI_FINISHPAGE_RUN_TEXT "Clone and build Pico repos"
 !define MUI_FINISHPAGE_RUN
@@ -231,7 +316,10 @@ Section
   CreateDirectory "`${PICO_REPOS_DIR}"
   CreateDirectory "`${PICO_SHORTCUTS_DIR}"
 
-  File /r resources
+  SetOutPath `$INSTDIR\resources
+  File /r resources\*.*
+
+  SetOutPath `$INSTDIR
 
 SectionEnd
 
@@ -271,8 +359,8 @@ Section "$($_.name)" Sec$($_.shortName)
   })
 
   $(if ($_ | Get-Member copy) {
-    "SetOutPath '`$INSTDIR'`r`n"
-    "File $($_.copy)"
+    "SetOutPath '`$INSTDIR\$($_.copy)'`r`n"
+    "File /r build\$($_.copy)\*.*"
   })
 
 SectionEnd
@@ -337,6 +425,13 @@ Section "Pico environment" SecPico
   File "packages\pico-setup-windows\pico-setup.cmd"
   File "packages\pico-setup-windows\ReadMe.txt"
 
+  File /oname=uninstall.exe "build\uninstall-$suffix.exe"
+  WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "DisplayName" "$product"
+  WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "UninstallString" "`$INSTDIR\uninstall.exe"
+  WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "DisplayIcon" "`$INSTDIR\resources\rpi.ico"
+  WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "DisplayVersion" "$version"
+  WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "Publisher" "$company"
+
   CreateDirectory "`${PICO_SHORTCUTS_DIR}\Pico - Documentation"
 
   CreateShortcut "`${PICO_SHORTCUTS_DIR}\Pico - Developer Command Prompt.lnk" "cmd.exe" '/k "`$INSTDIR\pico-env.cmd"'
@@ -370,8 +465,12 @@ $($downloads | ForEach-Object {
   "  !insertmacro MUI_DESCRIPTION_TEXT `${Sec$($_.shortName)} `$(DESC_Sec$($_.shortName))`n"
 })
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
+
+!endif # BUILD_UNINSTALLER
 "@ | Set-Content ".\$basename-$suffix.nsi"
 
+exec { .\build\NSIS\makensis /DBUILD_UNINSTALLER ".\$basename-$suffix.nsi" }
+exec { Start-Process -FilePath ".\build\build-uninstaller-$suffix.exe" -ArgumentList "/S /D=$PSScriptRoot\build" -Wait }
 exec { .\build\NSIS\makensis ".\$basename-$suffix.nsi" }
 Write-Host "Installer saved to $binfile"
 
