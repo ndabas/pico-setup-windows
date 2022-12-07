@@ -169,7 +169,7 @@ if (-not (Test-Path ".\build\picotool-install\mingw$bitness")) {
 !define PICO_SHORTCUTS_DIR "`$SMPROGRAMS\Raspberry Pi\Pico SDK v$sdkVersion"
 !define PICO_REG_ROOT HKCU
 !define PICO_REG_KEY "Software\Raspberry Pi\$basename"
-!define UNINSTALL_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\$basename-$version"
+!define UNINSTALL_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\$basename-$sdkVersion"
 
 Name "`${TITLE}"
 Caption "`${TITLE}"
@@ -256,7 +256,7 @@ Section "Uninstall"
 
   RMDir /REBOOTOK "`$R1"
 
-  DeleteRegValue `${PICO_REG_ROOT} "Software\Kitware\CMake\Packages\pico-sdk-tools" "v$version"
+  DeleteRegValue `${PICO_REG_ROOT} "Software\Kitware\CMake\Packages\pico-sdk-tools" "v$sdkVersion"
   DeleteRegKey /ifempty `${PICO_REG_ROOT} "Software\Kitware\CMake\Packages\pico-sdk-tools"
 
   DeleteRegKey `${PICO_REG_ROOT} "`${PICO_REG_KEY}\v$version"
@@ -412,7 +412,7 @@ Section "Pico environment" SecPico
 
   SetOutPath "`$INSTDIR\pico-sdk-tools"
   File "build\pico-sdk-tools\mingw$bitness\*.*"
-  WriteRegStr `${PICO_REG_ROOT} "Software\Kitware\CMake\Packages\pico-sdk-tools" "v$version" "`$INSTDIR\pico-sdk-tools"
+  WriteRegStr `${PICO_REG_ROOT} "Software\Kitware\CMake\Packages\pico-sdk-tools" "v$sdkVersion" "`$INSTDIR\pico-sdk-tools"
 
   SetOutPath "`$INSTDIR\picotool"
   File "build\picotool-install\mingw$bitness\*.*"

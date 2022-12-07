@@ -5,7 +5,7 @@ $ProgressPreference = 'SilentlyContinue'
 . "$PSScriptRoot\pico-env.ps1"
 
 # On first run, open the pico-examples repo. Open a blank VS Code instance otherwise.
-$openArgs = "--disable-workspace-trust `"$env:PICO_EXAMPLES_PATH`""
+$openArgs = "--disable-workspace-trust --new-window `"$env:PICO_EXAMPLES_PATH`""
 $regPath = "HKCU:\Software\Raspberry Pi\pico-setup-windows\v$env:PICO_INSTALL_VERSION"
 $regName = 'FirstRun'
 $entries = Get-ItemProperty -Path $regPath
@@ -19,4 +19,4 @@ $codeBinDir = Split-Path -Parent (Get-Command 'code.cmd').Path
 $codeExeDir = Split-Path -Parent $codeBinDir
 $codeExe = Join-Path $codeExeDir 'code.exe'
 
-cmd /s /c "start `"`" `"$codeExe`" --new-window $openArgs"
+cmd /s /c "start `"`" `"$codeExe`" $openArgs"

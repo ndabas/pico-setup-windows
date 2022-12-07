@@ -73,6 +73,10 @@ if exist "%PICO_INSTALL_PATH%\openocd" (
   set "PATH=%PICO_INSTALL_PATH%\openocd;%PATH%"
 )
 
+rem GDB warns about being unable to determine a path for the index cache
+rem directory if we do not set this.
+set "HOME=%USERPROFILE%"
+
 call :AddToPath "%PICO_INSTALL_PATH%\cmake\bin"
 call :AddToPath "%PICO_INSTALL_PATH%\gcc-arm-none-eabi\bin"
 call :AddToPath "%PICO_INSTALL_PATH%\ninja"
