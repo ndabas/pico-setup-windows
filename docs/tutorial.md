@@ -46,23 +46,9 @@ The baud rate should be set to the default of 115200 in most cases. Click _Start
 
 ## Command-line usage
 
-To configure the appropriate environment variables and PATH needed to build and debug Pico projects, a couple of utility scripts are available. If you're using the Command Prompt (cmd.exe) shell:
+To build and debug projects using command-line tools, you can open a terminal window using the _Pico - Developer Command Prompt_ or _Pico - Developer PowerShell_ shortcuts.
 
-```cmd
-call "C:\Program Files\Raspberry Pi Pico SDK v1.4.0\pico-env.cmd"
-```
-
-To set up the environment in a PowerShell session:
-
-```powershell
-. "C:\Program Files\Raspberry Pi Pico SDK v1.4.0\pico-env.ps1"
-```
-
-Note that running the PowerShell script might require you to set the [Execution Policy](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_execution_policies) first.
-
-### Start OpenOCD
-
-If you wish to start OpenOCD from the command line yourself, you will need to set up the environment as described previously, and then run:
+### Start OpenOCD and gdb
 
 ```powershell
 openocd -f interface/cmsis-dap.cfg -f target/rp2040.cfg -c "adapter speed 1000"
