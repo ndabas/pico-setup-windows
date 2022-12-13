@@ -155,6 +155,9 @@ if (-not (Test-Path ".\build\picotool-install\mingw$bitness")) {
   msys "cd build && ../packages/picotool/build-picotool.sh $bitness $mingw_arch"
 }
 
+$template = Get-Content ".\packages\pico-sdk-tools\pico-sdk-tools-config-version.cmake" -Raw
+$ExecutionContext.InvokeCommand.ExpandString($template) | Set-Content ".\build\pico-sdk-tools\mingw$bitness\pico-sdk-tools-config-version.cmake"
+
 @"
 !include "MUI2.nsh"
 !include "WordFunc.nsh"
