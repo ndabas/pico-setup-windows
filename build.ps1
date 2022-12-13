@@ -158,6 +158,8 @@ if (-not (Test-Path ".\build\picotool-install\mingw$bitness")) {
 @"
 !include "MUI2.nsh"
 !include "WordFunc.nsh"
+!include "LogicLib.nsh"
+!include "x64.nsh"
 
 !define TITLE "$product"
 !define PICO_INSTALL_DIR "`$PROGRAMFILES$bitness\$product"
@@ -174,8 +176,9 @@ if (-not (Test-Path ".\build\picotool-install\mingw$bitness")) {
 Name "`${TITLE}"
 Caption "`${TITLE}"
 XPStyle on
-
+Unicode True
 SetCompressor lzma
+RequestExecutionLevel admin
 
 VIAddVersionKey "FileDescription" "`${TITLE}"
 VIAddVersionKey "InternalName" "$basename"
@@ -185,8 +188,6 @@ VIAddVersionKey "LegalCopyright" "$company"
 VIAddVersionKey "CompanyName" "$company"
 VIFileVersion $version.0
 VIProductVersion $version.0
-
-Unicode True
 
 ; Since we're packaging up a bunch of installers, the "Space required" shown is inaccurate
 SpaceTexts "none"
@@ -199,7 +200,6 @@ InstallDirRegKey `${PICO_REG_ROOT} "`${PICO_REG_KEY}\v$version" "InstallPath"
 
 !ifdef BUILD_UNINSTALLER
 
-RequestExecutionLevel user
 OutFile "build\build-uninstaller-$suffix.exe"
 
 !insertmacro MUI_PAGE_INSTFILES
@@ -274,7 +274,6 @@ SectionEnd
 
 !else
 
-RequestExecutionLevel admin
 OutFile "$binfile"
 
 !define MUI_ABORTWARNING
@@ -306,6 +305,12 @@ Section
   ; Make sure that `$INSTDIR exists before enabling logging
   SetOutPath `$INSTDIR
   LogSet on
+
+  $(if ($bitness -eq '64') {
+  '${IfNot} ${RunningX64}
+    Abort "This installer requires a 64-bit version of Windows."
+  ${EndIf}'
+  })
 
   InitPluginsDir
   File /oname=`$TEMP\RefreshEnv.cmd "packages\pico-setup-windows\RefreshEnv.cmd"
@@ -470,7 +475,12 @@ $($downloads | ForEach-Object {
 "@ | Set-Content ".\$basename-$suffix.nsi"
 
 exec { .\build\NSIS\makensis /DBUILD_UNINSTALLER ".\$basename-$suffix.nsi" }
+
+# The 'installer' that just writes the uninstaller asks for admin access, which is not actually needed.
+$env:__COMPAT_LAYER = "RunAsInvoker"
 exec { Start-Process -FilePath ".\build\build-uninstaller-$suffix.exe" -ArgumentList "/S /D=$PSScriptRoot\build" -Wait }
+$env:__COMPAT_LAYER = ""
+
 exec { .\build\NSIS\makensis ".\$basename-$suffix.nsi" }
 Write-Host "Installer saved to $binfile"
 
