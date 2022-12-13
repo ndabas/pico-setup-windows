@@ -28,7 +28,7 @@ Write-Host "Building from $ConfigFile"
 $basename = "pico-setup-windows"
 $version = (Get-Content "$PSScriptRoot\version.txt").Trim()
 $suffix = [io.path]::GetFileNameWithoutExtension($ConfigFile)
-$binfile = "bin\$basename-$version-$suffix.exe"
+$binfile = "bin\$basename-$suffix.exe"
 
 $tools = (Get-Content '.\config\tools.json' | ConvertFrom-Json).tools
 $repositories = (Get-Content '.\config\repositories.json' | ConvertFrom-Json).repositories
