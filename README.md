@@ -1,18 +1,16 @@
 # Pico setup for Windows
 
-[Download the latest release](https://github.com/ndabas/pico-setup-windows/releases)
+[Download the latest release](https://github.com/raspberrypi/pico-setup-windows/releases/latest/download/pico-setup-windows-x64-standalone.exe)
 
-This project aims to create an easy-to-use installer to get started on Windows (using the C/C++ SDK) with the [Raspberry Pi Pico](https://www.raspberrypi.org/products/raspberry-pi-pico/) microcontroller board, and possibly other RP2040-based boards as well. It is inspired by, and is roughly equivalent to, the [pico-setup](https://github.com/raspberrypi/pico-setup) project for Linux systems.
+This project aims to create an easy-to-use installer to get started on Windows (using the C/C++ SDK) with [Raspberry Pi Pico](https://www.raspberrypi.com/products/raspberry-pi-pico/) and other RP2040-based boards. It is inspired by, and is roughly equivalent to, the [pico-setup](https://github.com/raspberrypi/pico-setup) project for Linux systems.
 
-The installers automate the prerequisite installation on Windows, as explained in the official [Getting started with Raspberry Pi Pico](https://datasheets.raspberrypi.org/pico/getting-started-with-pico.pdf) guide. In addition, the installer offers to clone and build the Raspberry Pi Pico SDK for C/C++, along with some related repos which might be useful.
+The installer automates the prerequisite installation on Windows, as explained in the official [Getting started with Raspberry Pi Pico](https://datasheets.raspberrypi.com/pico/getting-started-with-pico.pdf) guide.
 
-Documentation for end-users is in the [ReadMe.txt](docs/ReadMe.txt) file that is copied by the installer.
-
-The installers attempt to install the required tools silently, without user intervention. The installers are configured with the recommended options from the official guide. For advanced users who wish to configure the software themselves, it might be better to download and install the software manually, or using a package manager.
+The rest of this README document is about developing the installer itself. If you just want to install and use the compilers and toolchain, download the release linked to above. Further information for users is in the [tutorial](docs/tutorial.md).
 
 ## Included software
 
-- [GNU Arm Embedded Toolchain](https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm/downloads) - the official guide refers to this as "ARM GCC Compiler"
+- [Arm GNU Toolchain](https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm/downloads)
 - [CMake](https://cmake.org/download/)
 - [Ninja](https://github.com/ninja-build/ninja/releases)
 - [Python 3.9](https://www.python.org/downloads/windows/)
@@ -26,15 +24,14 @@ The installers are built with [NSIS 3](https://nsis.sourceforge.io/Download). Th
 
 Configuration files for x86 (32-bit) and x64 (64-bit) builds are provided.
 
-Compiling OpenOCD requires an installation of [MSYS2](https://www.msys2.org/). The build script automatically downloads and installs a local copy of MSYS2. You can specify a path to an existing copy of MSYS2 using the `-MSYS2Path` option. The build script will install a copy of MSYS2 at this path if it doesn't find an existing copy.
+Compiling OpenOCD and other tools (picotool, pioasm, elf2uf2) requires an installation of [MSYS2](https://www.msys2.org/). The build script automatically downloads and installs a local copy of MSYS2. You can specify a path to an existing copy of MSYS2 using the `-MSYS2Path` option. The build script will install a copy of MSYS2 at this path if it doesn't find an existing copy.
 
 It is highly recommended to use a dedicated copy of MSYS2 for this build.
 
 To build:
 
 ```powershell
-.\build.ps1 .\config\x64.json -MSYS2Path ~\Downloads\msys64
-.\build.ps1 .\config\x86.json -MSYS2Path ~\Downloads\msys64
+.\build.ps1 .\config\x64-standalone.json -MSYS2Path ~\Downloads\msys64
 ```
 
 The built installers will be saved to the `bin` directory.

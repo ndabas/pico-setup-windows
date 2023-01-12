@@ -1,6 +1,6 @@
 ## Installing the tools
 
-The latest release of the SDK installer is available at https://github.com/raspberrypi/pico-setup-windows/releases. Download the file named `pico-setup-windows-<version>-x64-standalone.exe` and run it.
+Download [the latest release](https://github.com/raspberrypi/pico-setup-windows/releases/latest/download/pico-setup-windows-x64-standalone.exe) and run it.
 
 ## Starting Visual Studio Code
 
