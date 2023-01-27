@@ -14,8 +14,8 @@
       "tree": "1.1.0"
     },
     {
-      "href": "https://github.com/openocd-org/openocd.git",
-      "tree": "v0.12.0-rc2"
+      "href": "https://github.com/raspberrypi/openocd.git",
+      "tree": "rp2040-v0.12.0"
     }
   ]
 }
