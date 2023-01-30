@@ -6,13 +6,13 @@
       "name": "GNU Arm Embedded Toolchain",
       "file": "gcc-arm-none-eabi-10.3-2021.10-win32.exe",
       "exec": "\"$0\" /S /P /R",
-      "href": "https://developer.arm.com/-/media/Files/downloads/gnu-rm/10.3-2021.10/gcc-arm-none-eabi-10.3-2021.10-win32.exe?rev=29bb46cfa0434fbda93abb33c1d480e6&hash=B2C5AAE07841929A0D0BF460896D6E52"
+      "href": "https://developer.arm.com/-/media/Files/downloads/gnu-rm/10.3-2021.10/gcc-arm-none-eabi-10.3-2021.10-win32.exe?rev=29bb46cfa0434fbda93abb33c1d480e6&hash=3C58D05EA5D32EF127B9E4D13B3244D26188713C"
     },
     {
       "name": "CMake",
-      "file": "cmake-3.25.0-windows-i386.msi",
+      "file": "cmake-3.25.2-windows-i386.msi",
       "exec": "msiexec /i \"$0\" /qn /norestart ADD_CMAKE_TO_PATH=System",
-      "href": "https://github.com/Kitware/CMake/releases/download/v3.25.0/cmake-3.25.0-windows-i386.msi"
+      "href": "https://github.com/Kitware/CMake/releases/download/v3.25.2/cmake-3.25.2-windows-i386.msi"
     },
     {
       "name": "Python 3.9",
@@ -22,9 +22,9 @@
     },
     {
       "name": "Git for Windows",
-      "file": "Git-2.38.1-32-bit.exe",
+      "file": "Git-2.39.1-32-bit.exe",
       "exec": "\"$0\" /VERYSILENT /NORESTART /NOCANCEL /SP- /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS /SKIPDOWNGRADE=1 \"/LOADINF=$PLUGINSDIR\\git.inf\"",
-      "href": "https://github.com/git-for-windows/git/releases/download/v2.38.1.windows.1/Git-2.38.1-32-bit.exe",
+      "href": "https://github.com/git-for-windows/git/releases/download/v2.39.1.windows.1/Git-2.39.1-32-bit.exe",
       "additionalFiles": [
         "packages\\pico-setup-windows\\git.inf"
       ]

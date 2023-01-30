@@ -11,8 +11,8 @@
     },
     {
       "name": "CMake",
-      "file": "cmake-3.25.0-windows-x86_64.zip",
-      "href": "https://github.com/Kitware/CMake/releases/download/v3.25.0/cmake-3.25.0-windows-x86_64.zip",
+      "file": "cmake-3.25.2-windows-x86_64.zip",
+      "href": "https://github.com/Kitware/CMake/releases/download/v3.25.2/cmake-3.25.2-windows-x86_64.zip",
       "dirName": "cmake",
       "extractStrip": 1
     },
@@ -30,8 +30,8 @@
     },
     {
       "name": "Git for Windows",
-      "file": "MinGit-2.38.1-64-bit.zip",
-      "href": "https://github.com/git-for-windows/git/releases/download/v2.38.1.windows.1/MinGit-2.38.1-64-bit.zip",
+      "file": "MinGit-2.39.1-64-bit.zip",
+      "href": "https://github.com/git-for-windows/git/releases/download/v2.39.1.windows.1/MinGit-2.39.1-64-bit.zip",
       "dirName": "git"
     },
     {
