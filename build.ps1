@@ -77,9 +77,12 @@ mkdirp "bin"
     Write-Host $_.file
   }
 
-  if ($_ | Get-Member prebuild) {
-    $0 = $outfile
-    Invoke-Expression $_.prebuild
+  if ($_ | Get-Member dirName) {
+    $strip = 0;
+    if ($_ | Get-Member extractStrip) { $strip = $_.extractStrip }
+
+    mkdirp "build\$($_.dirName)" -clean
+    exec { tar -xf $outfile -C "build\$($_.dirName)" --strip-components $strip }
   }
 }
 
@@ -123,6 +126,13 @@ if (-not (Test-Path build\NSIS)) {
   Expand-Archive '.\downloads\nsis.zip' -DestinationPath '.\build'
   Rename-Item (Resolve-Path '.\build\nsis-*').Path 'NSIS'
   Expand-Archive '.\downloads\nsis-log.zip' -DestinationPath '.\build\NSIS' -Force
+}
+
+function sign {
+  param ([string[]] $filesToSign)
+
+  $cert = Get-ChildItem -Path Cert:\CurrentUser\My -CodeSigningCert | Where-Object { $_.Subject -like "CN=Raspberry Pi*" }
+  $filesToSign | Set-AuthenticodeSignature -Certificate $cert -TimestampServer "http://timestamp.digicert.com" -HashAlgorithm SHA256
 }
 
 function msys {
@@ -366,9 +376,9 @@ Section "$($_.name)" Sec$($_.shortName)
 "@
   })
 
-  $(if ($_ | Get-Member copy) {
-    "SetOutPath '`$INSTDIR\$($_.copy)'`r`n"
-    "File /r build\$($_.copy)\*.*"
+  $(if ($_ | Get-Member dirName) {
+    "SetOutPath '`$INSTDIR\$($_.dirName)'`r`n"
+    "File /r build\$($_.dirName)\*.*"
   })
 
 SectionEnd
@@ -484,8 +494,18 @@ $env:__COMPAT_LAYER = "RunAsInvoker"
 exec { Start-Process -FilePath ".\build\build-uninstaller-$suffix.exe" -ArgumentList "/S /D=$PSScriptRoot\build" -Wait }
 $env:__COMPAT_LAYER = ""
 
+# Sign files before packaging up the installer
+sign "build\uninstall-$suffix.exe",
+"build\openocd-install\mingw$bitness\bin\openocd.exe",
+"build\pico-sdk-tools\mingw$bitness\elf2uf2.exe",
+"build\pico-sdk-tools\mingw$bitness\pioasm.exe",
+"build\picotool-install\mingw$bitness\picotool.exe"
+
 exec { .\build\NSIS\makensis ".\$basename-$suffix.nsi" }
 Write-Host "Installer saved to $binfile"
+
+# Sign the installer
+sign $binfile
 
 # Package OpenOCD separately as well
 
