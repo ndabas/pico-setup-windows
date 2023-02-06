@@ -356,12 +356,21 @@ Section "$($_.name)" Sec$($_.shortName)
     }
   })
 
-  $(if ($_ | Get-Member exec) {
+  $(if (($_ | Get-Member exec) -or ($_ | Get-Member execToLog)) {
 @"
     SetOutPath "`$TEMP"
     File "downloads\$($_.file)"
     StrCpy `$0 "`$TEMP\$($_.file)"
-    ExecWait '$($_.exec)' `$1
+
+    $(if ($_ | Get-Member exec) {
+      "ExecWait ``$($_.exec)`` `$1"
+    })
+
+    $(if ($_ | Get-Member execToLog) {
+      "nsExec::ExecToLog ``$($_.execToLog)```r`n"
+      "Pop `$1"
+    })
+
     DetailPrint "$($_.name) returned `$1"
     Delete /REBOOTOK "`$0"
 
@@ -456,7 +465,7 @@ Section "Pico environment" SecPico
 
   CreateShortcut "`${PICO_SHORTCUTS_DIR}\Pico - Developer Command Prompt.lnk" "cmd.exe" '/k "`$INSTDIR\pico-env.cmd"'
   CreateShortcut "`${PICO_SHORTCUTS_DIR}\Pico - Developer PowerShell.lnk" "powershell.exe" '-NoExit -ExecutionPolicy Bypass -File "`$INSTDIR\pico-env.ps1"'
-  CreateShortcut "`${PICO_SHORTCUTS_DIR}\Pico - Visual Studio Code.lnk" "powershell.exe" '-WindowStyle Hidden -ExecutionPolicy Bypass -File "`$INSTDIR\pico-code.ps1"' "`$INSTDIR\resources\vscode.ico" "" SW_SHOWMINIMIZED
+  CreateShortcut "`${PICO_SHORTCUTS_DIR}\Pico - Visual Studio Code.lnk" "powershell.exe" '-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "`$INSTDIR\pico-code.ps1"' "`$INSTDIR\resources\vscode.ico" "" SW_SHOWMINIMIZED
 
   WriteINIStr "`${PICO_SHORTCUTS_DIR}\Pico - Documentation\Pico Datasheet.url" "InternetShortcut" "URL" "https://datasheets.raspberrypi.com/pico/pico-datasheet.pdf"
   WriteINIStr "`${PICO_SHORTCUTS_DIR}\Pico - Documentation\Pico W Datasheet.url" "InternetShortcut" "URL" "https://datasheets.raspberrypi.com/picow/pico-w-datasheet.pdf"

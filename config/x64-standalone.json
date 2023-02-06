@@ -3,6 +3,12 @@
   "mingw_arch": "x86_64",
   "downloads": [
     {
+      "name": "Visual Studio Code (Install Script)",
+      "file": "Install-VSCode.ps1",
+      "execToLog": "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \"$0\" -BuildEdition Stable-User -AdditionalExtensions 'marus25.cortex-debug','ms-vscode.cmake-tools','ms-vscode.cpptools','ms-vscode.cpptools-extension-pack','ms-vscode.vscode-serial-monitor'",
+      "href": "https://raw.githubusercontent.com/PowerShell/vscode-powershell/main/scripts/Install-VSCode.ps1"
+    },
+    {
       "name": "GNU Arm Embedded Toolchain",
       "file": "gcc-arm-none-eabi-10.3-2021.10-win32.zip",
       "href": "https://developer.arm.com/-/media/Files/downloads/gnu-rm/10.3-2021.10/gcc-arm-none-eabi-10.3-2021.10-win32.zip?rev=8f4a92e2ec2040f89912f372a55d8cf3&hash=8A9EAF77EF1957B779C59EADDBF2DAC118170BBF",
@@ -33,12 +39,6 @@
       "file": "MinGit-2.39.1-64-bit.zip",
       "href": "https://github.com/git-for-windows/git/releases/download/v2.39.1.windows.1/MinGit-2.39.1-64-bit.zip",
       "dirName": "git"
-    },
-    {
-      "name": "Visual Studio Code",
-      "file": "VSCodeUserSetup-x64.exe",
-      "exec": "\"$0\" /VERYSILENT /NORESTART /NOCANCEL /SP- /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS /MERGETASKS=!runcode",
-      "href": "https://code.visualstudio.com/sha/download?build=stable&os=win32-x64-user"
     }
   ]
 }
