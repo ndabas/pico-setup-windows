@@ -194,6 +194,7 @@ $ExecutionContext.InvokeCommand.ExpandString($template) | Set-Content ".\build\p
 Name "`${TITLE}"
 Caption "`${TITLE}"
 XPStyle on
+ManifestDPIAware true
 Unicode True
 SetCompressor lzma
 RequestExecutionLevel admin
@@ -219,6 +220,8 @@ InstallDirRegKey `${PICO_REG_ROOT} "`${PICO_REG_KEY}\v$version" "InstallPath"
 !ifdef BUILD_UNINSTALLER
 
 OutFile "build\build-uninstaller-$suffix.exe"
+
+!define MUI_UNICON "resources\raspberrypi.ico"
 
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_PAGE_FINISH
@@ -304,6 +307,8 @@ SectionEnd
 !else
 
 OutFile "$binfile"
+
+!define MUI_ICON "resources\raspberrypi.ico"
 
 !define MUI_ABORTWARNING
 
@@ -480,7 +485,7 @@ Section "Pico environment" SecPico
   File /oname=uninstall.exe "build\uninstall-$suffix.exe"
   WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "DisplayName" "$product"
   WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "UninstallString" "`$INSTDIR\uninstall.exe"
-  WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "DisplayIcon" "`$INSTDIR\resources\rpi.ico"
+  WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "DisplayIcon" "`$INSTDIR\resources\raspberrypi.ico"
   WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "DisplayVersion" "$version"
   WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "Publisher" "$company"
 
