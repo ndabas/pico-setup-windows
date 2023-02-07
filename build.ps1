@@ -157,7 +157,9 @@ if (-not $SkipDownload) {
   # Normal update
   msys 'pacman --noconfirm -Suu'
 
-  msys "pacman -S --noconfirm --needed autoconf automake mingw-w64-${mingw_arch}-cmake git libtool make mingw-w64-${mingw_arch}-ninja mingw-w64-${mingw_arch}-toolchain mingw-w64-${mingw_arch}-libusb mingw-w64-${mingw_arch}-hidapi pkg-config wget"
+  msys "pacman -S --noconfirm --needed autoconf automake git libtool make pactoys pkg-config wget"
+  # pacboy adds MINGW_PACKAGE_PREFIX to package names suffixed with :p
+  msys "pacboy -S --noconfirm --needed cmake:p ninja:p toolchain:p libusb:p hidapi:p"
 }
 
 if (-not (Test-Path ".\build\openocd-install\mingw$bitness")) {
