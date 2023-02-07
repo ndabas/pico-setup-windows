@@ -425,24 +425,6 @@ LangString DESC_Sec$($_.shortName) `${LANG_ENGLISH} "$($_.name)"
 "@
 })
 
-Section "VS Code Extensions" SecCodeExts
-
-  ReadEnvStr `$0 COMSPEC
-  nsExec::ExecToLog '"`$0" /c call "`$TEMP\RefreshEnv.cmd" && code --install-extension marus25.cortex-debug'
-  Pop `$1
-  nsExec::ExecToLog '"`$0" /c call "`$TEMP\RefreshEnv.cmd" && code --install-extension ms-vscode.cmake-tools'
-  Pop `$1
-  nsExec::ExecToLog '"`$0" /c call "`$TEMP\RefreshEnv.cmd" && code --install-extension ms-vscode.cpptools'
-  Pop `$1
-  nsExec::ExecToLog '"`$0" /c call "`$TEMP\RefreshEnv.cmd" && code --install-extension ms-vscode.cpptools-extension-pack'
-  Pop `$1
-  nsExec::ExecToLog '"`$0" /c call "`$TEMP\RefreshEnv.cmd" && code --install-extension ms-vscode.vscode-serial-monitor'
-  Pop `$1
-
-SectionEnd
-
-LangString DESC_SecCodeExts `${LANG_ENGLISH} "Recommended extensions for Visual Studio Code: C/C++, CMake-Tools, and Cortex-Debug"
-
 Section "OpenOCD" SecOpenOCD
 
   SetOutPath "`$INSTDIR\openocd"
@@ -489,12 +471,22 @@ Section "Pico environment" SecPico
   WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "DisplayVersion" "$version"
   WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "Publisher" "$company"
 
-  CreateDirectory "`${PICO_SHORTCUTS_DIR}\Pico - Documentation"
+  # Find Visual Studio Code, so we can point our shortcut icon to code.exe
+  ReadEnvStr `$0 COMSPEC
+  nsExec::ExecToStack '"`$0" /c call "`$TEMP\RefreshEnv.cmd" && where code.cmd'
+  Pop `$0 # return value/error/timeout
+  Pop `$1 # stdout
+  # Get the last line of output
+  `${WordFind} "`$1" "`$\n" "-1" `$1
+  `${GetParent} "`$1" `$1
+  `${GetParent} "`$1" `$1
+  StrCpy `$1 "`$1\Code.exe"
 
   CreateShortcut "`${PICO_SHORTCUTS_DIR}\Pico - Developer Command Prompt.lnk" "cmd.exe" '/k "`$INSTDIR\pico-env.cmd"'
   CreateShortcut "`${PICO_SHORTCUTS_DIR}\Pico - Developer PowerShell.lnk" "powershell.exe" '-NoExit -ExecutionPolicy Bypass -File "`$INSTDIR\pico-env.ps1"'
-  CreateShortcut "`${PICO_SHORTCUTS_DIR}\Pico - Visual Studio Code.lnk" "powershell.exe" '-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "`$INSTDIR\pico-code.ps1"' "`$INSTDIR\resources\vscode.ico" "" SW_SHOWMINIMIZED
+  CreateShortcut "`${PICO_SHORTCUTS_DIR}\Pico - Visual Studio Code.lnk" "powershell.exe" '-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "`$INSTDIR\pico-code.ps1"' "`$1" "" SW_SHOWMINIMIZED
 
+  CreateDirectory "`${PICO_SHORTCUTS_DIR}\Pico - Documentation"
   WriteINIStr "`${PICO_SHORTCUTS_DIR}\Pico - Documentation\Pico Datasheet.url" "InternetShortcut" "URL" "https://datasheets.raspberrypi.com/pico/pico-datasheet.pdf"
   WriteINIStr "`${PICO_SHORTCUTS_DIR}\Pico - Documentation\Pico W Datasheet.url" "InternetShortcut" "URL" "https://datasheets.raspberrypi.com/picow/pico-w-datasheet.pdf"
   WriteINIStr "`${PICO_SHORTCUTS_DIR}\Pico - Documentation\Pico C C++ SDK.url" "InternetShortcut" "URL" "https://datasheets.raspberrypi.com/pico/raspberry-pi-pico-c-sdk.pdf"
