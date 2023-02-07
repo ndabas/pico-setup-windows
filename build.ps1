@@ -215,7 +215,7 @@ InstallDir "`${PICO_INSTALL_DIR}"
 
 ; Get installation folder from registry if available
 ; We use a version-specific key here so that multiple versions can be installed side-by-side
-InstallDirRegKey `${PICO_REG_ROOT} "`${PICO_REG_KEY}\v$version" "InstallPath"
+InstallDirRegKey HKLM "`${PICO_REG_KEY}" "InstallPath"
 
 !ifdef BUILD_UNINSTALLER
 
@@ -235,7 +235,7 @@ OutFile "build\build-uninstaller-$suffix.exe"
 Function un.onInit
 
   SetShellVarContext all
-  SetRegView $bitness
+  SetRegView 32
 
   ReadRegStr `$R0 `${PICO_REG_ROOT} "`${PICO_REG_KEY}" "InstallPath"
   DetailPrint "Install path: `$R0"
@@ -243,6 +243,8 @@ Function un.onInit
 
   ReadRegStr `$R1 `${PICO_REG_ROOT} "`${PICO_REG_KEY}" "ReposPath"
   DetailPrint "Repos path: `$R1"
+
+  SetRegView $bitness
 
 FunctionEnd
 
@@ -353,11 +355,25 @@ Section
   ${EndIf}'
   })
 
+  ; Uninstall previous version
+  ReadRegStr `$R0 HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\$basename-$sdkVersion" "UninstallString"
+  `${If} `$R0 == ""
+    ReadRegStr `$R0 `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "UninstallString"
+  `${EndIf}
+  `${If} `$R0 != ""
+    `${GetParent} "`$R0" `$R1
+    DetailPrint "Uninstalling previous version..."
+    ExecWait '"`$R0" /S _?=`$R1'
+  `${EndIf}
+
   InitPluginsDir
   File /oname=`$TEMP\RefreshEnv.cmd "packages\pico-setup-windows\RefreshEnv.cmd"
 
+  ; Save install paths in the 32-bit registry for ease of access from NSIS (un)installers
+  SetRegView 32
   WriteRegStr `${PICO_REG_ROOT} "`${PICO_REG_KEY}" "InstallPath" "`$INSTDIR"
   WriteRegStr `${PICO_REG_ROOT} "`${PICO_REG_KEY}" "ReposPath" "`${PICO_REPOS_DIR}"
+  SetRegView $bitness
 
   CreateDirectory "`${PICO_REPOS_DIR}"
   CreateDirectory "`${PICO_SHORTCUTS_DIR}"
