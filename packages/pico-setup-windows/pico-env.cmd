@@ -22,39 +22,19 @@ goto main
 
   goto :EOF
 
-:SetEnvFromRegistry
-
-  rem https://stackoverflow.com/questions/22352793/reading-a-registry-value-to-a-batch-variable-handling-spaces-in-value
-  for /f "usebackq skip=2 tokens=2,*" %%h in (
-    `reg query "HKCU\Software\Raspberry Pi\pico-setup-windows\v%PICO_INSTALL_VERSION%" /v "%1Path"`
-    ) do (
-    echo PICO_%1_PATH=%%i
-    set "PICO_%1_PATH=%%i"
-  )
-
-  if not defined PICO_%1_PATH (
-    echo ERROR: Unable to determine Pico %1 path.
-    set /a errors += 1
-  )
-
-  goto :EOF
-
 :main
 
 pushd "%~dp0"
 
-for /f %%i in (version.txt) do (
-  echo PICO_INSTALL_VERSION=%%i
-  set "PICO_INSTALL_VERSION=%%i"
+for /f "skip=1 tokens=*" %%i in (version.ini) do (
+  echo %%i
+  set "%%i"
 )
 
-if not defined PICO_INSTALL_VERSION (
-  echo ERROR: Unable to determine Pico installer version.
+if not defined PICO_SDK_VERSION (
+  echo ERROR: Unable to determine Pico SDK version.
   set /a errors += 1
 )
-
-call :SetEnvFromRegistry install
-call :SetEnvFromRegistry repos
 
 for %%i in (sdk examples extras playground) do (
   rem Environment variables in Windows aren't case-sensitive, so we don't need

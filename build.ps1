@@ -113,6 +113,7 @@ $repositories | ForEach-Object {
 
 $sdkVersion = (.\build\cmake\bin\cmake.exe -P .\packages\pico-setup-windows\pico-sdk-version.cmake -N | Select-String -Pattern 'PICO_SDK_VERSION_STRING=(.*)$').Matches.Groups[1].Value
 $product = "Raspberry Pi Pico SDK v$sdkVersion"
+$productDir = "Raspberry Pi\Pico SDK v$sdkVersion"
 $company = "Raspberry Pi Ltd"
 
 Write-Host "SDK version: $sdkVersion"
@@ -173,20 +174,20 @@ $ExecutionContext.InvokeCommand.ExpandString($template) | Set-Content ".\build\p
 @"
 !include "MUI2.nsh"
 !include "WordFunc.nsh"
+!include "FileFunc.nsh"
 !include "LogicLib.nsh"
 !include "x64.nsh"
 
 !define TITLE "$product"
-!define PICO_INSTALL_DIR "`$PROGRAMFILES$bitness\$product"
+!define PICO_INSTALL_DIR "`$PROGRAMFILES$bitness\$productDir"
 ; The repos need to be cloned into a dir with a fairly short name, because
 ; CMake generates build defs with long hashes in the paths. Both CMake and
 ; Ninja currently have problems working with long paths on Windows.
-; !define PICO_REPOS_DIR "`$LOCALAPPDATA\Programs\$product"
-!define PICO_REPOS_DIR "`$DOCUMENTS\Pico-v$sdkVersion"
-!define PICO_SHORTCUTS_DIR "`$SMPROGRAMS\Raspberry Pi\Pico SDK v$sdkVersion"
-!define PICO_REG_ROOT HKCU
-!define PICO_REG_KEY "Software\Raspberry Pi\$basename"
-!define UNINSTALL_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\$basename-$sdkVersion"
+!define PICO_REPOS_DIR "`$LOCALAPPDATA\$productDir"
+!define PICO_SHORTCUTS_DIR "`$SMPROGRAMS\$productDir"
+!define PICO_REG_ROOT SHELL_CONTEXT
+!define PICO_REG_KEY "Software\$productDir"
+!define UNINSTALL_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\$product"
 
 Name "`${TITLE}"
 Caption "`${TITLE}"
@@ -228,11 +229,14 @@ OutFile "build\build-uninstaller-$suffix.exe"
 
 Function un.onInit
 
-  ReadRegStr `$R0 `${PICO_REG_ROOT} "`${PICO_REG_KEY}\v$version" "InstallPath"
+  SetShellVarContext all
+  SetRegView $bitness
+
+  ReadRegStr `$R0 `${PICO_REG_ROOT} "`${PICO_REG_KEY}" "InstallPath"
   DetailPrint "Install path: `$R0"
   StrCpy `$INSTDIR `$R0
 
-  ReadRegStr `$R1 `${PICO_REG_ROOT} "`${PICO_REG_KEY}\v$version" "ReposPath"
+  ReadRegStr `$R1 `${PICO_REG_ROOT} "`${PICO_REG_KEY}" "ReposPath"
   DetailPrint "Repos path: `$R1"
 
 FunctionEnd
@@ -258,10 +262,14 @@ Section "Uninstall"
   Delete /REBOOTOK "`$INSTDIR\pico-env.ps1"
   Delete /REBOOTOK "`$INSTDIR\pico-setup.cmd"
   Delete /REBOOTOK "`$INSTDIR\ReadMe.txt"
-  Delete /REBOOTOK "`$INSTDIR\version.txt"
+  Delete /REBOOTOK "`$INSTDIR\version.ini"
 
   Delete /REBOOTOK "`$INSTDIR\uninstall.exe"
+
   RMDir /REBOOTOK "`$INSTDIR"
+  ; Remove the C:\Program Files\Raspberry Pi directory if it is empty
+  `${GetParent} "`$INSTDIR" `$R0
+  RMDir `$R0
 
   RMDir /r /REBOOTOK "`$R1\pico-examples"
   RMDir /r /REBOOTOK "`$R1\pico-extras"
@@ -270,14 +278,18 @@ Section "Uninstall"
   RMDir /r /REBOOTOK "`$R1\pico-sdk"
 
   RMDir /REBOOTOK "`$R1"
+  ; Remove the C:\ProgramData\Raspberry Pi directory if it is empty
+  `${GetParent} "`$R1" `$R0
+  RMDir `$R0
 
   DeleteRegValue `${PICO_REG_ROOT} "Software\Kitware\CMake\Packages\pico-sdk-tools" "v$sdkVersion"
   DeleteRegKey /ifempty `${PICO_REG_ROOT} "Software\Kitware\CMake\Packages\pico-sdk-tools"
 
-  DeleteRegKey `${PICO_REG_ROOT} "`${PICO_REG_KEY}\v$version"
-  DeleteRegKey /ifempty `${PICO_REG_ROOT} "`${PICO_REG_KEY}"
-
   DeleteRegKey `${PICO_REG_ROOT} "`${UNINSTALL_KEY}"
+
+  DeleteRegKey `${PICO_REG_ROOT} "`${PICO_REG_KEY}"
+  SetShellVarContext current
+  DeleteRegKey `${PICO_REG_ROOT} "`${PICO_REG_KEY}"
 
 SectionEnd
 
@@ -315,6 +327,13 @@ OutFile "$binfile"
 
 !insertmacro MUI_LANGUAGE "English"
 
+Function .onInit
+
+  SetShellVarContext all
+  SetRegView $bitness
+
+FunctionEnd
+
 Section
 
   ; Make sure that `$INSTDIR exists before enabling logging
@@ -330,8 +349,8 @@ Section
   InitPluginsDir
   File /oname=`$TEMP\RefreshEnv.cmd "packages\pico-setup-windows\RefreshEnv.cmd"
 
-  WriteRegStr `${PICO_REG_ROOT} "`${PICO_REG_KEY}\v$version" "InstallPath" "`$INSTDIR"
-  WriteRegStr `${PICO_REG_ROOT} "`${PICO_REG_KEY}\v$version" "ReposPath" "`${PICO_REPOS_DIR}"
+  WriteRegStr `${PICO_REG_ROOT} "`${PICO_REG_KEY}" "InstallPath" "`$INSTDIR"
+  WriteRegStr `${PICO_REG_ROOT} "`${PICO_REG_KEY}" "ReposPath" "`${PICO_REPOS_DIR}"
 
   CreateDirectory "`${PICO_REPOS_DIR}"
   CreateDirectory "`${PICO_SHORTCUTS_DIR}"
@@ -447,7 +466,9 @@ Section "Pico environment" SecPico
   File "build\picotool-install\mingw$bitness\*.*"
 
   SetOutPath "`$INSTDIR"
-  File "version.txt"
+  WriteINIStr "`$INSTDIR\version.ini" "pico-setup-windows" "PICO_SDK_VERSION" "$sdkVersion"
+  WriteINIStr "`$INSTDIR\version.ini" "pico-setup-windows" "PICO_REPOS_PATH" "`${PICO_REPOS_DIR}"
+  WriteINIStr "`$INSTDIR\version.ini" "pico-setup-windows" "PICO_INSTALL_PATH" "`$INSTDIR"
   File "packages\pico-setup-windows\pico-code.ps1"
   File "packages\pico-setup-windows\pico-env.ps1"
   File "packages\pico-setup-windows\pico-env.cmd"
