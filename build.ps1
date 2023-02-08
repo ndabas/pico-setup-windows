@@ -352,8 +352,8 @@ Section
   LogSet on
 
   $(if ($bitness -eq '64') {
-  '${IfNot} ${RunningX64}
-    Abort "This installer requires a 64-bit version of Windows."
+  '${IfNot} ${IsNativeAMD64}
+    Abort "This installer only supports x86-64 versions of Windows."
   ${EndIf}'
   })
 
