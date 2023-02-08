@@ -14,7 +14,10 @@ param (
   $MSYS2Path = '.\build\msys64',
 
   [switch]
-  $SkipDownload
+  $SkipDownload,
+
+  [switch]
+  $SkipSigning
 )
 
 #Requires -Version 7.0
@@ -88,6 +91,14 @@ mkdirp "bin"
   }
 }
 
+if (-not (Get-Command cmake -ErrorAction SilentlyContinue)) {
+  $env:PATH = $env:PATH + ';' + (Resolve-Path .\build\cmake\bin).Path
+}
+
+if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+  $env:PATH = $env:PATH + ';' + (Resolve-Path .\build\git\cmd).Path
+}
+
 $repositories | ForEach-Object {
   $repodir = Join-Path 'build' ([IO.Path]::GetFileNameWithoutExtension($_.href))
 
@@ -111,7 +122,7 @@ $repositories | ForEach-Object {
   }
 }
 
-$sdkVersion = (.\build\cmake\bin\cmake.exe -P .\packages\pico-setup-windows\pico-sdk-version.cmake -N | Select-String -Pattern 'PICO_SDK_VERSION_STRING=(.*)$').Matches.Groups[1].Value
+$sdkVersion = (cmake -P .\packages\pico-setup-windows\pico-sdk-version.cmake -N | Select-String -Pattern 'PICO_SDK_VERSION_STRING=(.*)$').Matches.Groups[1].Value
 $product = "Raspberry Pi Pico SDK v$sdkVersion"
 $productDir = "Raspberry Pi\Pico SDK v$sdkVersion"
 $company = "Raspberry Pi Ltd"
@@ -134,8 +145,16 @@ if (-not (Test-Path build\NSIS)) {
 function sign {
   param ([string[]] $filesToSign)
 
-  $cert = Get-ChildItem -Path Cert:\CurrentUser\My -CodeSigningCert | Where-Object { $_.Subject -like "CN=Raspberry Pi*" }
-  $filesToSign | Set-AuthenticodeSignature -Certificate $cert -TimestampServer "http://timestamp.digicert.com" -HashAlgorithm SHA256
+  if ($SkipSigning) {
+    Write-Warning "Skipping code signing."
+  } else {
+    $cert = Get-ChildItem -Path Cert:\CurrentUser\My -CodeSigningCert | Where-Object { $_.Subject -like "CN=Raspberry Pi*" }
+    if (-not $cert) {
+      Write-Error "No suitable code signing certificates found."
+    }
+
+    $filesToSign | Set-AuthenticodeSignature -Certificate $cert -TimestampServer "http://timestamp.digicert.com" -HashAlgorithm SHA256
+  }
 }
 
 function msys {
