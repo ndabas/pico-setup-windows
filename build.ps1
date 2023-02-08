@@ -179,6 +179,7 @@ $ExecutionContext.InvokeCommand.ExpandString($template) | Set-Content ".\build\p
 !include "FileFunc.nsh"
 !include "LogicLib.nsh"
 !include "x64.nsh"
+!include "packages\pico-setup-windows\aumi.nsh"
 
 !define TITLE "$product"
 !define PICO_INSTALL_DIR "`$PROGRAMFILES$bitness\$productDir"
@@ -186,10 +187,11 @@ $ExecutionContext.InvokeCommand.ExpandString($template) | Set-Content ".\build\p
 ; CMake generates build defs with long hashes in the paths. Both CMake and
 ; Ninja currently have problems working with long paths on Windows.
 !define PICO_REPOS_DIR "`$LOCALAPPDATA\$productDir"
-!define PICO_SHORTCUTS_DIR "`$SMPROGRAMS\$productDir"
+!define PICO_SHORTCUTS_DIR "`$SMPROGRAMS\$product"
 !define PICO_REG_ROOT SHELL_CONTEXT
 !define PICO_REG_KEY "Software\$productDir"
 !define UNINSTALL_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\$product"
+!define PICO_AppUserModel_ID "RaspberryPi.PicoSDK.$sdkVersion"
 
 Name "`${TITLE}"
 Caption "`${TITLE}"
@@ -498,9 +500,9 @@ Section "Pico environment" SecPico
   `${GetParent} "`$1" `$1
   StrCpy `$1 "`$1\Code.exe"
 
-  CreateShortcut "`${PICO_SHORTCUTS_DIR}\Pico - Developer Command Prompt.lnk" "cmd.exe" '/k "`$INSTDIR\pico-env.cmd"'
-  CreateShortcut "`${PICO_SHORTCUTS_DIR}\Pico - Developer PowerShell.lnk" "powershell.exe" '-NoExit -ExecutionPolicy Bypass -File "`$INSTDIR\pico-env.ps1"'
-  CreateShortcut "`${PICO_SHORTCUTS_DIR}\Pico - Visual Studio Code.lnk" "powershell.exe" '-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "`$INSTDIR\pico-code.ps1"' "`$1" "" SW_SHOWMINIMIZED
+  `${CreateShortcutEx} "`${PICO_SHORTCUTS_DIR}\Pico - Developer Command Prompt.lnk" "`${PICO_AppUserModel_ID}!cmd" ``"cmd.exe" '/k "`$INSTDIR\pico-env.cmd"'``
+  `${CreateShortcutEx} "`${PICO_SHORTCUTS_DIR}\Pico - Developer PowerShell.lnk" "`${PICO_AppUserModel_ID}!powershell" ``"powershell.exe" '-NoExit -ExecutionPolicy Bypass -File "`$INSTDIR\pico-env.ps1"'``
+  `${CreateShortcutEx} "`${PICO_SHORTCUTS_DIR}\Pico - Visual Studio Code.lnk" "`${PICO_AppUserModel_ID}!code" ``"powershell.exe" '-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "`$INSTDIR\pico-code.ps1"' "`$1" "" SW_SHOWMINIMIZED``
 
   CreateDirectory "`${PICO_SHORTCUTS_DIR}\Pico - Documentation"
   WriteINIStr "`${PICO_SHORTCUTS_DIR}\Pico - Documentation\Pico Datasheet.url" "InternetShortcut" "URL" "https://datasheets.raspberrypi.com/pico/pico-datasheet.pdf"
