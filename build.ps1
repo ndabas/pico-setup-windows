@@ -17,7 +17,11 @@ param (
   $SkipDownload,
 
   [switch]
-  $SkipSigning
+  $SkipSigning,
+
+  [ValidateSet('zlib', 'bzip2', 'lzma')]
+  [string]
+  $Compression = 'lzma'
 )
 
 #Requires -Version 7.2
@@ -39,8 +43,9 @@ $tools = (Get-Content '.\config\tools.json' | ConvertFrom-Json).tools
 $repositories = (Get-Content '.\config\repositories.json' | ConvertFrom-Json).repositories
 $config = Get-Content $ConfigFile | ConvertFrom-Json
 $bitness = $config.bitness
-$mingw_arch = $config.mingw_arch
+$mingw_arch = $config.mingwArch
 $downloads = $config.downloads
+$componentSelection = ($config | Get-Member componentSelection) ? $config.componentSelection : $false
 
 mkdirp "build"
 mkdirp "bin"
@@ -222,7 +227,7 @@ Caption "`${TITLE}"
 XPStyle on
 ManifestDPIAware true
 Unicode True
-SetCompressor lzma
+SetCompressor $Compression
 RequestExecutionLevel admin
 
 VIAddVersionKey "FileDescription" "`${TITLE}"
@@ -355,8 +360,7 @@ OutFile "$binfile"
 !define MUI_FINISHPAGE_NOAUTOCLOSE
 
 !insertmacro MUI_PAGE_WELCOME
-;!insertmacro MUI_PAGE_LICENSE "`${NSISDIR}\Docs\Modern UI\License.txt"
-;!insertmacro MUI_PAGE_COMPONENTS
+$($componentSelection ? '!insertmacro MUI_PAGE_COMPONENTS' : '')
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_PAGE_FINISH
@@ -468,7 +472,7 @@ LangString DESC_Sec$($_.shortName) `${LANG_ENGLISH} "$($_.name)"
 "@
 })
 
-Section "OpenOCD" SecOpenOCD
+Section "-OpenOCD" SecOpenOCD
 
   SetOutPath "`$INSTDIR\openocd"
   File "build\openocd-install\mingw$bitness\bin\*.*"
@@ -477,9 +481,7 @@ Section "OpenOCD" SecOpenOCD
 
 SectionEnd
 
-LangString DESC_SecOpenOCD `${LANG_ENGLISH} "Open On-Chip Debugger with picoprobe support"
-
-Section "Pico environment" SecPico
+Section "-Pico environment" SecPico
 
   SetOutPath "`${PICO_REPOS_DIR}\pico-sdk"
   File /r "build\pico-sdk\*.*"
@@ -541,8 +543,6 @@ Section "Pico environment" SecPico
 
 SectionEnd
 
-LangString DESC_SecPico `${LANG_ENGLISH} "Scripts for cloning the Pico SDK and tools repos, and for setting up your Pico development environment."
-
 Function RunBuild
 
   ; We need to run pico-setup.cmd un-elevated, to avoid problems with builds later on.
@@ -552,14 +552,13 @@ Function RunBuild
 
 FunctionEnd
 
+!if $($componentSelection ? 1 : 0)
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
-  !insertmacro MUI_DESCRIPTION_TEXT `${SecCodeExts} `$(DESC_SecCodeExts)
-  !insertmacro MUI_DESCRIPTION_TEXT `${SecOpenOCD} `$(DESC_SecOpenOCD)
-  !insertmacro MUI_DESCRIPTION_TEXT `${SecPico} `$(DESC_SecPico)
 $($downloads | ForEach-Object {
   "  !insertmacro MUI_DESCRIPTION_TEXT `${Sec$($_.shortName)} `$(DESC_Sec$($_.shortName))`n"
 })
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
+!endif
 
 !endif # BUILD_UNINSTALLER
 "@ | Set-Content ".\$basename-$suffix.nsi"

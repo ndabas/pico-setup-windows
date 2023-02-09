@@ -1,7 +1,14 @@
 {
   "bitness": 32,
-  "mingw_arch": "i686",
+  "mingwArch": "i686",
+  "componentSelection": true,
   "downloads": [
+    {
+      "name": "Visual Studio Code",
+      "file": "Install-VSCode.ps1",
+      "execToLog": "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \"$0\" -BuildEdition Stable-User -AdditionalExtensions 'marus25.cortex-debug','ms-vscode.cmake-tools','ms-vscode.cpptools','ms-vscode.cpptools-extension-pack','ms-vscode.vscode-serial-monitor'",
+      "href": "https://raw.githubusercontent.com/PowerShell/vscode-powershell/main/scripts/Install-VSCode.ps1"
+    },
     {
       "name": "GNU Arm Embedded Toolchain",
       "file": "gcc-arm-none-eabi-10.3-2021.10-win32.exe",
@@ -28,12 +35,6 @@
       "additionalFiles": [
         "packages\\pico-setup-windows\\git.inf"
       ]
-    },
-    {
-      "name": "Visual Studio Code",
-      "file": "VSCodeUserSetup-ia32.exe",
-      "exec": "\"$0\" /VERYSILENT /NORESTART /NOCANCEL /SP- /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS /MERGETASKS=!runcode",
-      "href": "https://code.visualstudio.com/sha/download?build=stable&os=win32-user"
     }
   ]
 }

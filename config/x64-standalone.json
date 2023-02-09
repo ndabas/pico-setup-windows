@@ -1,9 +1,9 @@
 {
   "bitness": 64,
-  "mingw_arch": "x86_64",
+  "mingwArch": "x86_64",
   "downloads": [
     {
-      "name": "Visual Studio Code (Install Script)",
+      "name": "Visual Studio Code",
       "file": "Install-VSCode.ps1",
       "execToLog": "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \"$0\" -BuildEdition Stable-User -AdditionalExtensions 'marus25.cortex-debug','ms-vscode.cmake-tools','ms-vscode.cpptools','ms-vscode.cpptools-extension-pack','ms-vscode.vscode-serial-monitor'",
       "href": "https://raw.githubusercontent.com/PowerShell/vscode-powershell/main/scripts/Install-VSCode.ps1"
