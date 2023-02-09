@@ -20,7 +20,7 @@ param (
   $SkipSigning
 )
 
-#Requires -Version 7.0
+#Requires -Version 7.2
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -153,7 +153,12 @@ function sign {
       Write-Error "No suitable code signing certificates found."
     }
 
-    $filesToSign | Set-AuthenticodeSignature -Certificate $cert -TimestampServer "http://timestamp.digicert.com" -HashAlgorithm SHA256
+    $filesToSign | Set-AuthenticodeSignature -Certificate $cert -TimestampServer "http://timestamp.digicert.com" -HashAlgorithm SHA256 | Tee-Object -Variable signatures
+    $signatures | ForEach-Object {
+      if ($_.Status -ne 0) {
+        Write-Error "Error signing $($sign.Path)"
+      }
+    }
   }
 }
 

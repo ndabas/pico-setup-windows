@@ -11,7 +11,7 @@ Describe 'exec' {
   }
 
   It 'Should capture stderr' {
-    exec { cmd /c "echo Oops 1>&2" } | Should -Be 'Oops '
+    exec { cmd /c "echo Oops 1>&2" } 2>&1 | Should -Be 'Oops '
   }
 
   It 'Should throw on non-zero exit code' {

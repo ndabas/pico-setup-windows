@@ -1,3 +1,5 @@
+#Requires -Version 7.2
+
 function crawl {
   param ([string]$url)
 
@@ -31,19 +33,11 @@ function mkdirp {
 function exec {
   param ([scriptblock]$private:cmd)
 
-  $private:eap = $ErrorActionPreference
-  $ErrorActionPreference = 'Continue'
   $global:LASTEXITCODE = 0
 
-  try {
-    # Convert stderr in ErrorRecord objects back to strings
-    & $cmd 2>&1 | ForEach-Object { "$_" }
+  & $cmd
 
-    if ($LASTEXITCODE -ne 0) {
-      throw "Command '$cmd' exited with code $LASTEXITCODE"
-    }
-  }
-  finally {
-    $ErrorActionPreference = $eap
+  if ($LASTEXITCODE -ne 0) {
+    throw "Command '$cmd' exited with code $LASTEXITCODE"
   }
 }
