@@ -156,7 +156,7 @@ function sign {
     $filesToSign | Set-AuthenticodeSignature -Certificate $cert -TimestampServer "http://timestamp.digicert.com" -HashAlgorithm SHA256 | Tee-Object -Variable signatures
     $signatures | ForEach-Object {
       if ($_.Status -ne 0) {
-        Write-Error "Error signing $($sign.Path)"
+        Write-Error "Error signing $($_.Path)"
       }
     }
   }
