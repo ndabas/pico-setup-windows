@@ -294,6 +294,7 @@ Section "Uninstall"
   Delete /REBOOTOK "`$INSTDIR\pico-env.cmd"
   Delete /REBOOTOK "`$INSTDIR\pico-env.ps1"
   Delete /REBOOTOK "`$INSTDIR\pico-setup.cmd"
+  Delete /REBOOTOK "`$INSTDIR\pico-setup.lnk"
   Delete /REBOOTOK "`$INSTDIR\ReadMe.txt"
   Delete /REBOOTOK "`$INSTDIR\version.ini"
 
@@ -505,6 +506,7 @@ Section "Pico environment" SecPico
   File "packages\pico-setup-windows\pico-env.cmd"
   File "packages\pico-setup-windows\pico-setup.cmd"
   File "packages\pico-setup-windows\ReadMe.txt"
+  CreateShortcut "`$INSTDIR\pico-setup.lnk" "cmd.exe" '/k call "`$INSTDIR\pico-setup.cmd" 1'
 
   File /oname=uninstall.exe "build\uninstall-$suffix.exe"
   WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "DisplayName" "$product"
@@ -534,7 +536,7 @@ Section "Pico environment" SecPico
   WriteINIStr "`${PICO_SHORTCUTS_DIR}\Pico - Documentation\Pico C C++ SDK.url" "InternetShortcut" "URL" "https://datasheets.raspberrypi.com/pico/raspberry-pi-pico-c-sdk.pdf"
   WriteINIStr "`${PICO_SHORTCUTS_DIR}\Pico - Documentation\Pico Python SDK.url" "InternetShortcut" "URL" "https://datasheets.raspberrypi.com/pico/raspberry-pi-pico-python-sdk.pdf"
 
-  ; Reset working dir for pico-setup.cmd launched from the finish page
+  ; Reset working dir for pico-setup launched from the finish page
   SetOutPath "`$INSTDIR"
 
 SectionEnd
@@ -543,8 +545,10 @@ LangString DESC_SecPico `${LANG_ENGLISH} "Scripts for cloning the Pico SDK and t
 
 Function RunBuild
 
-  ReadEnvStr `$0 COMSPEC
-  Exec '"`$0" /k call "`$TEMP\RefreshEnv.cmd" && del "`$TEMP\RefreshEnv.cmd" && call "`$INSTDIR\pico-setup.cmd" 1'
+  ; We need to run pico-setup.cmd un-elevated, to avoid problems with builds later on.
+  ; So we create a shortcut with the command line to use, and have explorer.exe launch it.
+  ; http://mdb-blog.blogspot.com/2013/01/nsis-lunch-program-as-user-from-uac.html
+  Exec '"`$WINDIR\explorer.exe" "`$INSTDIR\pico-setup.lnk"'
 
 FunctionEnd
 
