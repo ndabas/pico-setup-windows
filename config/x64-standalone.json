@@ -5,7 +5,7 @@
     {
       "name": "Visual Studio Code",
       "file": "Install-VSCode.ps1",
-      "execToLog": "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \"$0\" -BuildEdition Stable-User -AdditionalExtensions 'marus25.cortex-debug','ms-vscode.cmake-tools','ms-vscode.cpptools','ms-vscode.cpptools-extension-pack','ms-vscode.vscode-serial-monitor'",
+      "execToLog": "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command & \"$0\" -BuildEdition Stable-User -AdditionalExtensions marus25.cortex-debug,ms-vscode.cmake-tools,ms-vscode.cpptools,ms-vscode.cpptools-extension-pack,ms-vscode.vscode-serial-monitor; & \"$${env:LocalAppData}\\Programs\\Microsoft VS Code\\bin\\code.cmd\" --version",
       "href": "https://raw.githubusercontent.com/PowerShell/vscode-powershell/main/scripts/Install-VSCode.ps1"
     },
     {

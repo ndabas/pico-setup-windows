@@ -440,7 +440,7 @@ Section "$($_.name)" Sec$($_.shortName)
     })
 
     $(if ($_ | Get-Member execToLog) {
-      "nsExec::ExecToLog ``$($_.execToLog)```r`n"
+      "nsExec::ExecToLog ``$($_.execToLog -replace '"', ('"' * 3))```r`n"
       "Pop `$1"
     })
 
@@ -520,7 +520,7 @@ Section "-Pico environment" SecPico
 
   # Find Visual Studio Code, so we can point our shortcut icon to code.exe
   ReadEnvStr `$0 COMSPEC
-  nsExec::ExecToStack '"`$0" /c call "`$TEMP\RefreshEnv.cmd" && where code.cmd'
+  nsExec::ExecToStack '$('"$0" /c call "$TEMP\RefreshEnv.cmd" && where code.cmd' -replace '"', ('"' * 3))'
   Pop `$0 # return value/error/timeout
   Pop `$1 # stdout
   # Get the last line of output
