@@ -2,7 +2,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Pico Debug",
+      "name": "Pico Debug (Cortex-Debug)",
       "cwd": "${workspaceRoot}",
       "executable": "${command:cmake.launchTargetPath}",
       "request": "launch",
@@ -19,6 +19,19 @@
       "openOCDLaunchCommands": [
         "adapter speed 1000"
       ]
+    },
+    {
+      "name": "Pico Debug (Cortex-Debug with external OpenOCD)",
+      "cwd": "${workspaceRoot}",
+      "executable": "${command:cmake.launchTargetPath}",
+      "request": "launch",
+      "type": "cortex-debug",
+      "servertype" : "external",
+      "gdbTarget": "localhost:3333",
+      "gdbPath": "arm-none-eabi-gdb",
+      "device": "RP2040",
+      "svdFile": "${env:PICO_SDK_PATH}/src/rp2040/hardware_regs/rp2040.svd",
+      "runToEntryPoint": "main"
     }
   ]
 }

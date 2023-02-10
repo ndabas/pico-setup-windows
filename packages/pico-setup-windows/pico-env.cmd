@@ -53,6 +53,9 @@ if exist "%PICO_INSTALL_PATH%\openocd" (
   set "PATH=%PICO_INSTALL_PATH%\openocd;%PATH%"
 )
 
+rem Set the CMake generator explicitly
+set CMAKE_GENERATOR=Ninja
+
 rem GDB warns about being unable to determine a path for the index cache
 rem directory if we do not set this.
 set "HOME=%USERPROFILE%"

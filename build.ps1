@@ -489,8 +489,9 @@ Section "-Pico environment" SecPico
   SetOutPath "`${PICO_REPOS_DIR}\pico-examples"
   File /r "build\pico-examples\*.*"
   SetOutPath "`${PICO_REPOS_DIR}\pico-examples\.vscode"
+  File /oname=cmake-kits.json "packages\pico-examples\vscode-cmake-kits.json"
   File /oname=launch.json "packages\pico-examples\vscode-launch.json"
-  File "build\pico-examples\ide\vscode\settings.json"
+  File /oname=settings.json "packages\pico-examples\vscode-settings.json"
 
   SetOutPath "`$INSTDIR\pico-sdk-tools"
   File "build\pico-sdk-tools\mingw$bitness\*.*"
