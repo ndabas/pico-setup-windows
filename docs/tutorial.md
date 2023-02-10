@@ -4,17 +4,17 @@ Download [the latest release](https://github.com/raspberrypi/pico-setup-windows/
 
 ## Starting Visual Studio Code
 
-In your Start Menu, look for the _Pico - Visual Studio Code_ shortcut, in the _Raspberry Pi_ folder. The shortcut sets up the needed environment variables and then launches Visual Studio Code.
+In your Start Menu, look for the _Pico - Visual Studio Code_ shortcut, in the _Raspberry Pi Pico SDK &lt;version&gt;_ folder. The shortcut sets up the needed environment variables and then launches Visual Studio Code.
 
 ## Opening the examples
 
 The first time you launch Visual Studio Code using the Start Menu shortcut, it will open the [pico-examples](https://github.com/raspberrypi/pico-examples) repository.
 
-To re-open the examples repository later, you can open the copy installed at `C:\Users\username\Documents\Pico-<version>\pico-examples`.
+To re-open the examples repository later, you can open the copy installed at `C:\ProgramData\Raspberry Pi\Pico SDK <version>\pico-examples`.
 
 ## Building an example
 
-Visual Studio Code will ask if you want to configure the pico-examples project when it is first opened; click _Yes_ on that prompt to proceed. You will then be prompted to select a kit -- the GCC for Arm compiler installed with the SDK should be detected automatically, so select the _GCC arm-none-eabi_ entry. If the _GCC arm-none-eabi_ entry is not present, select _Unspecified_ to have the SDK auto-detect the compiler.
+Visual Studio Code will ask if you want to configure the pico-examples project when it is first opened; click _Yes_ on that prompt to proceed. (If you miss the prompt look for the 'bell' icon in the bottom right.) You will then be prompted to select a kit -- select the _Pico ARM GCC - Pico SDK Toolchain with GCC arm-none-eabi_ entry. If the _Pico ARM GCC_ entry is not present, select _Unspecified_ to have the SDK auto-detect the compiler.
 
 To build one of the examples, click the _CMake_ button on the sidebar. You should be presented with a tree view of the example projects; expand the project you'd like to build, and click the small build icon to the right of the target name to build that specific project.
 
@@ -22,7 +22,7 @@ To build everything instead, click the _Build All Projects_ button at the top of
 
 ## Debugging an example
 
-The `pico-examples` repository comes with a `.vscode\launch.json` file configured for debugging with Visual Studio Code. You can copy this file into your own projects as well.
+The `pico-examples` repository comes with `.vscode\*.json` files configured for debugging with Visual Studio Code. You can copy these files into your own projects as well.
 
 To start debugging an example, click the _Run and Debug_ button on the sidebar. The _Pico Debug_ launch configuration should be selected already. To start debugging, click the small 'play' icon at the top of the debug window, or press F5.
 
@@ -63,7 +63,7 @@ arm-none-eabi-gdb
 For example, to load and debug the `hello_serial` example, you might do: (assuming that OpenOCD is already running as described above)
 
 ```powershell
-cd ~\Documents\Pico-v1.4.0\pico-examples\build\hello_world\serial\
+cd ${env:PICO_EXAMPLES_PATH}\build\hello_world\serial\
 arm-none-eabi-gdb hello_serial.elf # hello_serial.elf is built at SDK install time by pico-setup.cmd
 ```
 
@@ -82,11 +82,11 @@ The commands below are for PowerShell, and will need to be adjusted slightly if 
 
 1. Copy pico_sdk_import.cmake from the SDK into your project directory:
    ```powershell
-   copy ~\Documents\Pico-v1.4.0\pico-sdk\external\pico_sdk_import.cmake .
+   copy ${env:PICO_SDK_PATH}\external\pico_sdk_import.cmake .
    ```
 1. Copy VS Code configuration from the SDK examples into your project directory:
    ```powershell
-   copy ~\Documents\Pico-v1.4.0\pico-examples\.vscode .
+   copy ${env:PICO_EXAMPLES_PATH}\.vscode .
    ```
 1. Setup a `CMakeLists.txt` like:
 
@@ -145,4 +145,4 @@ The commands below are for PowerShell, and will need to be adjusted slightly if 
 
 ## Uninstalling
 
-Open the _Apps and Features_ section in Windows Settings, then select _Raspberry Pi Pico SDK v1.4.0_. Click the _Uninstall_ button and follow the prompts.
+Open the _Apps and Features_ section in Windows Settings, then select _Raspberry Pi Pico SDK &lt;version&gt;_. Click the _Uninstall_ button and follow the prompts.
