@@ -202,6 +202,24 @@ if (-not (Test-Path ".\build\picotool-install\mingw$bitness")) {
 $template = Get-Content ".\packages\pico-sdk-tools\pico-sdk-tools-config-version.cmake" -Raw
 $ExecutionContext.InvokeCommand.ExpandString($template) | Set-Content ".\build\pico-sdk-tools\mingw$bitness\pico-sdk-tools-config-version.cmake"
 
+$endl = '$\r$\n'
+
+function writeFile {
+  param ([string] $filename)
+
+  begin {
+    "FileOpen `$9 '$filename' w`r`n"
+  }
+  process {
+    $_  -split "[\r\n]+" | ForEach-Object {
+      "FileWrite `$9 ``${_}${endl}```r`n"
+    }
+  }
+  end {
+    "FileClose `$9`r`n"
+  }
+}
+
 @"
 !include "MUI2.nsh"
 !include "WordFunc.nsh"
@@ -217,6 +235,7 @@ $ExecutionContext.InvokeCommand.ExpandString($template) | Set-Content ".\build\p
 ; Ninja currently have problems working with long paths on Windows.
 !define PICO_REPOS_DIR "`$LOCALAPPDATA\$productDir"
 !define PICO_SHORTCUTS_DIR "`$SMPROGRAMS\$product"
+!define PICO_WINTERM_DIR "`$LOCALAPPDATA\Microsoft\Windows Terminal\Fragments\$product"
 !define PICO_REG_ROOT SHELL_CONTEXT
 !define PICO_REG_KEY "Software\$productDir"
 !define UNINSTALL_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\$product"
@@ -282,6 +301,7 @@ FunctionEnd
 Section "Uninstall"
 
   RMDir /r /REBOOTOK "`${PICO_SHORTCUTS_DIR}"
+  RMDir /r /REBOOTOK "`${PICO_WINTERM_DIR}"
 
   RMDir /r /REBOOTOK "`$INSTDIR\cmake"
   RMDir /r /REBOOTOK "`$INSTDIR\gcc-arm-none-eabi"
@@ -440,7 +460,7 @@ Section "$($_.name)" Sec$($_.shortName)
     })
 
     $(if ($_ | Get-Member execToLog) {
-      "nsExec::ExecToLog ``$($_.execToLog -replace '"', ('"' * 3))```r`n"
+      "nsExec::ExecToLog ``$($_.execToLog)```r`n"
       "Pop `$1"
     })
 
@@ -529,9 +549,34 @@ Section "-Pico environment" SecPico
   `${GetParent} "`$1" `$1
   StrCpy `$1 "`$1\Code.exe"
 
+
+  ; Set the working directory for our terminals to the repos directory
+  SetOutPath "`${PICO_REPOS_DIR}"
   `${CreateShortcutEx} "`${PICO_SHORTCUTS_DIR}\Pico - Developer Command Prompt.lnk" "`${PICO_AppUserModel_ID}!cmd" ``"cmd.exe" '/k "`$INSTDIR\pico-env.cmd"'``
   `${CreateShortcutEx} "`${PICO_SHORTCUTS_DIR}\Pico - Developer PowerShell.lnk" "`${PICO_AppUserModel_ID}!powershell" ``"powershell.exe" '-NoExit -ExecutionPolicy Bypass -File "`$INSTDIR\pico-env.ps1"'``
   `${CreateShortcutEx} "`${PICO_SHORTCUTS_DIR}\Pico - Visual Studio Code.lnk" "`${PICO_AppUserModel_ID}!code" ``"powershell.exe" '-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "`$INSTDIR\pico-code.ps1"' "`$1" "" SW_SHOWMINIMIZED``
+
+  SetOutPath "`${PICO_WINTERM_DIR}"
+  `${WordReplace} "`$INSTDIR" "\" "\\" "+" `$7
+  `${WordReplace} "`${PICO_REPOS_DIR}" "\" "\\" "+" `$8
+  $( @"
+{
+  "profiles": [
+    {
+      "name": "Pico - Developer Command Prompt (SDK v$sdkVersion)",
+      "commandline": "cmd.exe /k \"`$7\\pico-env.cmd\"",
+      "icon": "`$7\\resources\\raspberrypi.ico",
+      "startingDirectory": "`$8"
+    },
+    {
+      "name": "Pico - Developer PowerShell (SDK v$sdkVersion)",
+      "commandline": "powershell.exe -NoExit -ExecutionPolicy Bypass -File \"`$7\\pico-env.ps1\"",
+      "icon": "`$7\\resources\\raspberrypi.ico",
+      "startingDirectory": "`$8"
+    }
+  ]
+}
+"@ | writeFile "pico-terminals.json")
 
   CreateDirectory "`${PICO_SHORTCUTS_DIR}\Pico - Documentation"
   WriteINIStr "`${PICO_SHORTCUTS_DIR}\Pico - Documentation\Pico Datasheet.url" "InternetShortcut" "URL" "https://datasheets.raspberrypi.com/pico/pico-datasheet.pdf"
