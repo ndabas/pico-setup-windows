@@ -509,9 +509,10 @@ Section "-Pico environment" SecPico
   SetOutPath "`${PICO_REPOS_DIR}\pico-examples"
   File /r "build\pico-examples\*.*"
   SetOutPath "`${PICO_REPOS_DIR}\pico-examples\.vscode"
-  File /oname=cmake-kits.json "packages\pico-examples\vscode-cmake-kits.json"
-  File /oname=launch.json "packages\pico-examples\vscode-launch.json"
-  File /oname=settings.json "packages\pico-examples\vscode-settings.json"
+  File "packages\pico-examples\ide\vscode\cmake-kits.json"
+  File "packages\pico-examples\ide\vscode\extensions.json"
+  File "packages\pico-examples\ide\vscode\launch.json"
+  File "packages\pico-examples\ide\vscode\settings.json"
 
   SetOutPath "`$INSTDIR\pico-sdk-tools"
   File "build\pico-sdk-tools\mingw$bitness\*.*"
@@ -539,8 +540,7 @@ Section "-Pico environment" SecPico
   WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "Publisher" "$company"
 
   # Find Visual Studio Code, so we can point our shortcut icon to code.exe
-  ReadEnvStr `$0 COMSPEC
-  nsExec::ExecToStack '$('"$0" /c call "$TEMP\RefreshEnv.cmd" && where code.cmd' -replace '"', ('"' * 3))'
+  nsExec::ExecToStack 'cmd.exe /c call "`$TEMP\RefreshEnv.cmd" && where code.cmd'
   Pop `$0 # return value/error/timeout
   Pop `$1 # stdout
   # Get the last line of output
@@ -549,6 +549,11 @@ Section "-Pico environment" SecPico
   `${GetParent} "`$1" `$1
   StrCpy `$1 "`$1\Code.exe"
 
+  `${IfNot} `${FileExists} "`$1"
+    # Just use the default install location for the icon, in case the user installs VS Code later
+    StrCpy `$1 "%LOCALAPPDATA%\Programs\Microsoft VS Code\Code.exe"
+    MessageBox MB_OK|MB_ICONEXCLAMATION "Installation of Visual Studio Code failed. Please install it manually by downloading the installer from:${endl}${endl}https://code.visualstudio.com/" /SD IDOK
+  `${EndIf}
 
   ; Set the working directory for our terminals to the repos directory
   SetOutPath "`${PICO_REPOS_DIR}"
