@@ -202,6 +202,8 @@ if (-not (Test-Path ".\build\picotool-install\mingw$bitness")) {
 $template = Get-Content ".\packages\pico-sdk-tools\pico-sdk-tools-config-version.cmake" -Raw
 $ExecutionContext.InvokeCommand.ExpandString($template) | Set-Content ".\build\pico-sdk-tools\mingw$bitness\pico-sdk-tools-config-version.cmake"
 
+exec { .\build\pandoc\pandoc.exe --from gfm --to gfm --output .\build\ReadMe.txt .\docs\tutorial.md }
+
 $endl = '$\r$\n'
 
 function writeFile {
@@ -529,7 +531,7 @@ Section "-Pico environment" SecPico
   File "packages\pico-setup-windows\pico-env.ps1"
   File "packages\pico-setup-windows\pico-env.cmd"
   File "packages\pico-setup-windows\pico-setup.cmd"
-  File "packages\pico-setup-windows\ReadMe.txt"
+  File "build\ReadMe.txt"
   CreateShortcut "`$INSTDIR\pico-setup.lnk" "cmd.exe" '/k call "`$INSTDIR\pico-setup.cmd" 1'
 
   File /oname=uninstall.exe "build\uninstall-$suffix.exe"

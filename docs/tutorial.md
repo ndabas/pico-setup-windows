@@ -1,3 +1,5 @@
+# Pico Setup for Windows
+
 ## Installing the tools
 
 Download [the latest release](https://github.com/raspberrypi/pico-setup-windows/releases/latest/download/pico-setup-windows-x64-standalone.exe) and run it.

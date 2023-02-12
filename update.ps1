@@ -99,6 +99,10 @@ function updateDownloadUrl {
       $newName = 'msys2.exe'
       getGitHubReleaseAssetUrl 'msys2/msys2-installer' { $_.name -match "^msys2-base-x86_64-[0-9]+\.sfx\.exe`$" }
     }
+
+    'pandoc' {
+      getGitHubReleaseAssetUrl 'jgm/pandoc' { $_.name -match "^pandoc-([0-9]+\.)+[0-9]+-windows-x86_64\.zip`$" }
+    }
   }
 
   if ($newUrl) {
