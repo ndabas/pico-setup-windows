@@ -6,7 +6,6 @@ BITNESS=$1
 ARCH=$2
 
 export PICO_SDK_PATH="$PWD/pico-sdk"
-export LIBUSB_ROOT="/mingw$BITNESS"
 export LDFLAGS="-static -static-libgcc -static-libstdc++"
 
 cd pico-sdk/tools/elf2uf2
