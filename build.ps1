@@ -520,6 +520,7 @@ Section "-Pico environment" SecPico
   File "packages\pico-examples\ide\vscode\extensions.json"
   File "packages\pico-examples\ide\vscode\launch.json"
   File "packages\pico-examples\ide\vscode\settings.json"
+  File "packages\pico-examples\ide\vscode\tasks.json"
 
   SetOutPath "`$INSTDIR\pico-sdk-tools"
   File "build\pico-sdk-tools\mingw$bitness\*.*"
