@@ -128,7 +128,9 @@ $repositories | ForEach-Object {
 }
 
 $sdkVersion = (cmake -P .\packages\pico-setup-windows\pico-sdk-version.cmake -N | Select-String -Pattern 'PICO_SDK_VERSION_STRING=(.*)$').Matches.Groups[1].Value
-$sdkVersion -match $versionRegEx
+if (-not ($sdkVersion -match $versionRegEx)) {
+  Write-Error 'Could not determine Pico SDK version.'
+}
 $sdkVersionClean = $Matches[0]
 $product = "Raspberry Pi Pico SDK v$sdkVersion"
 $productDir = "Raspberry Pi\Pico SDK v$sdkVersion"
@@ -261,7 +263,7 @@ VIAddVersionKey "ProductVersion" "$sdkVersion"
 VIAddVersionKey "LegalCopyright" "$company"
 VIAddVersionKey "CompanyName" "$company"
 VIFileVersion $version.0
-VIProductVersion $sdkVersion.0
+VIProductVersion $sdkVersionClean.0
 
 ; Since we're packaging up a bunch of installers, the "Space required" shown is inaccurate
 SpaceTexts "none"
