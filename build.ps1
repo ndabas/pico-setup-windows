@@ -128,6 +128,9 @@ $repositories | ForEach-Object {
   }
 }
 
+# Clone additional Pico-specific submodules in TinyUSB
+exec { git -C .\build\pico-sdk\lib\tinyusb submodule update --init --depth=1 hw\mcu\raspberry_pi }
+
 $sdkVersion = (cmake -P .\packages\pico-setup-windows\pico-sdk-version.cmake -N | Select-String -Pattern 'PICO_SDK_VERSION_STRING=(.*)$').Matches.Groups[1].Value
 if (-not ($sdkVersion -match $versionRegEx)) {
   Write-Error 'Could not determine Pico SDK version.'
