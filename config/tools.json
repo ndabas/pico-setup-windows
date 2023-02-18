@@ -2,13 +2,10 @@
   "tools": [
     {
       "name": "NSIS",
-      "file": "nsis.zip",
-      "href": "https://sourceforge.net/projects/nsis/files/NSIS%203/3.08/nsis-3.08.zip/download"
-    },
-    {
-      "name": "NSIS with logging",
-      "file": "nsis-log.zip",
-      "href": "https://sourceforge.net/projects/nsis/files/NSIS%203/3.08/nsis-3.08-log.zip/download"
+      "file": "nsis-3.08.zip",
+      "href": "https://sourceforge.net/projects/nsis/files/NSIS%203/3.08/nsis-3.08.zip/download",
+      "dirName": "NSIS",
+      "extractStrip": 1
     },
     {
       "name": "MSYS2",

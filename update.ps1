@@ -80,18 +80,10 @@ function updateDownloadUrl {
     }
 
     'NSIS' {
-      $newName = 'nsis.zip'
       $item = Invoke-RestMethod 'https://sourceforge.net/projects/nsis/rss' |
         Where-Object { $_.link -match 'nsis-([0-9]+\.)+[0-9]+\.zip' } |
         Select-Object -First 1
-      $item.link
-    }
-
-    'NSIS with logging'  {
-      $newName = 'nsis-log.zip'
-      $item = Invoke-RestMethod 'https://sourceforge.net/projects/nsis/rss' |
-        Where-Object { $_.link -match 'nsis-([0-9]+\.)+[0-9]+\-log.zip' } |
-        Select-Object -First 1
+      $newName = $Matches[0]
       $item.link
     }
 
