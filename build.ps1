@@ -36,6 +36,7 @@ Write-Host "Building from $ConfigFile"
 
 $basename = "pico-setup-windows"
 $version = (Get-Content "$PSScriptRoot\version.txt").Trim()
+$build = (Get-Date -Format FileDateTimeUniversal)
 $suffix = [io.path]::GetFileNameWithoutExtension($ConfigFile)
 $binfile = "bin\$basename-$suffix.exe"
 
@@ -132,11 +133,12 @@ if (-not ($sdkVersion -match $versionRegEx)) {
   Write-Error 'Could not determine Pico SDK version.'
 }
 $sdkVersionClean = $Matches[0]
+$sdkVersionCommit = (git -C .\build\pico-sdk rev-parse --short HEAD)
 $product = "Raspberry Pi Pico SDK v$sdkVersion"
 $productDir = "Raspberry Pi\Pico SDK v$sdkVersion"
 $company = "Raspberry Pi Ltd"
 
-Write-Host "SDK version: $sdkVersion"
+Write-Host "SDK version: $sdkVersion ($sdkVersionCommit)"
 Write-Host "Installer version: $version"
 
 if (-not (Test-Path $MSYS2Path)) {
@@ -262,8 +264,8 @@ RequestExecutionLevel admin
 VIAddVersionKey "FileDescription" "`${TITLE}"
 VIAddVersionKey "InternalName" "$basename"
 VIAddVersionKey "ProductName" "`${TITLE}"
-VIAddVersionKey "FileVersion" "$version"
-VIAddVersionKey "ProductVersion" "$sdkVersion"
+VIAddVersionKey "FileVersion" "$version-$build"
+VIAddVersionKey "ProductVersion" "$sdkVersion-$sdkVersionCommit"
 VIAddVersionKey "LegalCopyright" "$company"
 VIAddVersionKey "CompanyName" "$company"
 VIFileVersion $version.0
