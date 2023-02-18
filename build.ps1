@@ -146,13 +146,6 @@ if (-not (Test-Path $MSYS2Path)) {
   exec { & .\downloads\msys2.exe -y "-o$(Resolve-Path (Split-Path $MSYS2Path -Parent))" }
 }
 
-if (-not (Test-Path build\NSIS)) {
-  Write-Host 'Extracting NSIS'
-  Expand-Archive '.\downloads\nsis.zip' -DestinationPath '.\build'
-  Rename-Item (Resolve-Path '.\build\nsis-*').Path 'NSIS'
-  Expand-Archive '.\downloads\nsis-log.zip' -DestinationPath '.\build\NSIS' -Force
-}
-
 function sign {
   param ([string[]] $filesToSign)
 
@@ -257,7 +250,7 @@ Name "`${TITLE}"
 Caption "`${TITLE}"
 XPStyle on
 ManifestDPIAware true
-Unicode True
+Unicode true
 SetCompressor $Compression
 RequestExecutionLevel admin
 
@@ -391,6 +384,8 @@ $($componentSelection ? '!insertmacro MUI_PAGE_COMPONENTS' : '')
 
 !insertmacro MUI_LANGUAGE "English"
 
+!include "packages\pico-setup-windows\DumpLog.nsh"
+
 Function .onInit
 
   StrCpy `$ReposDir "`${PICO_REPOS_DIR}"
@@ -416,9 +411,7 @@ FunctionEnd
 
 Section
 
-  ; Make sure that `$INSTDIR exists before enabling logging
   SetOutPath `$INSTDIR
-  LogSet on
 
   $(if ($bitness -eq '64') {
   '${IfNot} ${IsNativeAMD64}
@@ -562,6 +555,7 @@ Section "-Pico environment" SecPico
   `${IfNot} `${FileExists} "`$1"
     # Just use the default install location for the icon, in case the user installs VS Code later
     StrCpy `$1 "%LOCALAPPDATA%\Programs\Microsoft VS Code\Code.exe"
+    DetailPrint "Could not find Visual Studio Code."
     MessageBox MB_OK|MB_ICONEXCLAMATION "Installation of Visual Studio Code failed. Please install it manually by downloading the installer from:${endl}${endl}https://code.visualstudio.com/" /SD IDOK
   `${EndIf}
 
