@@ -6,7 +6,7 @@ $ProgressPreference = 'SilentlyContinue'
 
 # On first run, open the pico-examples repo. Open a blank VS Code instance otherwise.
 $openArgs = "--disable-workspace-trust --new-window `"$env:PICO_EXAMPLES_PATH`""
-$regPath = "HKCU:\Software\Raspberry Pi\Pico SDK v$env:PICO_SDK_VERSION"
+$regPath = "HKCU:\$env:PICO_REG_KEY"
 
 if (-not (Test-Path $regPath)) {
   New-Item -Path $regPath -Force

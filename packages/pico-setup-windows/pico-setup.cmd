@@ -1,6 +1,12 @@
-set interactive=%~1
+@if not defined _echo echo off
 
-call "%~dp0pico-env.cmd" || exit /b 1
+set interactive=%~2
+
+mkdir "%~1"
+echo Copying pico-examples...
+powershell -NoProfile -ExecutionPolicy Bypass -Command "Expand-Archive """%~dp0pico-examples.zip""" -DestinationPath """%~1""" -Force" || exit /b 1
+
+call "%~dp0pico-env.cmd" "%~1" || exit /b 1
 setlocal enabledelayedexpansion
 
 rem This is mostly a port of pico-setup
@@ -12,7 +18,7 @@ set "SDK_BRANCH=master"
 
 pushd "%PICO_REPOS_PATH%"
 
-for %%i in (sdk examples extras playground project-generator) do (
+for %%i in (examples extras playground) do (
   set "DEST=%PICO_REPOS_PATH%\pico-%%i"
 
   if exist "!DEST!\.git" (

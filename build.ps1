@@ -208,6 +208,10 @@ $ExecutionContext.InvokeCommand.ExpandString($template) | Set-Content ".\build\p
 
 exec { .\build\pandoc\pandoc.exe --from gfm --to gfm --output .\build\ReadMe.txt .\docs\tutorial.md }
 
+mkdirp .\build\pico-examples\.vscode
+Copy-Item .\packages\pico-examples\ide\vscode\*.json .\build\pico-examples\.vscode\ -Force
+exec {  tar -a -cf "build\pico-examples.zip" -C "build" "pico-examples" }
+
 $endl = '$\r$\n'
 
 function writeFile {
@@ -239,7 +243,7 @@ function writeFile {
 ; The repos need to be cloned into a dir with a fairly short name, because
 ; CMake generates build defs with long hashes in the paths. Both CMake and
 ; Ninja currently have problems working with long paths on Windows.
-!define PICO_REPOS_DIR "`$LOCALAPPDATA\$productDir"
+!define PICO_REPOS_DIR "`$DOCUMENTS\Pico-v$sdkVersion"
 !define PICO_SHORTCUTS_DIR "`$SMPROGRAMS\$product"
 !define PICO_WINTERM_DIR "`$LOCALAPPDATA\Microsoft\Windows Terminal\Fragments\$product"
 !define PICO_REG_ROOT SHELL_CONTEXT
@@ -274,6 +278,8 @@ InstallDir "`${PICO_INSTALL_DIR}"
 ; We use a version-specific key here so that multiple versions can be installed side-by-side
 InstallDirRegKey HKLM "`${PICO_REG_KEY}" "InstallPath"
 
+Var ReposDir
+
 !ifdef BUILD_UNINSTALLER
 
 OutFile "build\build-uninstaller-$suffix.exe"
@@ -298,8 +304,8 @@ Function un.onInit
   DetailPrint "Install path: `$R0"
   StrCpy `$INSTDIR `$R0
 
-  ReadRegStr `$R1 `${PICO_REG_ROOT} "`${PICO_REG_KEY}" "ReposPath"
-  DetailPrint "Repos path: `$R1"
+  ReadRegStr `$ReposDir HKCU "`${PICO_REG_KEY}" "ReposPath"
+  DetailPrint "Repos path: `$ReposDir"
 
   SetRegView $bitness
 
@@ -337,16 +343,12 @@ Section "Uninstall"
   `${GetParent} "`$INSTDIR" `$R0
   RMDir `$R0
 
-  RMDir /r /REBOOTOK "`$R1\pico-examples"
-  RMDir /r /REBOOTOK "`$R1\pico-extras"
-  RMDir /r /REBOOTOK "`$R1\pico-playground"
-  RMDir /r /REBOOTOK "`$R1\pico-project-generator"
-  RMDir /r /REBOOTOK "`$R1\pico-sdk"
-
-  RMDir /REBOOTOK "`$R1"
-  ; Remove the C:\ProgramData\Raspberry Pi directory if it is empty
-  `${GetParent} "`$R1" `$R0
-  RMDir `$R0
+  `${If} `$ReposDir != ""
+    RMDir /r /REBOOTOK "`$ReposDir\pico-examples"
+    RMDir /r /REBOOTOK "`$ReposDir\pico-extras"
+    RMDir /r /REBOOTOK "`$ReposDir\pico-playground"
+    RMDir "`$ReposDir"
+  `${EndIf}
 
   DeleteRegValue `${PICO_REG_ROOT} "Software\Kitware\CMake\Packages\pico-sdk-tools" "v$sdkVersion"
   DeleteRegKey /ifempty `${PICO_REG_ROOT} "Software\Kitware\CMake\Packages\pico-sdk-tools"
@@ -370,31 +372,40 @@ SectionEnd
 OutFile "$binfile"
 
 !define MUI_ICON "resources\raspberrypi.ico"
-
 !define MUI_ABORTWARNING
-
 !define MUI_WELCOMEPAGE_TITLE "`${TITLE}"
-
-;!define MUI_COMPONENTSPAGE_SMALLDESC
-
-!define MUI_FINISHPAGE_RUN_TEXT "Clone and build Pico repos"
-!define MUI_FINISHPAGE_RUN
-!define MUI_FINISHPAGE_RUN_FUNCTION RunBuild
-
-!define MUI_FINISHPAGE_SHOWREADME "`$INSTDIR\ReadMe.txt"
-!define MUI_FINISHPAGE_SHOWREADME_TEXT "Show ReadMe"
-
-!define MUI_FINISHPAGE_NOAUTOCLOSE
 
 !insertmacro MUI_PAGE_WELCOME
 $($componentSelection ? '!insertmacro MUI_PAGE_COMPONENTS' : '')
 !insertmacro MUI_PAGE_DIRECTORY
+!define MUI_PAGE_CUSTOMFUNCTION_LEAVE DumpLog
 !insertmacro MUI_PAGE_INSTFILES
+
+!define FINISHPAGE_RUN_FUNCTION RunBuild
+!define MUI_FINISHPAGE_SHOWREADME "`$INSTDIR\ReadMe.txt"
+!define MUI_FINISHPAGE_SHOWREADME_TEXT "Show ReadMe"
+!include "packages\pico-setup-windows\FinishPage.nsh"
 !insertmacro MUI_PAGE_FINISH
 
 !insertmacro MUI_LANGUAGE "English"
 
 Function .onInit
+
+  StrCpy `$ReposDir "`${PICO_REPOS_DIR}"
+
+  ReadRegStr `$R0 HKCU "`${PICO_REG_KEY}" "ReposPath"
+  `${If} `$R0 != ""
+    StrCpy `$ReposDir "`$R0"
+  `${EndIf}
+
+  ClearErrors
+  `${GetParameters} `$R1
+  `${GetOptions} "`$R1" "/REPOSDIR=" `$R0
+  `${IfNot} `${Errors}
+    StrCpy `$ReposDir "`$R0"
+  `${EndIf}
+
+  DetailPrint "Repos path: `$ReposDir"
 
   SetShellVarContext all
   SetRegView $bitness
@@ -430,10 +441,8 @@ Section
   ; Save install paths in the 32-bit registry for ease of access from NSIS (un)installers
   SetRegView 32
   WriteRegStr `${PICO_REG_ROOT} "`${PICO_REG_KEY}" "InstallPath" "`$INSTDIR"
-  WriteRegStr `${PICO_REG_ROOT} "`${PICO_REG_KEY}" "ReposPath" "`${PICO_REPOS_DIR}"
   SetRegView $bitness
 
-  CreateDirectory "`${PICO_REPOS_DIR}"
   CreateDirectory "`${PICO_SHORTCUTS_DIR}"
 
   SetOutPath `$INSTDIR\resources
@@ -510,17 +519,8 @@ SectionEnd
 
 Section "-Pico environment" SecPico
 
-  SetOutPath "`${PICO_REPOS_DIR}\pico-sdk"
+  SetOutPath "`$INSTDIR\pico-sdk"
   File /r "build\pico-sdk\*.*"
-
-  SetOutPath "`${PICO_REPOS_DIR}\pico-examples"
-  File /r "build\pico-examples\*.*"
-  SetOutPath "`${PICO_REPOS_DIR}\pico-examples\.vscode"
-  File "packages\pico-examples\ide\vscode\cmake-kits.json"
-  File "packages\pico-examples\ide\vscode\extensions.json"
-  File "packages\pico-examples\ide\vscode\launch.json"
-  File "packages\pico-examples\ide\vscode\settings.json"
-  File "packages\pico-examples\ide\vscode\tasks.json"
 
   SetOutPath "`$INSTDIR\pico-sdk-tools"
   File "build\pico-sdk-tools\mingw$bitness\*.*"
@@ -530,15 +530,15 @@ Section "-Pico environment" SecPico
   File "build\picotool-install\mingw$bitness\*.*"
 
   SetOutPath "`$INSTDIR"
+  File "build\pico-examples.zip"
   WriteINIStr "`$INSTDIR\version.ini" "pico-setup-windows" "PICO_SDK_VERSION" "$sdkVersion"
-  WriteINIStr "`$INSTDIR\version.ini" "pico-setup-windows" "PICO_REPOS_PATH" "`${PICO_REPOS_DIR}"
   WriteINIStr "`$INSTDIR\version.ini" "pico-setup-windows" "PICO_INSTALL_PATH" "`$INSTDIR"
+  WriteINIStr "`$INSTDIR\version.ini" "pico-setup-windows" "PICO_REG_KEY" "`${PICO_REG_KEY}"
   File "packages\pico-setup-windows\pico-code.ps1"
   File "packages\pico-setup-windows\pico-env.ps1"
   File "packages\pico-setup-windows\pico-env.cmd"
   File "packages\pico-setup-windows\pico-setup.cmd"
   File "build\ReadMe.txt"
-  CreateShortcut "`$INSTDIR\pico-setup.lnk" "cmd.exe" '/k call "`$INSTDIR\pico-setup.cmd" 1'
 
   File /oname=uninstall.exe "build\uninstall-$suffix.exe"
   WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "DisplayName" "$product"
@@ -563,15 +563,12 @@ Section "-Pico environment" SecPico
     MessageBox MB_OK|MB_ICONEXCLAMATION "Installation of Visual Studio Code failed. Please install it manually by downloading the installer from:${endl}${endl}https://code.visualstudio.com/" /SD IDOK
   `${EndIf}
 
-  ; Set the working directory for our terminals to the repos directory
-  SetOutPath "`${PICO_REPOS_DIR}"
   `${CreateShortcutEx} "`${PICO_SHORTCUTS_DIR}\Pico - Developer Command Prompt.lnk" "`${PICO_AppUserModel_ID}!cmd" ``"cmd.exe" '/k "`$INSTDIR\pico-env.cmd"'``
   `${CreateShortcutEx} "`${PICO_SHORTCUTS_DIR}\Pico - Developer PowerShell.lnk" "`${PICO_AppUserModel_ID}!powershell" ``"powershell.exe" '-NoExit -ExecutionPolicy Bypass -File "`$INSTDIR\pico-env.ps1"'``
   `${CreateShortcutEx} "`${PICO_SHORTCUTS_DIR}\Pico - Visual Studio Code.lnk" "`${PICO_AppUserModel_ID}!code" ``"powershell.exe" '-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "`$INSTDIR\pico-code.ps1"' "`$1" "" SW_SHOWMINIMIZED``
 
   SetOutPath "`${PICO_WINTERM_DIR}"
   `${WordReplace} "`$INSTDIR" "\" "\\" "+" `$7
-  `${WordReplace} "`${PICO_REPOS_DIR}" "\" "\\" "+" `$8
   $( @"
 {
   "profiles": [
@@ -579,13 +576,13 @@ Section "-Pico environment" SecPico
       "name": "Pico - Developer Command Prompt (SDK v$sdkVersion)",
       "commandline": "cmd.exe /k \"`$7\\pico-env.cmd\"",
       "icon": "`$7\\resources\\raspberrypi.ico",
-      "startingDirectory": "`$8"
+      "startingDirectory": "`$7"
     },
     {
       "name": "Pico - Developer PowerShell (SDK v$sdkVersion)",
       "commandline": "powershell.exe -NoExit -ExecutionPolicy Bypass -File \"`$7\\pico-env.ps1\"",
       "icon": "`$7\\resources\\raspberrypi.ico",
-      "startingDirectory": "`$8"
+      "startingDirectory": "`$7"
     }
   ]
 }
@@ -607,6 +604,8 @@ Function RunBuild
   ; We need to run pico-setup.cmd un-elevated, to avoid problems with builds later on.
   ; So we create a shortcut with the command line to use, and have explorer.exe launch it.
   ; http://mdb-blog.blogspot.com/2013/01/nsis-lunch-program-as-user-from-uac.html
+  SetShellVarContext current
+  CreateShortcut "`$INSTDIR\pico-setup.lnk" "cmd.exe" '/k call "`$INSTDIR\pico-setup.cmd" "`$ReposDir" 1'
   Exec '"`$WINDIR\explorer.exe" "`$INSTDIR\pico-setup.lnk"'
 
 FunctionEnd
