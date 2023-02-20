@@ -38,7 +38,7 @@ At this point, you can use the usual debugging tools to step, set breakpoints, i
 
 Picoprobe wiring is explained in the [Getting started document](https://datasheets.raspberrypi.com/pico/getting-started-with-pico.pdf), _Appendix A: Using Picoprobe_, under the heading _Picoprobe Wiring_.
 
-The Raspberry Pi Pico board used as Picoprobe should be flashed with the latest `picoprobe-cmsis-*` build available from [Picoprobe releases](https://github.com/raspberrypi/picoprobe/releases). The OpenOCD build included with the SDK installer only supports the CMSIS-DAP version of Picoprobe, and not the original release.
+The Raspberry Pi Pico board used as Picoprobe should be flashed with the latest `picoprobe.uf2` build available at [Picoprobe releases](https://github.com/raspberrypi/picoprobe/releases/latest/download/picoprobe.uf2). The OpenOCD build included with the SDK installer only supports the CMSIS-DAP version of Picoprobe.
 
 ### Open serial monitor in VSCode
 
