@@ -50,4 +50,4 @@ Invoke-Pester -Output Detailed
 
 # Credits
 
-[packages/pico-setup-windows/RefreshEnv.cmd](RefreshEnv.cmd) is from [Chocolatey](https://github.com/chocolatey/choco/blob/master/src/chocolatey.resources/redirects/RefreshEnv.cmd).
+[RefreshEnv.cmd](packages/pico-setup-windows/RefreshEnv.cmd) is from [Chocolatey](https://github.com/chocolatey/choco/blob/master/src/chocolatey.resources/redirects/RefreshEnv.cmd).
