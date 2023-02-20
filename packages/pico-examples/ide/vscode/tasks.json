@@ -11,7 +11,7 @@
         "-f",
         "target/rp2040.cfg",
         "-c",
-        "adapter speed 1000; program {${command:cmake.launchTargetPath}} verify reset exit"
+        "adapter speed 5000; program {${command:cmake.launchTargetPath}} verify reset exit"
       ],
       "problemMatcher": []
     },

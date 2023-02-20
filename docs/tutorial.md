@@ -53,7 +53,7 @@ To build and debug projects using command-line tools, you can open a terminal wi
 ### Start OpenOCD and gdb
 
 ```powershell
-openocd -f interface/cmsis-dap.cfg -f target/rp2040.cfg -c "adapter speed 1000"
+openocd -f interface/cmsis-dap.cfg -f target/rp2040.cfg -c "adapter speed 5000"
 ```
 
 If you wish to run gdb from the command line, you can invoke it like this:
