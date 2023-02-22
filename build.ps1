@@ -238,10 +238,12 @@ function writeFile {
 
 !define TITLE "$product"
 !define PICO_INSTALL_DIR "`$PROGRAMFILES$bitness\$productDir"
-; The repos need to be cloned into a dir with a fairly short name, because
-; CMake generates build defs with long hashes in the paths. Both CMake and
-; Ninja currently have problems working with long paths on Windows.
-!define PICO_REPOS_DIR "`$DOCUMENTS\Pico-v$sdkVersion"
+; The repos need to be cloned into a dir with a fairly short name, because CMake generates build
+; defs with long hashes in the paths. Both CMake and Ninja currently have problems working with
+; long paths on Windows.
+; We use "%USERPROFILE%" here so that it resolves at runtime to the actual user's profile, rather
+; than the admin user which is used to elevate the installer.
+!define PICO_REPOS_DIR "`%USERPROFILE%\Documents\Pico-v$sdkVersion"
 !define PICO_SHORTCUTS_DIR "`$SMPROGRAMS\$product"
 !define PICO_WINTERM_DIR "`$LOCALAPPDATA\Microsoft\Windows Terminal\Fragments\$product"
 !define PICO_REG_ROOT SHELL_CONTEXT
@@ -391,6 +393,9 @@ $($componentSelection ? '!insertmacro MUI_PAGE_COMPONENTS' : '')
 
 Function .onInit
 
+  SetShellVarContext all
+  SetRegView $bitness
+
   StrCpy `$ReposDir "`${PICO_REPOS_DIR}"
 
   ReadRegStr `$R0 HKCU "`${PICO_REG_KEY}" "ReposPath"
@@ -404,11 +409,6 @@ Function .onInit
   `${IfNot} `${Errors}
     StrCpy `$ReposDir "`$R0"
   `${EndIf}
-
-  DetailPrint "Repos path: `$ReposDir"
-
-  SetShellVarContext all
-  SetRegView $bitness
 
 FunctionEnd
 
@@ -430,7 +430,8 @@ Section
   `${If} `$R0 != ""
     `${GetParent} "`$R0" `$R1
     DetailPrint "Uninstalling previous version..."
-    ExecWait '"`$R0" /S _?=`$R1'
+    ExecWait '"`$R0" /S _?=`$R1' `$1
+    DetailPrint "Uninstaller returned `$1"
   `${EndIf}
 
   InitPluginsDir
@@ -613,7 +614,6 @@ Function RunBuild
   ; We need to run pico-setup.cmd un-elevated, to avoid problems with builds later on.
   ; So we create a shortcut with the command line to use, and have explorer.exe launch it.
   ; http://mdb-blog.blogspot.com/2013/01/nsis-lunch-program-as-user-from-uac.html
-  SetShellVarContext current
   CreateShortcut "`$INSTDIR\pico-setup.lnk" "cmd.exe" '/k call "`$INSTDIR\pico-setup.cmd" "`$ReposDir" 1'
   Exec '"`$WINDIR\explorer.exe" "`$INSTDIR\pico-setup.lnk"'
 
