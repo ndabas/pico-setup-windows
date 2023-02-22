@@ -47,7 +47,3 @@ Install-Module Pester -Force
 Import-Module Pester -PassThru # Check the version of the imported module -- we need v5 or greater
 Invoke-Pester -Output Detailed
 ```
-
-# Credits
-
-[RefreshEnv.cmd](packages/pico-setup-windows/RefreshEnv.cmd) is from [Chocolatey](https://github.com/chocolatey/choco/blob/master/src/chocolatey.resources/redirects/RefreshEnv.cmd).

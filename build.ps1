@@ -448,7 +448,6 @@ Section
   `${EndIf}
 
   InitPluginsDir
-  File /oname=`$TEMP\RefreshEnv.cmd "packages\pico-setup-windows\RefreshEnv.cmd"
 
   CreateDirectory "`${PICO_SHORTCUTS_DIR}"
 
