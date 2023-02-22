@@ -3,16 +3,6 @@
   "mingwArch": "x86_64",
   "downloads": [
     {
-      "name": "Visual Studio Code",
-      "file": "Install-VSCode.ps1",
-      "execToLog": "cmd.exe /c call \"$PLUGINSDIR\\install-vscode.cmd\" \"$0\"",
-      "href": "https://raw.githubusercontent.com/PowerShell/vscode-powershell/main/scripts/Install-VSCode.ps1",
-      "additionalFiles": [
-        "packages\\pico-setup-windows\\install-vscode.cmd",
-        "packages\\pico-examples\\ide\\vscode\\extensions.json"
-      ]
-    },
-    {
       "name": "GNU Arm Embedded Toolchain",
       "file": "gcc-arm-none-eabi-10.3-2021.10-win32.zip",
       "href": "https://developer.arm.com/-/media/Files/downloads/gnu-rm/10.3-2021.10/gcc-arm-none-eabi-10.3-2021.10-win32.zip?rev=8f4a92e2ec2040f89912f372a55d8cf3&hash=8A9EAF77EF1957B779C59EADDBF2DAC118170BBF",

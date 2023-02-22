@@ -4,16 +4,6 @@
   "componentSelection": true,
   "downloads": [
     {
-      "name": "Visual Studio Code",
-      "file": "Install-VSCode.ps1",
-      "execToLog": "cmd.exe /c call \"$PLUGINSDIR\\install-vscode.cmd\" \"$0\"",
-      "href": "https://raw.githubusercontent.com/PowerShell/vscode-powershell/main/scripts/Install-VSCode.ps1",
-      "additionalFiles": [
-        "packages\\pico-setup-windows\\install-vscode.cmd",
-        "packages\\pico-examples\\ide\\vscode\\extensions.json"
-      ]
-    },
-    {
       "name": "GNU Arm Embedded Toolchain",
       "file": "gcc-arm-none-eabi-10.3-2021.10-win32.exe",
       "exec": "\"$0\" /S /P /R",

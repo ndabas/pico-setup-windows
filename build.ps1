@@ -515,6 +515,26 @@ Section "-OpenOCD" SecOpenOCD
 
 SectionEnd
 
+!include "packages\pico-setup-windows\VSCodeUtils.nsh"
+
+Section VSCode
+
+  `${FindVSCode}
+
+  `${If} `$VSCodeExePath != ""
+    DetailPrint "Found VS Code: `$VSCodeExePath"
+  `${Else}
+    DetailPrint "Could not find VS Code. Installing..."
+    `${InstallVSCode}
+  `${EndIf}
+
+  $((Get-Content 'packages\pico-examples\ide\vscode\extensions.json' | ConvertFrom-Json).recommendations | ForEach-Object {
+    "`${VSCodeCmd} '--install-extension $_'`r`n"
+    "Pop `$0`r`n"
+  })
+
+SectionEnd
+
 Section "-Pico environment" SecPico
 
   SetOutPath "`$INSTDIR\pico-sdk"
@@ -545,26 +565,16 @@ Section "-Pico environment" SecPico
   WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "DisplayVersion" "$version"
   WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "Publisher" "$company"
 
-  # Find Visual Studio Code, so we can point our shortcut icon to code.exe
-  nsExec::ExecToStack 'cmd.exe /c call "`$TEMP\RefreshEnv.cmd" && where code.cmd'
-  Pop `$0 # return value/error/timeout
-  Pop `$1 # stdout
-  # Get the last line of output
-  `${WordFind} "`$1" "`$\n" "-1" `$1
-  `${GetParent} "`$1" `$1
-  `${GetParent} "`$1" `$1
-  StrCpy `$1 "`$1\Code.exe"
-
-  `${IfNot} `${FileExists} "`$1"
-    # Just use the default install location for the icon, in case the user installs VS Code later
-    StrCpy `$1 "%LOCALAPPDATA%\Programs\Microsoft VS Code\Code.exe"
+  `${IfNot} `${FileExists} "`$VSCodeExePath"
+    # Just use the default (user) install location for the icon, in case the user installs VS Code later
+    StrCpy `$VSCodeExePath "%LOCALAPPDATA%\Programs\Microsoft VS Code\Code.exe"
     DetailPrint "Could not find Visual Studio Code."
     MessageBox MB_OK|MB_ICONEXCLAMATION "Installation of Visual Studio Code failed. Please install it manually by downloading the installer from:${endl}${endl}https://code.visualstudio.com/" /SD IDOK
   `${EndIf}
 
   `${CreateShortcutEx} "`${PICO_SHORTCUTS_DIR}\Pico - Developer Command Prompt.lnk" "`${PICO_AppUserModel_ID}!cmd" ``"cmd.exe" '/k "`$INSTDIR\pico-env.cmd"'``
   `${CreateShortcutEx} "`${PICO_SHORTCUTS_DIR}\Pico - Developer PowerShell.lnk" "`${PICO_AppUserModel_ID}!powershell" ``"powershell.exe" '-NoExit -ExecutionPolicy Bypass -File "`$INSTDIR\pico-env.ps1"'``
-  `${CreateShortcutEx} "`${PICO_SHORTCUTS_DIR}\Pico - Visual Studio Code.lnk" "`${PICO_AppUserModel_ID}!code" ``"powershell.exe" '-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "`$INSTDIR\pico-code.ps1"' "`$1" "" SW_SHOWMINIMIZED``
+  `${CreateShortcutEx} "`${PICO_SHORTCUTS_DIR}\Pico - Visual Studio Code.lnk" "`${PICO_AppUserModel_ID}!code" ``"powershell.exe" '-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "`$INSTDIR\pico-code.ps1"' "`$VSCodeExePath" "" SW_SHOWMINIMIZED``
 
   SetOutPath "`${PICO_WINTERM_DIR}"
   `${WordReplace} "`$INSTDIR" "\" "\\" "+" `$7
