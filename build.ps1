@@ -21,7 +21,11 @@ param (
 
   [ValidateSet('zlib', 'bzip2', 'lzma')]
   [string]
-  $Compression = 'lzma'
+  $Compression = 'lzma',
+
+  [ValidateSet('system', 'user')]
+  [string]
+  $BuildType = 'system'
 )
 
 #Requires -Version 7.2
@@ -37,7 +41,7 @@ Write-Host "Building from $ConfigFile"
 $basename = "pico-setup-windows"
 $version = (Get-Content "$PSScriptRoot\version.txt").Trim()
 $build = (Get-Date -Format FileDateTimeUniversal)
-$suffix = [io.path]::GetFileNameWithoutExtension($ConfigFile)
+$suffix = [io.path]::GetFileNameWithoutExtension($ConfigFile) + ($BuildType -eq 'user' ? '-user' : '' )
 $binfile = "bin\$basename-$suffix.exe"
 
 $tools = (Get-Content '.\config\tools.json' | ConvertFrom-Json).tools
@@ -229,15 +233,16 @@ function writeFile {
 }
 
 @"
-!include "MUI2.nsh"
-!include "WordFunc.nsh"
 !include "FileFunc.nsh"
 !include "LogicLib.nsh"
+!include "MUI2.nsh"
+!include "WinCore.nsh"
+!include "WordFunc.nsh"
 !include "x64.nsh"
 !include "packages\pico-setup-windows\aumi.nsh"
 
 !define TITLE "$product"
-!define PICO_INSTALL_DIR "`$PROGRAMFILES$bitness\$productDir"
+!define PICO_INSTALL_DIR "$productDir"
 ; The repos need to be cloned into a dir with a fairly short name, because CMake generates build
 ; defs with long hashes in the paths. Both CMake and Ninja currently have problems working with
 ; long paths on Windows.
@@ -257,7 +262,7 @@ XPStyle on
 ManifestDPIAware true
 Unicode true
 SetCompressor $Compression
-RequestExecutionLevel admin
+RequestExecutionLevel $($BuildType -eq 'system' ? 'admin' : 'user')
 
 VIAddVersionKey "FileDescription" "`${TITLE}"
 VIAddVersionKey "InternalName" "$basename"
@@ -272,11 +277,8 @@ VIProductVersion $sdkVersionClean.0
 ; Since we're packaging up a bunch of installers, the "Space required" shown is inaccurate
 SpaceTexts "none"
 
-InstallDir "`${PICO_INSTALL_DIR}"
-
-; Get installation folder from registry if available
-; We use a version-specific key here so that multiple versions can be installed side-by-side
-InstallDirRegKey HKLM "`${PICO_REG_KEY}" "InstallPath"
+; We set the default INSTDIR ourselves in .onInit
+InstallDir ""
 
 Var ReposDir
 
@@ -297,17 +299,10 @@ OutFile "build\build-uninstaller-$suffix.exe"
 
 Function un.onInit
 
-  SetShellVarContext all
-  SetRegView 32
-
-  ReadRegStr `$R0 `${PICO_REG_ROOT} "`${PICO_REG_KEY}" "InstallPath"
-  DetailPrint "Install path: `$R0"
-  StrCpy `$INSTDIR `$R0
+  SetShellVarContext $($BuildType -eq 'system' ? 'all' : 'current')
+  SetRegView $bitness
 
   ReadRegStr `$ReposDir HKCU "`${PICO_REG_KEY}" "ReposPath"
-  DetailPrint "Repos path: `$ReposDir"
-
-  SetRegView $bitness
 
 FunctionEnd
 
@@ -356,8 +351,7 @@ Section "Uninstall"
   DeleteRegKey `${PICO_REG_ROOT} "`${UNINSTALL_KEY}"
 
   DeleteRegKey `${PICO_REG_ROOT} "`${PICO_REG_KEY}"
-  SetShellVarContext current
-  DeleteRegKey `${PICO_REG_ROOT} "`${PICO_REG_KEY}"
+  DeleteRegKey HKCU "`${PICO_REG_KEY}"
 
 SectionEnd
 
@@ -393,8 +387,27 @@ $($componentSelection ? '!insertmacro MUI_PAGE_COMPONENTS' : '')
 
 Function .onInit
 
-  SetShellVarContext all
+  SetShellVarContext $($BuildType -eq 'system' ? 'all' : 'current')
   SetRegView $bitness
+
+  ; No /D= on the command line
+  `${If} `$INSTDIR == ""
+    ReadRegStr `$INSTDIR `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "InstallPath"
+  `${EndIf}
+
+  ; Nothing in the registry either; use the defaults
+  `${If} `$INSTDIR == ""
+    $(if ($BuildType -eq 'system') {
+    "StrCpy `$INSTDIR `"`$PROGRAMFILES$bitness`""
+    } else {
+    'GetKnownFolderPath $INSTDIR ${FOLDERID_UserProgramFiles}
+    ${If} $INSTDIR == ""
+      StrCpy $INSTDIR "$LOCALAPPDATA\Programs"
+    ${EndIf}'
+    })
+
+    StrCpy `$INSTDIR "`$INSTDIR\`${PICO_INSTALL_DIR}"
+  `${EndIf}
 
   StrCpy `$ReposDir "`${PICO_REPOS_DIR}"
 
@@ -436,11 +449,6 @@ Section
 
   InitPluginsDir
   File /oname=`$TEMP\RefreshEnv.cmd "packages\pico-setup-windows\RefreshEnv.cmd"
-
-  ; Save install paths in the 32-bit registry for ease of access from NSIS (un)installers
-  SetRegView 32
-  WriteRegStr `${PICO_REG_ROOT} "`${PICO_REG_KEY}" "InstallPath" "`$INSTDIR"
-  SetRegView $bitness
 
   CreateDirectory "`${PICO_SHORTCUTS_DIR}"
 
@@ -560,8 +568,9 @@ Section "-Pico environment" SecPico
   File "build\ReadMe.txt"
 
   File /oname=uninstall.exe "build\uninstall-$suffix.exe"
-  WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "DisplayName" "$product"
+  WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "DisplayName" "$($BuildType -eq 'system' ? $product : "$product (User)")"
   WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "UninstallString" "`$INSTDIR\uninstall.exe"
+  WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "InstallPath" "`$INSTDIR"
   WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "DisplayIcon" "`$INSTDIR\resources\raspberrypi.ico"
   WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "DisplayVersion" "$version"
   WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "Publisher" "$company"
