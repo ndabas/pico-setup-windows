@@ -29,4 +29,4 @@ function Update-EnvironmentVariables {
 
 Update-EnvironmentVariables
 
-cmd /c call "$installPath\pico-setup.cmd" "$([Environment]::GetFolderPath("MyDocuments"))\Pico"
+cmd /c call "$installPath\pico-setup.cmd" "$([Environment]::GetFolderPath("MyDocuments"))\Pico" "&&" call "$PSScriptRoot\pico-build.cmd"

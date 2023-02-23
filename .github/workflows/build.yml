@@ -39,6 +39,7 @@ jobs:
     runs-on: windows-latest
     needs: Test-Scripts
     strategy:
+      fail-fast: false
       matrix:
         config: [x86, x64, x64-standalone]
         build-type: [system]
