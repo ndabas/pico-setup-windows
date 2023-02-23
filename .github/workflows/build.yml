@@ -40,25 +40,44 @@ jobs:
     needs: Test-Scripts
     strategy:
       matrix:
-        bitness: ['x86', 'x64']
+        config: [x86, x64, x64-standalone]
+        build-type: [system]
+        include:
+          - { config: x64-standalone, build-type: user }
     steps:
 
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Build ${{ matrix.bitness }}
+      - name: Setup MSYS2
+        uses: msys2/setup-msys2@v2
+
+      - name: Check OpenOCD repository
+        shell: pwsh
+        run: |
+          $OpenOCDCommit = ((Get-Content .\config\repositories.json | ConvertFrom-Json).repositories | Where-Object { $_.href -like '*openocd.git' } | ForEach-Object { git ls-remote $_.href $_.tree }).Split("`t")[0]
+          $Bitness = (Get-Content .\config\${{ matrix.config }}.json | ConvertFrom-Json).bitness
+          Add-Content -Path $env:GITHUB_ENV -Value "OPENOCD_BUILD_ID=openocd-$OpenOCDCommit-$Bitness"
+
+      - name: Cache OpenOCD build
+        uses: actions/cache@v3
+        with:
+          path: build/openocd-install
+          key: ${{ env.OPENOCD_BUILD_ID }}
+
+      - name: Build ${{ matrix.config }} (${{ matrix.build-type }})
         shell: pwsh
         run: |
           Set-StrictMode -Version Latest
           $ErrorActionPreference = 'Stop'
           $ProgressPreference = 'SilentlyContinue'
 
-          .\build.ps1 .\config\${{ matrix.bitness }}.json -MSYS2Path C:\msys64
+          .\build.ps1 .\config\${{ matrix.config }}.json -MSYS2Path (msys2 -c 'cygpath -m /').TrimEnd('\/') -SkipSigning -Compression zlib -BuildType ${{ matrix.build-type }}
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: Package-${{ matrix.bitness }}
+          name: Package-${{ matrix.config }}-${{ matrix.build-type }}
           path: bin/
 
   Test-Installer:
@@ -67,8 +86,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        bitness: ['x86', 'x64']
-        winver: ['2019', '2022']
+        winver: ['2022']
+        config: [x64, x64-standalone]
+        build-type: [system]
+        include:
+          - { winver: '2022', config: x64-standalone, build-type: user }
     steps:
 
       - name: Checkout
@@ -77,10 +99,10 @@ jobs:
       - name: Download installer artifact
         uses: actions/download-artifact@v2
         with:
-          name: Package-${{ matrix.bitness }}
+          name: Package-${{ matrix.config }}-${{ matrix.build-type }}
           path: bin
 
-      - name: Test installer
+      - name: Test ${{ matrix.config }} (${{ matrix.build-type }})
         shell: pwsh
         run: docker run --rm -v "$(Get-Location):C:\repo" mcr.microsoft.com/windows/servercore:ltsc${{ matrix.winver }}
           powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "cd C:\repo; .\tests\setup.ps1"
@@ -89,5 +111,5 @@ jobs:
         uses: actions/upload-artifact@v2
         if: ${{ always() }}
         with:
-          name: Installer-Logs-Windows-${{ matrix.winver }}-${{ matrix.bitness }}
+          name: Installer-Logs-Windows-${{ matrix.winver }}-${{ matrix.config }}-${{ matrix.build-type }}
           path: logs/
