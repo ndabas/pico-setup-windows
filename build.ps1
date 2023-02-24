@@ -132,6 +132,12 @@ $repositories | ForEach-Object {
   }
 }
 
+# BTstack needs the PyCryptodome module
+if (Test-Path .\build\python\python.exe) {
+  exec { .\build\python\python.exe .\downloads\pip.pyz install pycryptodome }
+  Add-Content -Path .\build\python\python*._pth -Value 'import site'
+}
+
 # Clone additional Pico-specific submodules in TinyUSB
 exec { git -C .\build\pico-sdk\lib\tinyusb submodule update --init --depth=1 hw\mcu\raspberry_pi }
 

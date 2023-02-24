@@ -18,6 +18,11 @@
       "href": "https://github.com/jgm/pandoc/releases/download/3.1/pandoc-3.1-windows-x86_64.zip",
       "dirName": "pandoc",
       "extractStrip": 1
+    },
+    {
+      "name": "pip",
+      "file": "pip.pyz",
+      "href": "https://bootstrap.pypa.io/pip/pip.pyz"
     }
   ]
 }
