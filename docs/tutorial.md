@@ -12,7 +12,7 @@ In your Start Menu, look for the _Pico - Visual Studio Code_ shortcut, in the _R
 
 The first time you launch Visual Studio Code using the Start Menu shortcut, it will open the [pico-examples](https://github.com/raspberrypi/pico-examples) repository.
 
-To re-open the examples repository later, you can open the copy installed at `C:\ProgramData\Raspberry Pi\Pico SDK <version>\pico-examples`.
+To re-open the examples repository later, you can open the copy installed at `C:\Users\<user>\Documents\Pico-<version>\pico-examples`.
 
 ## Building an example
 
