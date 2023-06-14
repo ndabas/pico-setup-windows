@@ -8,6 +8,9 @@ if not exist "FreeRTOS-Kernel\.git" (
 )
 popd
 
+rem Only for non-standalone installs
+where pip3 && pip3 install pycryptodome
+
 subst P: "%PICO_REPOS_PATH%" || exit /b 1
 
 pushd "P:\pico-examples\build"
