@@ -88,7 +88,7 @@ The commands below are for PowerShell, and will need to be adjusted slightly if 
    ```
 1. Copy VS Code configuration from the SDK examples into your project directory:
    ```powershell
-   copy ${env:PICO_EXAMPLES_PATH}\.vscode .
+   copy ${env:PICO_EXAMPLES_PATH}\.vscode . -recurse
    ```
 1. Setup a `CMakeLists.txt` like:
 
