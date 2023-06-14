@@ -218,7 +218,7 @@ exec { .\build\pandoc\pandoc.exe --from gfm --to gfm --output .\build\ReadMe.txt
 
 mkdirp .\build\pico-examples\.vscode
 Copy-Item .\packages\pico-examples\ide\vscode\*.json .\build\pico-examples\.vscode\ -Force
-exec {  tar -a -cf "build\pico-examples.zip" -C "build" "pico-examples" }
+exec {  tar -a -cf "build\pico-examples.zip" -C "build" "pico-examples" "pico-extras" "pico-playground" }
 
 $endl = '$\r$\n'
 
