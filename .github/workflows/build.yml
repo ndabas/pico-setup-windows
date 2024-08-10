@@ -41,7 +41,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        config: [x86, x64, x64-standalone]
+        config: [x64, x64-standalone]
         build-type: [system]
         include:
           - { config: x64-standalone, build-type: user }
