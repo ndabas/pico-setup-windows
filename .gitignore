@@ -9,3 +9,4 @@ bin/
 
 # Builds/staging
 build/
+build-*/

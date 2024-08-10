@@ -86,7 +86,11 @@ call :AddToPath "%PICO_INSTALL_PATH%\ninja"
 call :AddToPath "%PICO_INSTALL_PATH%\python"
 call :AddToPath "%PICO_INSTALL_PATH%\git\cmd"
 call :AddToPath "%PICO_INSTALL_PATH%\pico-sdk-tools"
-call :AddToPath "%PICO_INSTALL_PATH%\picotool"
+call :AddToPath "%PICO_INSTALL_PATH%\pico-sdk-tools\elf2uf2"
+call :AddToPath "%PICO_INSTALL_PATH%\pico-sdk-tools\pioasm"
+call :AddToPath "%PICO_INSTALL_PATH%\pico-sdk-tools\picotool"
+
+set "PICO_ARM_TOOLCHAIN_PATH=%PICO_INSTALL_PATH%\gcc-arm-none-eabi\bin"
 
 call :VerifyExe "GNU Arm Embedded Toolchain" "arm-none-eabi-gcc --version"
 call :VerifyExe "CMake" "cmake --version"

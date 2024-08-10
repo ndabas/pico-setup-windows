@@ -139,7 +139,7 @@ if (Test-Path .\build\python\python.exe) {
 }
 
 # Clone additional Pico-specific submodules in TinyUSB
-exec { git -C .\build\pico-sdk\lib\tinyusb submodule update --init --depth=1 hw\mcu\raspberry_pi }
+# exec { git -C .\build\pico-sdk\lib\tinyusb submodule update --init --depth=1 hw\mcu\raspberry_pi }
 
 $sdkVersion = (cmake -P .\packages\pico-setup-windows\pico-sdk-version.cmake -N | Select-String -Pattern 'PICO_SDK_VERSION_STRING=(.*)$').Matches.Groups[1].Value
 if (-not ($sdkVersion -match $versionRegEx)) {
@@ -555,11 +555,8 @@ Section "-Pico environment" SecPico
   File /r "build\pico-sdk\*.*"
 
   SetOutPath "`$INSTDIR\pico-sdk-tools"
-  File "build\pico-sdk-tools\mingw$bitness\*.*"
+  File /r "build\pico-sdk-tools\mingw$bitness\*.*"
   WriteRegStr `${PICO_REG_ROOT} "Software\Kitware\CMake\Packages\pico-sdk-tools" "v$sdkVersion" "`$INSTDIR\pico-sdk-tools"
-
-  SetOutPath "`$INSTDIR\picotool"
-  File "build\picotool-install\mingw$bitness\*.*"
 
   SetOutPath "`$INSTDIR"
   File "build\pico-examples.zip"
@@ -654,9 +651,9 @@ $env:__COMPAT_LAYER = ""
 # Sign files before packaging up the installer
 sign "build\uninstall-$suffix.exe",
 "build\openocd-install\mingw$bitness\bin\openocd.exe",
-"build\pico-sdk-tools\mingw$bitness\elf2uf2.exe",
-"build\pico-sdk-tools\mingw$bitness\pioasm.exe",
-"build\picotool-install\mingw$bitness\picotool.exe"
+"build\pico-sdk-tools\mingw$bitness\elf2uf2\elf2uf2.exe",
+"build\pico-sdk-tools\mingw$bitness\pioasm\pioasm.exe",
+"build\pico-sdk-tools\mingw$bitness\picotool\picotool.exe"
 
 exec { .\build\NSIS\makensis ".\$basename-$suffix.nsi" }
 Write-Host "Installer saved to $binfile"

@@ -2,28 +2,28 @@
   "repositories": [
     {
       "href": "https://github.com/raspberrypi/pico-sdk.git",
-      "tree": "1.5.1",
+      "tree": "2.0.0",
       "submodules": true
     },
     {
       "href": "https://github.com/raspberrypi/pico-examples.git",
-      "tree": "sdk-1.5.1"
+      "tree": "sdk-2.0.0"
     },
     {
       "href": "https://github.com/raspberrypi/pico-extras.git",
-      "tree": "sdk-1.5.1"
+      "tree": "sdk-2.0.0"
     },
     {
       "href": "https://github.com/raspberrypi/pico-playground.git",
-      "tree": "sdk-1.5.1"
+      "tree": "sdk-2.0.0"
     },
     {
       "href": "https://github.com/raspberrypi/picotool.git",
-      "tree": "1.1.2"
+      "tree": "2.0.0"
     },
     {
       "href": "https://github.com/raspberrypi/openocd.git",
-      "tree": "rp2040-v0.12.0"
+      "tree": "sdk-2.0.0"
     }
   ]
 }
