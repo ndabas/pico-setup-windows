@@ -109,7 +109,7 @@ function updateDownloadUrl {
   }
 }
 
-foreach ($arch in @('x86.json', 'x64.json', 'x64-standalone.json')) {
+foreach ($arch in @('x64.json', 'x64-standalone.json')) {
   $config = Get-Content ".\config\$arch" | ConvertFrom-Json
 
   foreach ($i in $config.downloads) {
