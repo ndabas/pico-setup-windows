@@ -7,7 +7,7 @@ ARCH=$2
 
 cd openocd
 ./bootstrap
-./configure
+./configure --disable-werror CFLAGS="-Duint=uint32_t"
 make clean
 make -j4
 DESTDIR="$PWD/../openocd-install" make install
