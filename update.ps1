@@ -53,7 +53,7 @@ function updateDownloadUrl {
       getGitHubReleaseAssetUrl 'ninja-build/ninja' { $_.name -eq 'ninja-win.zip' }
     }
 
-    'Python 3.9' {
+    'Python 3.12' {
       $suffix = ''
 
       if ($Download.file -match '\.exe$') {
@@ -63,7 +63,7 @@ function updateDownloadUrl {
       }
 
       crawl 'https://www.python.org/downloads/windows/' |
-        Where-Object { $_ -match "python-3\.9\.[0-9]+$suffix`$" } |
+        Where-Object { $_ -match "python-3\.12\.[0-9]+$suffix`$" } |
         Select-Object -First 1
     }
 
