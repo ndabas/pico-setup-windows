@@ -2,20 +2,20 @@
   "tools": [
     {
       "name": "NSIS",
-      "file": "nsis-3.08.zip",
-      "href": "https://sourceforge.net/projects/nsis/files/NSIS%203/3.08/nsis-3.08.zip/download",
+      "file": "nsis-3.10.zip",
+      "href": "https://sourceforge.net/projects/nsis/files/NSIS%203/3.10/nsis-3.10.zip/download",
       "dirName": "NSIS",
       "extractStrip": 1
     },
     {
       "name": "MSYS2",
       "file": "msys2.exe",
-      "href": "https://github.com/msys2/msys2-installer/releases/download/2023-01-27/msys2-base-x86_64-20230127.sfx.exe"
+      "href": "https://github.com/msys2/msys2-installer/releases/download/2024-07-27/msys2-base-x86_64-20240727.sfx.exe"
     },
     {
       "name": "pandoc",
-      "file": "pandoc-3.1-windows-x86_64.zip",
-      "href": "https://github.com/jgm/pandoc/releases/download/3.1/pandoc-3.1-windows-x86_64.zip",
+      "file": "pandoc-3.3-windows-x86_64.zip",
+      "href": "https://github.com/jgm/pandoc/releases/download/3.3/pandoc-3.3-windows-x86_64.zip",
       "dirName": "pandoc",
       "extractStrip": 1
     },

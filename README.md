@@ -13,7 +13,7 @@ The rest of this README document is about developing the installer itself. If yo
 - [Arm GNU Toolchain](https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm/downloads)
 - [CMake](https://cmake.org/download/)
 - [Ninja](https://github.com/ninja-build/ninja/releases)
-- [Python 3.9](https://www.python.org/downloads/windows/)
+- [Python 3.12](https://www.python.org/downloads/windows/)
 - [Git for Windows](https://git-scm.com/download/win)
 - [Visual Studio Code](https://code.visualstudio.com/)
 - [OpenOCD](https://github.com/openocd-org/openocd/)
