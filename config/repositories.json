@@ -1,13 +1,13 @@
 {
   "repositories": [
     {
-      "href": "https://github.com/raspberrypi/pico-sdk.git",
-      "tree": "2.0.0",
+      "href": "https://github.com/ndabas/pico-sdk.git",
+      "tree": "2.0.0-0",
       "submodules": true
     },
     {
-      "href": "https://github.com/raspberrypi/pico-examples.git",
-      "tree": "sdk-2.0.0"
+      "href": "https://github.com/ndabas/pico-examples.git",
+      "tree": "sdk-2.0.0-0"
     },
     {
       "href": "https://github.com/raspberrypi/pico-extras.git",

@@ -38,16 +38,18 @@ for %%i in (examples extras playground) do (
 )
 
 rem Build a couple of examples
-mkdir "%PICO_REPOS_PATH%\pico-examples\build"
-pushd "%PICO_REPOS_PATH%\pico-examples\build"
-cmake -G Ninja .. -DCMAKE_BUILD_TYPE=Debug --fresh || exit /b 1
+for %%j in (pico pico2) do (
+  mkdir "%PICO_REPOS_PATH%\pico-examples\build-%%j"
+  pushd "%PICO_REPOS_PATH%\pico-examples\build-%%j"
+  cmake -G Ninja .. -DPICO_BOARD=%%j -DCMAKE_BUILD_TYPE=Debug --fresh || exit /b 1
 
-for %%i in (blink "hello_world/all") do (
-  echo Building %%i
-  ninja "%%i" || exit /b 1
+  for %%i in (blink "hello_world/all") do (
+    echo Building %%i for %%j
+    ninja "%%i" || exit /b 1
+  )
+
+  popd
 )
-
-popd
 
 if "%interactive%" equ "1" (
   rem Open repo folder in Explorer
