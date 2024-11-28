@@ -7,7 +7,7 @@ jobs:
     steps:
 
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Test scripts
         shell: pwsh
@@ -29,8 +29,7 @@ jobs:
           Invoke-Pester -Configuration $pesterConfig
 
       - name: Upload test results
-        uses: actions/upload-artifact@v2
-        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
         with:
           name: Pester-Test-Results
           path: testResults.xml
@@ -48,7 +47,7 @@ jobs:
     steps:
 
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Setup MSYS2
         uses: msys2/setup-msys2@v2
@@ -61,7 +60,7 @@ jobs:
           Add-Content -Path $env:GITHUB_ENV -Value "OPENOCD_BUILD_ID=openocd-$OpenOCDCommit-$Bitness"
 
       - name: Cache OpenOCD build
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: build/openocd-install
           key: ${{ env.OPENOCD_BUILD_ID }}
@@ -76,7 +75,7 @@ jobs:
           .\build.ps1 .\config\${{ matrix.config }}.json -MSYS2Path (msys2 -c 'cygpath -m /').TrimEnd('\/') -SkipSigning -Compression zlib -BuildType ${{ matrix.build-type }}
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: Package-${{ matrix.config }}-${{ matrix.build-type }}
           path: bin/
@@ -95,10 +94,10 @@ jobs:
     steps:
 
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Download installer artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: Package-${{ matrix.config }}-${{ matrix.build-type }}
           path: bin
@@ -109,8 +108,7 @@ jobs:
           powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "cd C:\repo; .\tests\setup.ps1"
 
       - name: Upload installer logs
-        uses: actions/upload-artifact@v2
-        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
         with:
           name: Installer-Logs-Windows-${{ matrix.winver }}-${{ matrix.config }}-${{ matrix.build-type }}
           path: logs/
