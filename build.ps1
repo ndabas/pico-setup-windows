@@ -189,6 +189,8 @@ function msys {
 $env:CHERE_INVOKING = 'yes'
 # Start MINGW32/64 environment
 $env:MSYSTEM = "MINGW$bitness"
+# Use real symlinks
+$env:MSYS = "winsymlinks:nativestrict"
 
 if (-not $SkipDownload) {
   # First run setup
@@ -198,9 +200,14 @@ if (-not $SkipDownload) {
   # Normal update
   msys 'pacman --noconfirm -Suu'
 
-  msys "pacman -S --noconfirm --needed autoconf automake git libtool make pactoys pkg-config wget"
+  msys "pacman -S --noconfirm --needed autoconf automake base-devel expat git libtool pactoys patchutils pkg-config"
+
   # pacboy adds MINGW_PACKAGE_PREFIX to package names suffixed with :p
-  msys "pacboy -S --noconfirm --needed cmake:p ninja:p toolchain:p libusb:p hidapi:p"
+  msys "pacboy -S --noconfirm --needed cmake:p ninja:p toolchain:p libusb:p hidapi:p libslirp:p"
+}
+
+if (-not (Test-Path ".\build\riscv-install\mingw$bitness")) {
+  msys "cd build && ../packages/riscv/build-riscv-gcc.sh $bitness $mingw_arch"
 }
 
 if (-not (Test-Path ".\build\openocd-install\mingw$bitness")) {
