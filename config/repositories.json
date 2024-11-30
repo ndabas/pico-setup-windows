@@ -1,29 +1,33 @@
 {
   "repositories": [
     {
-      "href": "https://github.com/ndabas/pico-sdk.git",
-      "tree": "2.0.0-0",
+      "href": "https://github.com/raspberrypi/pico-sdk.git",
+      "tree": "2.1.0",
       "submodules": true
     },
     {
-      "href": "https://github.com/ndabas/pico-examples.git",
-      "tree": "sdk-2.0.0-0"
+      "href": "https://github.com/raspberrypi/pico-examples.git",
+      "tree": "sdk-2.1.0"
     },
     {
       "href": "https://github.com/raspberrypi/pico-extras.git",
-      "tree": "sdk-2.0.0"
+      "tree": "sdk-2.1.0"
     },
     {
       "href": "https://github.com/raspberrypi/pico-playground.git",
-      "tree": "sdk-2.0.0"
+      "tree": "sdk-2.1.0"
     },
     {
       "href": "https://github.com/raspberrypi/picotool.git",
-      "tree": "2.0.0"
+      "tree": "2.1.0"
     },
     {
       "href": "https://github.com/raspberrypi/openocd.git",
       "tree": "sdk-2.0.0"
+    },
+    {
+      "href": "https://github.com/riscv/riscv-gnu-toolchain.git",
+      "tree": "master"
     }
   ]
 }
