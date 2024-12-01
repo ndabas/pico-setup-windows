@@ -5,10 +5,7 @@
 
 set -euo pipefail
 
-BITNESS=$1
-ARCH=$2
-
-INSTALLDIR="riscv-install"
+INSTALLDIR="riscv-gnu-toolchain-install/${MSYSTEM,,}"
 mkdir -p "$INSTALLDIR"
 
 BUILDDIR="$(pwd)"
