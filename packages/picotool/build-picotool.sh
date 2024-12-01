@@ -2,6 +2,7 @@
 
 set -euo pipefail
 
+BUILDDIR="$PWD"
 INSTALLDIR="pico-sdk-tools/${MSYSTEM,,}"
 
 export PICO_SDK_PATH="$PWD/pico-sdk"
@@ -26,4 +27,5 @@ build-tool pico-sdk/tools/pioasm -DPIOASM_FLAT_INSTALL=1 -Wno-dev
 cp ../packages/pico-sdk-tools/pico-sdk-tools-config.cmake "$INSTALLDIR"
 
 build-tool picotool -DPICOTOOL_FLAT_INSTALL=1
-cp "/${MSYSTEM,,}/bin/libusb-1.0.dll" "$INSTALLDIR/picotool"
+cd "$INSTALLDIR/picotool"
+"$BUILDDIR/../packages/common/copy-deps.sh"

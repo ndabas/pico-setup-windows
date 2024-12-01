@@ -2,11 +2,15 @@
 
 set -euo pipefail
 
+BUILDDIR="$PWD"
+INSTALLDIR="openocd-install"
+
 cd openocd
 ./bootstrap
 ./configure --disable-werror CFLAGS="-Duint=uint32_t"
-make clean
 make -j$(nproc)
-DESTDIR="$PWD/../openocd-install" make install
-cp "/${MSYSTEM,,}/bin/libhidapi-0.dll" "$PWD/../openocd-install/${MSYSTEM,,}/bin"
-cp "/${MSYSTEM,,}/bin/libusb-1.0.dll" "$PWD/../openocd-install/${MSYSTEM,,}/bin"
+
+DESTDIR="$BUILDDIR/$INSTALLDIR" make install
+
+cd "$BUILDDIR/$INSTALLDIR/${MSYSTEM,,}/bin"
+"$BUILDDIR/../packages/common/copy-deps.sh"
