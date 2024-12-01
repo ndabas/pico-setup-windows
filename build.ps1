@@ -205,16 +205,16 @@ if (-not $SkipDownload) {
   msys "pacboy -S --noconfirm --needed cmake:p ninja:p toolchain:p libusb:p hidapi:p libslirp:p"
 }
 
-if (-not (Test-Path ".\build\riscv-gnu-toolchain-install\$msysEnv")) {
-  msys "cd build && ../packages/riscv/build-riscv-gcc.sh"
+if (-not (Test-Path ".\build\picotool-install\$msysEnv")) {
+  msys "cd build && ../packages/picotool/build-picotool.sh"
 }
 
 if (-not (Test-Path ".\build\openocd-install\$msysEnv")) {
   msys "cd build && ../packages/openocd/build-openocd.sh"
 }
 
-if (-not (Test-Path ".\build\picotool-install\$msysEnv")) {
-  msys "cd build && ../packages/picotool/build-picotool.sh"
+if (-not (Test-Path ".\build\riscv-gnu-toolchain-install\$msysEnv")) {
+  msys "cd build && ../packages/riscv/build-riscv-gcc.sh"
 }
 
 $template = Get-Content ".\packages\pico-sdk-tools\pico-sdk-tools-config-version.cmake" -Raw
@@ -651,7 +651,7 @@ exec { .\build\NSIS\makensis /DBUILD_UNINSTALLER ".\$basename-$suffix.nsi" }
 
 # The 'installer' that just writes the uninstaller asks for admin access, which is not actually needed.
 $env:__COMPAT_LAYER = "RunAsInvoker"
-exec { Start-Process -FilePath ".\build\build-uninstaller-$suffix.exe" -ArgumentList "/S /D=$PSScriptRoot\build" -Wait }
+exec { Start-Process -FilePath ".\build\build-uninstaller-$suffix.exe" -ArgumentList "/S /D=$(Join-Path $PSScriptRoot 'build')" -Wait }
 $env:__COMPAT_LAYER = ""
 
 # Sign files before packaging up the installer

@@ -5,11 +5,13 @@
 
 set -euo pipefail
 
+BUILDDIR="$PWD"
 INSTALLDIR="riscv-gnu-toolchain-install/${MSYSTEM,,}"
 mkdir -p "$INSTALLDIR"
 
-BUILDDIR="$(pwd)"
-
 cd riscv-gnu-toolchain
-./configure --prefix=$BUILDDIR/$INSTALLDIR --with-arch=rv32ima_zicsr_zifencei_zba_zbb_zbs_zbkb_zca_zcb --with-abi=ilp32 --with-multilib-generator="rv32ima_zicsr_zifencei_zba_zbb_zbs_zbkb_zca_zcb-ilp32--;rv32imac_zicsr_zifencei_zba_zbb_zbs_zbkb-ilp32--"
+./configure --prefix="$BUILDDIR/$INSTALLDIR" --with-arch=rv32ima_zicsr_zifencei_zba_zbb_zbs_zbkb_zca_zcb --with-abi=ilp32 --with-multilib-generator="rv32ima_zicsr_zifencei_zba_zbb_zbs_zbkb_zca_zcb-ilp32--;rv32imac_zicsr_zifencei_zba_zbb_zbs_zbkb-ilp32--"
 make -j$(nproc)
+
+cd "$BUILDDIR/$INSTALLDIR/bin"
+"$BUILDDIR/../packages/common/copy-deps.sh"
