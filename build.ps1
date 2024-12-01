@@ -48,7 +48,8 @@ $tools = (Get-Content '.\config\tools.json' | ConvertFrom-Json).tools
 $repositories = (Get-Content '.\config\repositories.json' | ConvertFrom-Json).repositories
 $config = Get-Content $ConfigFile | ConvertFrom-Json
 $bitness = $config.bitness
-$mingw_arch = $config.mingwArch
+$env:MSYSTEM = $config.msysEnv
+$msysEnv = $config.msysEnv.ToLowerInvariant()
 $downloads = $config.downloads
 $componentSelection = ($config | Get-Member componentSelection) ? $config.componentSelection : $false
 
@@ -187,8 +188,6 @@ function msys {
 
 # Preserve the current working directory
 $env:CHERE_INVOKING = 'yes'
-# Start MINGW32/64 environment
-$env:MSYSTEM = "MINGW$bitness"
 # Use real symlinks
 $env:MSYS = "winsymlinks:nativestrict"
 
@@ -206,20 +205,20 @@ if (-not $SkipDownload) {
   msys "pacboy -S --noconfirm --needed cmake:p ninja:p toolchain:p libusb:p hidapi:p libslirp:p"
 }
 
-if (-not (Test-Path ".\build\riscv-install\mingw$bitness")) {
-  msys "cd build && ../packages/riscv/build-riscv-gcc.sh $bitness $mingw_arch"
+if (-not (Test-Path ".\build\riscv-gnu-toolchain-install\$msysEnv")) {
+  msys "cd build && ../packages/riscv/build-riscv-gcc.sh"
 }
 
-if (-not (Test-Path ".\build\openocd-install\mingw$bitness")) {
-  msys "cd build && ../packages/openocd/build-openocd.sh $bitness $mingw_arch"
+if (-not (Test-Path ".\build\openocd-install\$msysEnv")) {
+  msys "cd build && ../packages/openocd/build-openocd.sh"
 }
 
-if (-not (Test-Path ".\build\picotool-install\mingw$bitness")) {
-  msys "cd build && ../packages/picotool/build-picotool.sh $bitness $mingw_arch"
+if (-not (Test-Path ".\build\picotool-install\$msysEnv")) {
+  msys "cd build && ../packages/picotool/build-picotool.sh"
 }
 
 $template = Get-Content ".\packages\pico-sdk-tools\pico-sdk-tools-config-version.cmake" -Raw
-$ExecutionContext.InvokeCommand.ExpandString($template) | Set-Content ".\build\pico-sdk-tools\mingw$bitness\pico-sdk-tools-config-version.cmake"
+$ExecutionContext.InvokeCommand.ExpandString($template) | Set-Content ".\build\pico-sdk-tools\$msysEnv\pico-sdk-tools-config-version.cmake"
 
 exec { .\build\pandoc\pandoc.exe --from gfm --to gfm --output .\build\ReadMe.txt .\docs\tutorial.md }
 
@@ -530,9 +529,9 @@ LangString DESC_Sec$($_.shortName) `${LANG_ENGLISH} "$($_.name)"
 Section "-OpenOCD" SecOpenOCD
 
   SetOutPath "`$INSTDIR\openocd"
-  File "build\openocd-install\mingw$bitness\bin\*.*"
+  File "build\openocd-install\$msysEnv\bin\*.*"
   SetOutPath "`$INSTDIR\openocd\scripts"
-  File /r "build\openocd-install\mingw$bitness\share\openocd\scripts\*.*"
+  File /r "build\openocd-install\$msysEnv\share\openocd\scripts\*.*"
 
 SectionEnd
 
@@ -562,7 +561,7 @@ Section "-Pico environment" SecPico
   File /r "build\pico-sdk\*.*"
 
   SetOutPath "`$INSTDIR\pico-sdk-tools"
-  File /r "build\pico-sdk-tools\mingw$bitness\*.*"
+  File /r "build\pico-sdk-tools\$msysEnv\*.*"
   WriteRegStr `${PICO_REG_ROOT} "Software\Kitware\CMake\Packages\pico-sdk-tools" "v$sdkVersion" "`$INSTDIR\pico-sdk-tools"
 
   SetOutPath "`$INSTDIR"
@@ -657,10 +656,10 @@ $env:__COMPAT_LAYER = ""
 
 # Sign files before packaging up the installer
 sign "build\uninstall-$suffix.exe",
-"build\openocd-install\mingw$bitness\bin\openocd.exe",
-"build\pico-sdk-tools\mingw$bitness\elf2uf2\elf2uf2.exe",
-"build\pico-sdk-tools\mingw$bitness\pioasm\pioasm.exe",
-"build\pico-sdk-tools\mingw$bitness\picotool\picotool.exe"
+"build\openocd-install\$msysEnv\bin\openocd.exe",
+"build\pico-sdk-tools\$msysEnv\elf2uf2\elf2uf2.exe",
+"build\pico-sdk-tools\$msysEnv\pioasm\pioasm.exe",
+"build\pico-sdk-tools\$msysEnv\picotool\picotool.exe"
 
 exec { .\build\NSIS\makensis ".\$basename-$suffix.nsi" }
 Write-Host "Installer saved to $binfile"
@@ -670,7 +669,7 @@ sign $binfile
 
 # Package OpenOCD separately as well
 
-$version = (cmd /c ".\build\openocd-install\mingw$bitness\bin\openocd.exe" --version '2>&1')[0]
+$version = (cmd /c ".\build\openocd-install\$msysEnv\bin\openocd.exe" --version '2>&1')[0]
 if (-not ($version -match 'Open On-Chip Debugger (?<version>[a-zA-Z0-9\.\-+]+) \((?<timestamp>[0-9\-:]+)\)')) {
   Write-Error 'Could not determine openocd version'
 }
@@ -681,4 +680,4 @@ $filename = 'openocd-{0}-{1}-{2}.zip' -f
   $suffix
 
 Write-Host "Saving OpenOCD package to $filename"
-exec { tar -a -cf "bin\$filename" -C "build\openocd-install\mingw$bitness\bin" * -C "..\share\openocd" "scripts" }
+exec { tar -a -cf "bin\$filename" -C "build\openocd-install\$msysEnv\bin" * -C "..\share\openocd" "scripts" }

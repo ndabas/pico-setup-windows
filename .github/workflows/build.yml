@@ -54,10 +54,7 @@ jobs:
 
       - name: Check OpenOCD repository
         shell: pwsh
-        run: |
-          $OpenOCDCommit = ((Get-Content .\config\repositories.json | ConvertFrom-Json).repositories | Where-Object { $_.href -like '*openocd.git' } | ForEach-Object { git ls-remote $_.href $_.tree }).Split("`t")[0]
-          $Bitness = (Get-Content .\config\${{ matrix.config }}.json | ConvertFrom-Json).bitness
-          Add-Content -Path $env:GITHUB_ENV -Value "OPENOCD_BUILD_ID=openocd-$OpenOCDCommit-$Bitness"
+        run: .\packages\common\build-id.ps1 openocd .\config\${{ matrix.config }}.json >> $env:GITHUB_ENV
 
       - name: Cache OpenOCD build
         uses: actions/cache@v4
@@ -65,12 +62,25 @@ jobs:
           path: build/openocd-install
           key: ${{ env.OPENOCD_BUILD_ID }}
 
+      - name: Check riscv-gnu-toolchain repository
+        shell: pwsh
+        run: .\packages\common\build-id.ps1 riscv-gnu-toolchain .\config\${{ matrix.config }}.json >> $env:GITHUB_ENV
+
+      - name: Cache riscv-gnu-toolchain build
+        uses: actions/cache@v4
+        with:
+          path: build/riscv-gnu-toolchain-install
+          key: ${{ env.RISCV-GNU-TOOLCHAIN_BUILD_ID }}
+
       - name: Build ${{ matrix.config }} (${{ matrix.build-type }})
         shell: pwsh
         run: |
           Set-StrictMode -Version Latest
           $ErrorActionPreference = 'Stop'
           $ProgressPreference = 'SilentlyContinue'
+
+          subst P: .
+          P:
 
           .\build.ps1 .\config\${{ matrix.config }}.json -MSYS2Path (msys2 -c 'cygpath -m /').TrimEnd('\/') -SkipSigning -Compression zlib -BuildType ${{ matrix.build-type }}
 

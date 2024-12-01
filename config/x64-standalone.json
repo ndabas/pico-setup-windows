@@ -1,6 +1,6 @@
 {
   "bitness": 64,
-  "mingwArch": "x86_64",
+  "msysEnv": "MINGW64",
   "downloads": [
     {
       "name": "GNU Arm Embedded Toolchain",

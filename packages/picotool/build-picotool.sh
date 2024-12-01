@@ -2,9 +2,7 @@
 
 set -euo pipefail
 
-BITNESS=$1
-ARCH=$2
-INSTALLDIR="pico-sdk-tools/mingw$BITNESS"
+INSTALLDIR="pico-sdk-tools/${MSYSTEM,,}"
 
 export PICO_SDK_PATH="$PWD/pico-sdk"
 export LDFLAGS="-static -static-libgcc -static-libstdc++"
@@ -28,4 +26,4 @@ build-tool pico-sdk/tools/pioasm -DPIOASM_FLAT_INSTALL=1 -Wno-dev
 cp ../packages/pico-sdk-tools/pico-sdk-tools-config.cmake "$INSTALLDIR"
 
 build-tool picotool -DPICOTOOL_FLAT_INSTALL=1
-cp "/mingw$BITNESS/bin/libusb-1.0.dll" "$INSTALLDIR/picotool"
+cp "/${MSYSTEM,,}/bin/libusb-1.0.dll" "$INSTALLDIR/picotool"
