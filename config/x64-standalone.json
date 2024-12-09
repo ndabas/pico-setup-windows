@@ -3,10 +3,10 @@
   "msysEnv": "MINGW64",
   "downloads": [
     {
-      "name": "GNU Arm Embedded Toolchain",
-      "file": "gcc-arm-none-eabi-10.3-2021.10-win32.zip",
-      "href": "https://developer.arm.com/-/media/Files/downloads/gnu-rm/10.3-2021.10/gcc-arm-none-eabi-10.3-2021.10-win32.zip?rev=8f4a92e2ec2040f89912f372a55d8cf3&hash=5569B4C322E49BB400BFB63567A4B33B",
-      "dirName": "gcc-arm-none-eabi",
+      "name": "Arm GNU Toolchain",
+      "file": "arm-gnu-toolchain-13.3.rel1-mingw-w64-i686-arm-none-eabi.zip",
+      "href": "https://developer.arm.com/-/media/Files/downloads/gnu/13.3.rel1/binrel/arm-gnu-toolchain-13.3.rel1-mingw-w64-i686-arm-none-eabi.zip",
+      "dirName": "arm-gnu-toolchain",
       "extractStrip": 1
     },
     {
