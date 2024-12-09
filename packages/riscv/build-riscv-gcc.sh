@@ -9,9 +9,19 @@ BUILDDIR="$PWD"
 INSTALLDIR="riscv-gnu-toolchain-install/${MSYSTEM,,}"
 mkdir -p "$INSTALLDIR"
 
+# Currently this results in:
+# - GCC is fully static
+# - binutils has static libstdc++ and libgcc but needs a few other DLLs
+# - GDB is not static at all
+export LDFLAGS="-static -static-libgcc -static-libstdc++"
+
 cd riscv-gnu-toolchain
-./configure --prefix="$BUILDDIR/$INSTALLDIR" --with-arch=rv32ima_zicsr_zifencei_zba_zbb_zbs_zbkb_zca_zcb --with-abi=ilp32 --with-multilib-generator="rv32ima_zicsr_zifencei_zba_zbb_zbs_zbkb_zca_zcb-ilp32--;rv32imac_zicsr_zifencei_zba_zbb_zbs_zbkb-ilp32--"
+./configure \
+  --prefix="$BUILDDIR/$INSTALLDIR" \
+  --with-arch=rv32ima_zicsr_zifencei_zba_zbb_zbs_zbkb_zca_zcb \
+  --with-abi=ilp32 \
+  --with-multilib-generator="rv32ima_zicsr_zifencei_zba_zbb_zbs_zbkb_zca_zcb-ilp32--;rv32imac_zicsr_zifencei_zba_zbb_zbs_zbkb-ilp32--"
 make -j$(nproc)
 
-cd "$BUILDDIR/$INSTALLDIR/bin"
+cd "$BUILDDIR/$INSTALLDIR"
 "$BUILDDIR/../packages/common/copy-deps.sh"

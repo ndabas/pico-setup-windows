@@ -2,7 +2,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
-$installer = Get-ChildItem bin\*.exe | Select-Object -First 1 -ExpandProperty FullName
+$installer = Get-ChildItem bin\*.exe | Sort-Object LastWriteTime -Descending | Select-Object -First 1 -ExpandProperty FullName
 Write-Host "Starting $installer"
 $elapsed = Measure-Command { Start-Process -FilePath $installer -ArgumentList "/S" -Wait }
 Write-Host ("Finished in {0:hh':'mm':'ss}" -f $elapsed)
