@@ -82,6 +82,7 @@ set "HOME=%USERPROFILE%"
 
 call :AddToPath "%PICO_INSTALL_PATH%\cmake\bin"
 call :AddToPath "%PICO_INSTALL_PATH%\gcc-arm-none-eabi\bin"
+call :AddToPath "%PICO_INSTALL_PATH%\riscv-gnu-toolchain\bin"
 call :AddToPath "%PICO_INSTALL_PATH%\ninja"
 call :AddToPath "%PICO_INSTALL_PATH%\python"
 call :AddToPath "%PICO_INSTALL_PATH%\git\cmd"
@@ -91,6 +92,9 @@ call :AddToPath "%PICO_INSTALL_PATH%\pico-sdk-tools\pioasm"
 call :AddToPath "%PICO_INSTALL_PATH%\pico-sdk-tools\picotool"
 
 set "PICO_ARM_TOOLCHAIN_PATH=%PICO_INSTALL_PATH%\gcc-arm-none-eabi\bin"
+if exist "%PICO_INSTALL_PATH%\riscv-gnu-toolchain\bin" (
+  set "PICO_RISCV_TOOLCHAIN_PATH=%PICO_INSTALL_PATH%\riscv-gnu-toolchain\bin"
+)
 
 call :VerifyExe "GNU Arm Embedded Toolchain" "arm-none-eabi-gcc --version"
 call :VerifyExe "CMake" "cmake --version"

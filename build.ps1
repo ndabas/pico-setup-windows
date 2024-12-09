@@ -216,6 +216,7 @@ if (-not (Test-Path ".\build\openocd-install\$msysEnv")) {
 if (-not (Test-Path ".\build\riscv-gnu-toolchain-install\$msysEnv")) {
   msys "cd build && ../packages/riscv/build-riscv-gcc.sh"
 }
+exec { tar -a -cf "build\riscv-gnu-toolchain.zip" -C "build\riscv-gnu-toolchain-install\$msysEnv" '*' }
 
 $template = Get-Content ".\packages\pico-sdk-tools\pico-sdk-tools-config-version.cmake" -Raw
 $ExecutionContext.InvokeCommand.ExpandString($template) | Set-Content ".\build\pico-sdk-tools\$msysEnv\pico-sdk-tools-config-version.cmake"
@@ -397,6 +398,18 @@ $($componentSelection ? '!insertmacro MUI_PAGE_COMPONENTS' : '')
 
 !include "packages\pico-setup-windows\DumpLog.nsh"
 
+!macro ExpandArchive archivePath
+
+  SetCompress off
+  File "`${archivePath}"
+  `${GetFileName} "`${archivePath}" `$R0
+  nsExec::ExecToLog ``powershell -NoProfile -ExecutionPolicy Bypass -Command "Expand-Archive '`$R0' -DestinationPath . -Force"``
+  Pop `$0
+  Delete /REBOOTOK "`$OUTDIR\`$R0"
+  SetCompress auto
+
+!macroend
+
 Function .onInit
 
   SetShellVarContext $($BuildType -eq 'system' ? 'all' : 'current')
@@ -532,6 +545,13 @@ Section "-OpenOCD" SecOpenOCD
   File "build\openocd-install\$msysEnv\bin\*.*"
   SetOutPath "`$INSTDIR\openocd\scripts"
   File /r "build\openocd-install\$msysEnv\share\openocd\scripts\*.*"
+
+SectionEnd
+
+Section "-riscv-gnu-toolchain" SecRiscV
+
+  SetOutPath "`$INSTDIR\riscv-gnu-toolchain"
+  !insertmacro ExpandArchive "build\riscv-gnu-toolchain.zip"
 
 SectionEnd
 
