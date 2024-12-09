@@ -81,7 +81,7 @@ rem directory if we do not set this.
 set "HOME=%USERPROFILE%"
 
 call :AddToPath "%PICO_INSTALL_PATH%\cmake\bin"
-call :AddToPath "%PICO_INSTALL_PATH%\gcc-arm-none-eabi\bin"
+call :AddToPath "%PICO_INSTALL_PATH%\arm-gnu-toolchain\bin"
 call :AddToPath "%PICO_INSTALL_PATH%\riscv-gnu-toolchain\bin"
 call :AddToPath "%PICO_INSTALL_PATH%\ninja"
 call :AddToPath "%PICO_INSTALL_PATH%\python"
@@ -91,7 +91,7 @@ call :AddToPath "%PICO_INSTALL_PATH%\pico-sdk-tools\elf2uf2"
 call :AddToPath "%PICO_INSTALL_PATH%\pico-sdk-tools\pioasm"
 call :AddToPath "%PICO_INSTALL_PATH%\pico-sdk-tools\picotool"
 
-set "PICO_ARM_TOOLCHAIN_PATH=%PICO_INSTALL_PATH%\gcc-arm-none-eabi\bin"
+set "PICO_ARM_TOOLCHAIN_PATH=%PICO_INSTALL_PATH%\arm-gnu-toolchain\bin"
 if exist "%PICO_INSTALL_PATH%\riscv-gnu-toolchain\bin" (
   set "PICO_RISCV_TOOLCHAIN_PATH=%PICO_INSTALL_PATH%\riscv-gnu-toolchain\bin"
 )
