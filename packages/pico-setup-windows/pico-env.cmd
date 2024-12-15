@@ -91,7 +91,10 @@ call :AddToPath "%PICO_INSTALL_PATH%\pico-sdk-tools\elf2uf2"
 call :AddToPath "%PICO_INSTALL_PATH%\pico-sdk-tools\pioasm"
 call :AddToPath "%PICO_INSTALL_PATH%\pico-sdk-tools\picotool"
 
-set "PICO_ARM_TOOLCHAIN_PATH=%PICO_INSTALL_PATH%\arm-gnu-toolchain\bin"
+for /f "usebackq tokens=*" %%f in (`where arm-none-eabi-gcc`) do (
+  set "PICO_ARM_TOOLCHAIN_PATH=%%~dpf"
+)
+
 if exist "%PICO_INSTALL_PATH%\riscv-gnu-toolchain\bin" (
   set "PICO_RISCV_TOOLCHAIN_PATH=%PICO_INSTALL_PATH%\riscv-gnu-toolchain\bin"
 )
