@@ -4,7 +4,7 @@ $ProgressPreference = 'SilentlyContinue'
 
 $installer = Get-ChildItem bin\*.exe | Sort-Object LastWriteTime -Descending | Select-Object -First 1 -ExpandProperty FullName
 Write-Host "Starting $installer"
-$elapsed = Measure-Command { Start-Process -FilePath $installer -ArgumentList "/S" -Wait }
+$elapsed = Measure-Command { Start-Process -FilePath $installer -ArgumentList "/S" -PassThru | Wait-Process }
 Write-Host ("Finished in {0:hh':'mm':'ss}" -f $elapsed)
 
 $uninstRegKey = "Microsoft\Windows\CurrentVersion\Uninstall\Raspberry Pi Pico SDK*"
