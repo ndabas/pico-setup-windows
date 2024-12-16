@@ -91,8 +91,12 @@ call :AddToPath "%PICO_INSTALL_PATH%\pico-sdk-tools\elf2uf2"
 call :AddToPath "%PICO_INSTALL_PATH%\pico-sdk-tools\pioasm"
 call :AddToPath "%PICO_INSTALL_PATH%\pico-sdk-tools\picotool"
 
-for /f "usebackq tokens=*" %%f in (`where arm-none-eabi-gcc`) do (
-  set "PICO_ARM_TOOLCHAIN_PATH=%%~dpf"
+for %%f in (arm-none-eabi-gcc.exe) do (
+  set "PICO_ARM_TOOLCHAIN_PATH=%%~dp$PATH:f"
+)
+rem Remove trailing backslash - add a . then resolve with the 'f' modifier
+for %%f in ("%PICO_ARM_TOOLCHAIN_PATH%.") do (
+  set "PICO_ARM_TOOLCHAIN_PATH=%%~ff"
 )
 
 if exist "%PICO_INSTALL_PATH%\riscv-gnu-toolchain\bin" (
