@@ -52,6 +52,10 @@ jobs:
       - name: Setup MSYS2
         uses: msys2/setup-msys2@v2
 
+      - name: Turn off git autocrlf
+        shell: pwsh
+        run: git config --global core.autocrlf false
+
       - name: Check OpenOCD repository
         shell: pwsh
         run: .\packages\common\build-id.ps1 openocd .\config\${{ matrix.config }}.json >> $env:GITHUB_ENV
@@ -114,8 +118,9 @@ jobs:
 
       - name: Test ${{ matrix.config }} (${{ matrix.build-type }})
         shell: pwsh
-        run: docker run --rm -v "$(Get-Location):C:\repo" mcr.microsoft.com/windows/servercore:ltsc${{ matrix.winver }}
-          powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "cd C:\repo; .\tests\setup.ps1"
+        run: docker run --rm -v "$(Get-Location):C:\repo" -w C:\repo
+          mcr.microsoft.com/windows/servercore:ltsc${{ matrix.winver }}
+          powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File .\tests\setup.ps1
 
       - name: Upload installer logs
         uses: actions/upload-artifact@v4
