@@ -1,37 +1,37 @@
 {
   "bitness": 64,
-  "msysEnv": "MINGW64",
+  "msysEnv": "UCRT64",
   "componentSelection": true,
   "downloads": [
     {
       "name": "Arm GNU Toolchain",
-      "file": "arm-gnu-toolchain-13.3.rel1-mingw-w64-i686-arm-none-eabi.exe",
+      "file": "arm-gnu-toolchain-14.3.rel1-mingw-w64-x86_64-arm-none-eabi.exe",
       "exec": "\"$0\" /S /P /R",
-      "href": "https://developer.arm.com/-/media/Files/downloads/gnu/13.3.rel1/binrel/arm-gnu-toolchain-13.3.rel1-mingw-w64-i686-arm-none-eabi.exe"
+      "href": "https://developer.arm.com/-/media/Files/downloads/gnu/14.3.rel1/binrel/arm-gnu-toolchain-14.3.rel1-mingw-w64-x86_64-arm-none-eabi.exe"
     },
     {
       "name": "CMake",
-      "file": "cmake-3.30.2-windows-x86_64.msi",
+      "file": "cmake-4.3.2-windows-x86_64.msi",
       "exec": "msiexec /i \"$0\" /qn /norestart ADD_CMAKE_TO_PATH=System",
-      "href": "https://github.com/Kitware/CMake/releases/download/v3.30.2/cmake-3.30.2-windows-x86_64.msi"
+      "href": "https://github.com/Kitware/CMake/releases/download/v4.3.2/cmake-4.3.2-windows-x86_64.msi"
     },
     {
       "name": "Ninja",
       "file": "ninja-win.zip",
-      "href": "https://github.com/ninja-build/ninja/releases/download/v1.12.1/ninja-win.zip",
+      "href": "https://github.com/ninja-build/ninja/releases/download/v1.13.2/ninja-win.zip",
       "dirName": "ninja"
     },
     {
       "name": "Python 3.12",
-      "file": "python-3.12.5-amd64.exe",
+      "file": "python-3.12.10-amd64.exe",
       "exec": "\"$0\" /quiet InstallAllUsers=1 PrependPath=1",
-      "href": "https://www.python.org/ftp/python/3.12.5/python-3.12.5-amd64.exe"
+      "href": "https://www.python.org/ftp/python/3.12.10/python-3.12.10-amd64.exe"
     },
     {
       "name": "Git for Windows",
-      "file": "Git-2.46.0-64-bit.exe",
+      "file": "Git-2.54.0-64-bit.exe",
       "exec": "\"$0\" /VERYSILENT /NORESTART /NOCANCEL /SP- /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS /SKIPDOWNGRADE=1 \"/LOADINF=$PLUGINSDIR\\git.inf\"",
-      "href": "https://github.com/git-for-windows/git/releases/download/v2.46.0.windows.1/Git-2.46.0-64-bit.exe",
+      "href": "https://github.com/git-for-windows/git/releases/download/v2.54.0.windows.1/Git-2.54.0-64-bit.exe",
       "additionalFiles": [
         "packages\\pico-setup-windows\\git.inf"
       ]

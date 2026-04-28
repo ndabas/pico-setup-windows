@@ -33,10 +33,10 @@ function updateDownloadUrl {
   [uri]$newUrl = switch ($Download.name) {
 
     'Arm GNU Toolchain' {
-      $ext = $Download.file -match '\.exe$' ? 'exe' : 'zip'
+      $ext = $Download.file -match '\.zip$' ? 'zip' : 'exe'
 
       crawl 'https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads' |
-        Where-Object { $_ -match "arm-gnu-toolchain-.*-mingw-w64-i686-arm-none-eabi\.$ext" } | # There is no 64-bit build for Windows currently
+        Where-Object { $_ -match "arm-gnu-toolchain-14.*-mingw-w64-x86_64-arm-none-eabi\.$ext" } |
         Select-Object -First 1
     }
 
