@@ -1,37 +1,36 @@
 {
   "bitness": 64,
-  "msysEnv": "MINGW64",
+  "msysEnv": "UCRT64",
   "downloads": [
     {
       "name": "Arm GNU Toolchain",
-      "file": "arm-gnu-toolchain-13.3.rel1-mingw-w64-i686-arm-none-eabi.zip",
-      "href": "https://developer.arm.com/-/media/Files/downloads/gnu/13.3.rel1/binrel/arm-gnu-toolchain-13.3.rel1-mingw-w64-i686-arm-none-eabi.zip",
-      "dirName": "arm-gnu-toolchain",
-      "extractStrip": 1
+      "file": "arm-gnu-toolchain-14.3.rel1-mingw-w64-x86_64-arm-none-eabi.zip",
+      "href": "https://developer.arm.com/-/media/Files/downloads/gnu/14.3.rel1/binrel/arm-gnu-toolchain-14.3.rel1-mingw-w64-x86_64-arm-none-eabi.zip",
+      "dirName": "arm-gnu-toolchain"
     },
     {
       "name": "CMake",
-      "file": "cmake-3.30.2-windows-x86_64.zip",
-      "href": "https://github.com/Kitware/CMake/releases/download/v3.30.2/cmake-3.30.2-windows-x86_64.zip",
+      "file": "cmake-4.3.2-windows-x86_64.zip",
+      "href": "https://github.com/Kitware/CMake/releases/download/v4.3.2/cmake-4.3.2-windows-x86_64.zip",
       "dirName": "cmake",
       "extractStrip": 1
     },
     {
       "name": "Ninja",
       "file": "ninja-win.zip",
-      "href": "https://github.com/ninja-build/ninja/releases/download/v1.12.1/ninja-win.zip",
+      "href": "https://github.com/ninja-build/ninja/releases/download/v1.13.2/ninja-win.zip",
       "dirName": "ninja"
     },
     {
       "name": "Python 3.12",
-      "file": "python-3.12.5-embed-amd64.zip",
-      "href": "https://www.python.org/ftp/python/3.12.5/python-3.12.5-embed-amd64.zip",
+      "file": "python-3.12.10-embed-amd64.zip",
+      "href": "https://www.python.org/ftp/python/3.12.10/python-3.12.10-embed-amd64.zip",
       "dirName": "python"
     },
     {
       "name": "Git for Windows",
-      "file": "MinGit-2.46.0-64-bit.zip",
-      "href": "https://github.com/git-for-windows/git/releases/download/v2.46.0.windows.1/MinGit-2.46.0-64-bit.zip",
+      "file": "MinGit-2.54.0-64-bit.zip",
+      "href": "https://github.com/git-for-windows/git/releases/download/v2.54.0.windows.1/MinGit-2.54.0-64-bit.zip",
       "dirName": "git"
     }
   ]

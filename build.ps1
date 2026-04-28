@@ -206,7 +206,7 @@ if (-not $SkipDownload) {
 }
 
 if (-not (Test-Path ".\build\picotool-install\$msysEnv")) {
-  msys "cd build && ../packages/picotool/build-picotool.sh"
+  msys "cd build && ../packages/picotool/build-picotool.sh $sdkVersionClean"
 }
 
 if (-not (Test-Path ".\build\openocd-install\$msysEnv")) {
@@ -700,4 +700,4 @@ $filename = 'openocd-{0}-{1}-{2}.zip' -f
   $suffix
 
 Write-Host "Saving OpenOCD package to $filename"
-exec { tar -a -cf "bin\$filename" -C "build\openocd-install\$msysEnv\bin" * -C "..\share\openocd" "scripts" }
+exec { tar -a -cf "bin\$filename" -C "build\openocd-install\$msysEnv\bin" '*' -C "..\share\openocd" "scripts" }

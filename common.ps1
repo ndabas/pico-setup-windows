@@ -3,7 +3,8 @@
 function crawl {
   param ([string]$url)
 
-  (Invoke-WebRequest $url -UseBasicParsing).Links |
+  # developer.arm.com doesn't like PowerShell or a spoofed Chrome user agent, but oddly allows curl
+  (Invoke-WebRequest $url -UseBasicParsing -UserAgent 'curl/8.18.0').Links |
     Where-Object {
       ($_ | Get-Member href) -and
       [uri]::IsWellFormedUriString($_.href, [System.UriKind]::RelativeOrAbsolute)
