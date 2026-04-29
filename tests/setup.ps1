@@ -2,9 +2,11 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
+$installPath = "C:\Pico SDK"
+
 $installer = Get-ChildItem bin\*.exe | Sort-Object LastWriteTime -Descending | Select-Object -First 1 -ExpandProperty FullName
 Write-Host "Starting $installer"
-$elapsed = Measure-Command { Start-Process -FilePath $installer -ArgumentList "/S" -PassThru | Wait-Process }
+$elapsed = Measure-Command { Start-Process -FilePath $installer -ArgumentList "/S", "/D=$installPath" -PassThru | Wait-Process }
 Write-Host ("Finished in {0:hh':'mm':'ss}" -f $elapsed)
 
 $uninstRegKey = "Microsoft\Windows\CurrentVersion\Uninstall\Raspberry Pi Pico SDK*"
@@ -29,5 +31,5 @@ function Update-EnvironmentVariables {
 
 Update-EnvironmentVariables
 
-cmd /c call "$installPath\pico-setup.cmd" "$([Environment]::GetFolderPath("MyDocuments"))\Pico" "&&" call "$PSScriptRoot\pico-build.cmd"
+cmd /c call "$installPath\pico-setup.cmd" "$installPath" "&&" call "$PSScriptRoot\pico-build.cmd"
 exit $LASTEXITCODE
