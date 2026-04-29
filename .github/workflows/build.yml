@@ -7,7 +7,7 @@ jobs:
     steps:
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Test scripts
         shell: pwsh
@@ -29,7 +29,7 @@ jobs:
           Invoke-Pester -Configuration $pesterConfig
 
       - name: Upload test results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Pester-Test-Results
           path: testResults.xml
@@ -47,7 +47,7 @@ jobs:
     steps:
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup MSYS2
         uses: msys2/setup-msys2@v2
@@ -61,7 +61,7 @@ jobs:
         run: .\packages\common\build-id.ps1 openocd .\config\${{ matrix.config }}.json >> $env:GITHUB_ENV
 
       - name: Cache OpenOCD build
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: build/openocd-install
           key: ${{ env.OPENOCD_BUILD_ID }}
@@ -71,7 +71,7 @@ jobs:
         run: .\packages\common\build-id.ps1 riscv-gnu-toolchain .\config\${{ matrix.config }}.json >> $env:GITHUB_ENV
 
       - name: Cache riscv-gnu-toolchain build
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: build/riscv-gnu-toolchain-install
           key: ${{ env.RISCV-GNU-TOOLCHAIN_BUILD_ID }}
@@ -89,7 +89,7 @@ jobs:
           .\build.ps1 .\config\${{ matrix.config }}.json -MSYS2Path (msys2 -c 'cygpath -m /').TrimEnd('\/') -SkipSigning -Compression zlib -BuildType ${{ matrix.build-type }}
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Package-${{ matrix.config }}-${{ matrix.build-type }}
           path: bin/
@@ -108,10 +108,10 @@ jobs:
     steps:
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Download installer artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: Package-${{ matrix.config }}-${{ matrix.build-type }}
           path: bin
@@ -123,7 +123,7 @@ jobs:
           powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File .\tests\setup.ps1
 
       - name: Upload installer logs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Installer-Logs-Windows-${{ matrix.winver }}-${{ matrix.config }}-${{ matrix.build-type }}
           path: logs/
