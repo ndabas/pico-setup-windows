@@ -22,8 +22,10 @@ if not exist "FreeRTOS-Kernel\.git" (
 popd
 
 subst P: "%PICO_REPOS_PATH%" || exit /b 1
+subst S: "%PICO_INSTALL_PATH%" || exit /b 1
 
 set "SRC_DIR=P:\pico-examples"
+set "PICO_SDK_PATH=S:\pico-sdk"
 
 set "BUILD_DIR=P:\pico-examples\build-pico"
 call :test-build -DPICO_BOARD=pico || exit /b 1
@@ -42,3 +44,4 @@ set "BUILD_DIR=P:\pico-sdk-build"
 call :test-build -DPICO_SDK_TESTS_ENABLED=1 -DPICO_BOARD=pico_w || exit /b 1
 
 subst P: /d
+subst S: /d
