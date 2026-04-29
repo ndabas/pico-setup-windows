@@ -100,11 +100,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        winver: ['2022']
+        winver: ['2025']
         config: [x64, x64-standalone]
         build-type: [system]
         include:
-          - { winver: '2022', config: x64-standalone, build-type: user }
+          - { winver: '2025', config: x64-standalone, build-type: user }
     steps:
 
       - name: Checkout
