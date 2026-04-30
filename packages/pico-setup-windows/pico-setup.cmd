@@ -2,10 +2,6 @@
 
 set interactive=%~2
 
-mkdir "%~1"
-echo Copying pico-examples...
-powershell -NoProfile -ExecutionPolicy Bypass -Command "Expand-Archive """%~dp0pico-examples.zip""" -DestinationPath """%~1""" -Force" || exit /b 1
-
 call "%~dp0pico-env.cmd" "%~1" || exit /b 1
 setlocal enabledelayedexpansion
 
@@ -14,8 +10,10 @@ rem https://github.com/raspberrypi/pico-setup/blob/master/pico_setup.sh
 
 set "GITHUB_PREFIX=https://github.com/raspberrypi/"
 set "GITHUB_SUFFIX=.git"
-set "SDK_BRANCH=master"
+set "SDK_BRANCH=sdk-%PICO_SDK_VERSION%"
 
+set "PICO_REPOS_PATH=%~1"
+mkdir "%PICO_REPOS_PATH%"
 pushd "%PICO_REPOS_PATH%"
 
 for %%i in (examples extras playground) do (
@@ -26,7 +24,7 @@ for %%i in (examples extras playground) do (
   ) else (
     set "REPO_URL=%GITHUB_PREFIX%pico-%%i%GITHUB_SUFFIX%"
     echo Cloning !REPO_URL!
-    git clone -b %SDK_BRANCH% !REPO_URL! || exit /b 1
+    git clone -b %SDK_BRANCH% -c advice.detachedHead=false !REPO_URL! || exit /b 1
 
     rem Any submodules
     pushd "!DEST!"
