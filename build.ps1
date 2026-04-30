@@ -320,7 +320,6 @@ Section "Uninstall"
   RMDir /r /REBOOTOK "`$INSTDIR\resources"
 
   Delete /REBOOTOK "`$INSTDIR\install.log"
-  Delete /REBOOTOK "`$INSTDIR\pico-code.ps1"
   Delete /REBOOTOK "`$INSTDIR\pico-env.cmd"
   Delete /REBOOTOK "`$INSTDIR\pico-env.ps1"
   Delete /REBOOTOK "`$INSTDIR\pico-setup.cmd"
@@ -498,26 +497,6 @@ Section "-riscv-gnu-toolchain" SecRiscV
 
 SectionEnd
 
-!include "packages\pico-setup-windows\VSCodeUtils.nsh"
-
-Section VSCode
-
-  `${FindVSCode}
-
-  `${If} `$VSCodeExePath != ""
-    DetailPrint "Found VS Code: `$VSCodeExePath"
-  `${Else}
-    DetailPrint "Could not find VS Code. Installing..."
-    `${InstallVSCode}
-  `${EndIf}
-
-  $((Get-Content 'packages\pico-examples\ide\vscode\extensions.json' | ConvertFrom-Json).recommendations | ForEach-Object {
-    "`${VSCodeCmd} '--install-extension $_'`r`n"
-    "Pop `$0`r`n"
-  })
-
-SectionEnd
-
 Section "-Pico environment" SecPico
 
   SetOutPath "`$INSTDIR\pico-sdk"
@@ -528,7 +507,6 @@ Section "-Pico environment" SecPico
 
   SetOutPath "`$INSTDIR"
   WriteINIStr "`$INSTDIR\version.ini" "pico-setup-windows" "PICO_SDK_VERSION" "$sdkVersion"
-  File "packages\pico-setup-windows\pico-code.ps1"
   File "packages\pico-setup-windows\pico-env.ps1"
   File "packages\pico-setup-windows\pico-env.cmd"
   File "packages\pico-setup-windows\pico-setup.cmd"
@@ -542,16 +520,8 @@ Section "-Pico environment" SecPico
   WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "DisplayVersion" "$version"
   WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "Publisher" "$company"
 
-  `${IfNot} `${FileExists} "`$VSCodeExePath"
-    # Just use the default (user) install location for the icon, in case the user installs VS Code later
-    StrCpy `$VSCodeExePath "%LOCALAPPDATA%\Programs\Microsoft VS Code\Code.exe"
-    DetailPrint "Could not find Visual Studio Code."
-    MessageBox MB_OK|MB_ICONEXCLAMATION "Installation of Visual Studio Code failed. Please install it manually by downloading the installer from:${endl}${endl}https://code.visualstudio.com/" /SD IDOK
-  `${EndIf}
-
   `${CreateShortcutEx} "`${PICO_SHORTCUTS_DIR}\Pico - Developer Command Prompt.lnk" "`${PICO_AppUserModel_ID}!cmd" ``"cmd.exe" '/k "`$INSTDIR\pico-env.cmd"'``
   `${CreateShortcutEx} "`${PICO_SHORTCUTS_DIR}\Pico - Developer PowerShell.lnk" "`${PICO_AppUserModel_ID}!powershell" ``"powershell.exe" '-NoExit -ExecutionPolicy Bypass -File "`$INSTDIR\pico-env.ps1"'``
-  `${CreateShortcutEx} "`${PICO_SHORTCUTS_DIR}\Pico - Visual Studio Code.lnk" "`${PICO_AppUserModel_ID}!code" ``"powershell.exe" '-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "`$INSTDIR\pico-code.ps1"' "`$VSCodeExePath" "" SW_SHOWMINIMIZED``
 
   SetOutPath "`${PICO_WINTERM_DIR}"
   `${WordReplace} "`$INSTDIR" "\" "\\" "+" `$7
