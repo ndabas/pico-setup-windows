@@ -15,6 +15,7 @@ goto main
 
 call "%PICO_INSTALL_PATH%\pico-env.cmd" || exit /b 1
 
+set "PICO_REPOS_PATH=%PICO_INSTALL_PATH%"
 pushd "%PICO_REPOS_PATH%"
 if not exist "FreeRTOS-Kernel\.git" (
   git clone --depth=1 -b main "https://github.com/FreeRTOS/FreeRTOS-Kernel.git" || exit /b 1

@@ -222,10 +222,6 @@ $ExecutionContext.InvokeCommand.ExpandString($template) | Set-Content ".\build\p
 
 exec { .\build\pandoc\pandoc.exe --from gfm --to gfm --output .\build\ReadMe.txt .\docs\tutorial.md }
 
-mkdirp .\build\pico-examples\.vscode
-Copy-Item .\packages\pico-examples\ide\vscode\*.json .\build\pico-examples\.vscode\ -Force
-exec {  tar -a -cf "build\pico-examples.zip" -C "build" "pico-examples" "pico-extras" "pico-playground" }
-
 $endl = '$\r$\n'
 
 function writeFile {
@@ -255,16 +251,9 @@ function writeFile {
 
 !define TITLE "$product"
 !define PICO_INSTALL_DIR "$productDir"
-; The repos need to be cloned into a dir with a fairly short name, because CMake generates build
-; defs with long hashes in the paths. Both CMake and Ninja currently have problems working with
-; long paths on Windows.
-; We use "%USERPROFILE%" here so that it resolves at runtime to the actual user's profile, rather
-; than the admin user which is used to elevate the installer.
-!define PICO_REPOS_DIR "`%USERPROFILE%\Documents\Pico-v$sdkVersion"
 !define PICO_SHORTCUTS_DIR "`$SMPROGRAMS\$product"
 !define PICO_WINTERM_DIR "`$LOCALAPPDATA\Microsoft\Windows Terminal\Fragments\$product"
 !define PICO_REG_ROOT SHELL_CONTEXT
-!define PICO_REG_KEY "Software\$productDir"
 !define UNINSTALL_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\$product"
 !define PICO_AppUserModel_ID "RaspberryPi.PicoSDK.$sdkVersion"
 
@@ -292,8 +281,6 @@ SpaceTexts "none"
 ; We set the default INSTDIR ourselves in .onInit
 InstallDir ""
 
-Var ReposDir
-
 !ifdef BUILD_UNINSTALLER
 
 OutFile "build\build-uninstaller-$suffix.exe"
@@ -313,8 +300,6 @@ Function un.onInit
 
   SetShellVarContext $($BuildType -eq 'system' ? 'all' : 'current')
   SetRegView $bitness
-
-  ReadRegStr `$ReposDir HKCU "`${PICO_REG_KEY}" "ReposPath"
 
 FunctionEnd
 
@@ -350,17 +335,7 @@ Section "Uninstall"
   `${GetParent} "`$INSTDIR" `$R0
   RMDir `$R0
 
-  `${If} `$ReposDir != ""
-    RMDir /r /REBOOTOK "`$ReposDir\pico-examples"
-    RMDir /r /REBOOTOK "`$ReposDir\pico-extras"
-    RMDir /r /REBOOTOK "`$ReposDir\pico-playground"
-    RMDir "`$ReposDir"
-  `${EndIf}
-
   DeleteRegKey `${PICO_REG_ROOT} "`${UNINSTALL_KEY}"
-
-  DeleteRegKey `${PICO_REG_ROOT} "`${PICO_REG_KEY}"
-  DeleteRegKey HKCU "`${PICO_REG_KEY}"
 
 SectionEnd
 
@@ -384,10 +359,8 @@ $($componentSelection ? '!insertmacro MUI_PAGE_COMPONENTS' : '')
 !define MUI_PAGE_CUSTOMFUNCTION_LEAVE DumpLog
 !insertmacro MUI_PAGE_INSTFILES
 
-!define FINISHPAGE_RUN_FUNCTION RunBuild
 !define MUI_FINISHPAGE_SHOWREADME "`$INSTDIR\ReadMe.txt"
 !define MUI_FINISHPAGE_SHOWREADME_TEXT "Show ReadMe"
-!include "packages\pico-setup-windows\FinishPage.nsh"
 !insertmacro MUI_PAGE_FINISH
 
 !insertmacro MUI_LANGUAGE "English"
@@ -416,20 +389,6 @@ Function .onInit
     })
 
     StrCpy `$INSTDIR "`$INSTDIR\`${PICO_INSTALL_DIR}"
-  `${EndIf}
-
-  StrCpy `$ReposDir "`${PICO_REPOS_DIR}"
-
-  ReadRegStr `$R0 HKCU "`${PICO_REG_KEY}" "ReposPath"
-  `${If} `$R0 != ""
-    StrCpy `$ReposDir "`$R0"
-  `${EndIf}
-
-  ClearErrors
-  `${GetParameters} `$R1
-  `${GetOptions} "`$R1" "/REPOSDIR=" `$R0
-  `${IfNot} `${Errors}
-    StrCpy `$ReposDir "`$R0"
   `${EndIf}
 
 FunctionEnd
@@ -568,10 +527,7 @@ Section "-Pico environment" SecPico
   File /r "build\pico-sdk-tools\$msysEnv\*.*"
 
   SetOutPath "`$INSTDIR"
-  File "build\pico-examples.zip"
   WriteINIStr "`$INSTDIR\version.ini" "pico-setup-windows" "PICO_SDK_VERSION" "$sdkVersion"
-  WriteINIStr "`$INSTDIR\version.ini" "pico-setup-windows" "PICO_INSTALL_PATH" "`$INSTDIR"
-  WriteINIStr "`$INSTDIR\version.ini" "pico-setup-windows" "PICO_REG_KEY" "`${PICO_REG_KEY}"
   File "packages\pico-setup-windows\pico-code.ps1"
   File "packages\pico-setup-windows\pico-env.ps1"
   File "packages\pico-setup-windows\pico-env.cmd"
@@ -628,16 +584,6 @@ Section "-Pico environment" SecPico
   SetOutPath "`$INSTDIR"
 
 SectionEnd
-
-Function RunBuild
-
-  ; We need to run pico-setup.cmd un-elevated, to avoid problems with builds later on.
-  ; So we create a shortcut with the command line to use, and have explorer.exe launch it.
-  ; http://mdb-blog.blogspot.com/2013/01/nsis-lunch-program-as-user-from-uac.html
-  CreateShortcut "`$INSTDIR\pico-setup.lnk" "cmd.exe" '/k call "`$INSTDIR\pico-setup.cmd" "`$ReposDir" 1'
-  Exec '"`$WINDIR\explorer.exe" "`$INSTDIR\pico-setup.lnk"'
-
-FunctionEnd
 
 !if $($componentSelection ? 1 : 0)
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN

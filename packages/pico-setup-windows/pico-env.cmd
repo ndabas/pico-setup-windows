@@ -22,18 +22,6 @@ goto main
 
   goto :EOF
 
-:SetEnvFromRegistry
-
-  rem https://stackoverflow.com/questions/22352793/reading-a-registry-value-to-a-batch-variable-handling-spaces-in-value
-  for /f "usebackq tokens=2,*" %%h in (
-    `"reg query "HKCU\%PICO_REG_KEY%" /v "%1Path" 2>NUL | find /i "%1Path""`
-    ) do (
-    echo PICO_%1_PATH=%%i
-    set "PICO_%1_PATH=%%i"
-  )
-
-  goto :EOF
-
 :main
 
 pushd "%~dp0"
@@ -43,6 +31,8 @@ for /f "skip=1 tokens=*" %%i in (version.ini) do (
   set "%%i"
 )
 
+set "PICO_INSTALL_PATH=%CD%"
+
 popd
 
 if not defined PICO_SDK_VERSION (
@@ -50,20 +40,14 @@ if not defined PICO_SDK_VERSION (
   set /a errors += 1
 )
 
-if "%~1" neq "" (
-  reg add "HKCU\%PICO_REG_KEY%" /v ReposPath /d "%~1" /f
-)
-
 set "PICO_SDK_PATH=%PICO_INSTALL_PATH%\pico-sdk"
-
-call :SetEnvFromRegistry repos
 
 for %%i in (examples extras playground) do (
   rem Environment variables in Windows aren't case-sensitive, so we don't need
   rem to bother with uppercasing the env var name.
-  if exist "%PICO_REPOS_PATH%\pico-%%i" (
-    echo PICO_%%i_PATH=%PICO_REPOS_PATH%\pico-%%i
-    set "PICO_%%i_PATH=%PICO_REPOS_PATH%\pico-%%i"
+  if exist "%PICO_INSTALL_PATH%\pico-%%i" (
+    echo PICO_%%i_PATH=%PICO_INSTALL_PATH%\pico-%%i
+    set "PICO_%%i_PATH=%PICO_INSTALL_PATH%\pico-%%i"
   )
 )
 
