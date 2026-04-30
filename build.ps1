@@ -357,9 +357,6 @@ Section "Uninstall"
     RMDir "`$ReposDir"
   `${EndIf}
 
-  DeleteRegValue `${PICO_REG_ROOT} "Software\Kitware\CMake\Packages\pico-sdk-tools" "v$sdkVersion"
-  DeleteRegKey /ifempty `${PICO_REG_ROOT} "Software\Kitware\CMake\Packages\pico-sdk-tools"
-
   DeleteRegKey `${PICO_REG_ROOT} "`${UNINSTALL_KEY}"
 
   DeleteRegKey `${PICO_REG_ROOT} "`${PICO_REG_KEY}"
@@ -569,7 +566,6 @@ Section "-Pico environment" SecPico
 
   SetOutPath "`$INSTDIR\pico-sdk-tools"
   File /r "build\pico-sdk-tools\$msysEnv\*.*"
-  WriteRegStr `${PICO_REG_ROOT} "Software\Kitware\CMake\Packages\pico-sdk-tools" "v$sdkVersion" "`$INSTDIR\pico-sdk-tools"
 
   SetOutPath "`$INSTDIR"
   File "build\pico-examples.zip"
