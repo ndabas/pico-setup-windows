@@ -83,13 +83,15 @@ mkdirp "bin"
   $versionRegEx = '([0-9]+\.)+[0-9]+'
   if ($_.file -match $versionRegEx -or $_.href -match $versionRegEx) {
     $fileVersion = $Matches[0]
-  } else {
+  }
+  else {
     $fileVersion = (Get-ChildItem $outfile).VersionInfo.ProductVersion
   }
 
   if ($fileVersion) {
     Write-Host $fileVersion
-  } else {
+  }
+  else {
     Write-Host $_.file
   }
 
@@ -148,9 +150,9 @@ if (-not ($sdkVersion -match $versionRegEx)) {
 }
 $sdkVersionClean = $Matches[0]
 $sdkVersionCommit = (git -C .\build\pico-sdk rev-parse --short HEAD)
-$product = "Raspberry Pi Pico SDK v$sdkVersion"
-$productDir = "Raspberry Pi\Pico SDK v$sdkVersion"
-$company = "Raspberry Pi Ltd"
+$product = "Pico SDK v$sdkVersion"
+$productDir = "Pico SDK v$sdkVersion"
+$company = "Nikhil Dabas"
 
 Write-Host "SDK version: $sdkVersion ($sdkVersionCommit)"
 Write-Host "Installer version: $version"
@@ -165,7 +167,8 @@ function sign {
 
   if ($SkipSigning) {
     Write-Warning "Skipping code signing."
-  } else {
+  }
+  else {
     $cert = Get-ChildItem -Path Cert:\CurrentUser\My -CodeSigningCert | Where-Object { $_.Subject -like "CN=Raspberry Pi*" }
     if (-not $cert) {
       Write-Error "No suitable code signing certificates found."
@@ -231,13 +234,19 @@ function writeFile {
     "FileOpen `$9 '$filename' w`r`n"
   }
   process {
-    $_  -split "[\r\n]+" | ForEach-Object {
+    $_ -split "[\r\n]+" | ForEach-Object {
       "FileWrite `$9 ``${_}${endl}```r`n"
     }
   }
   end {
     "FileClose `$9`r`n"
   }
+}
+
+function pascalCase {
+  param ([string] $s)
+
+  -join ($s -split '[-_ ]+' | ForEach-Object { $_.Substring(0, 1).ToUpper() + $_.Substring(1).ToLower() })
 }
 
 @"
@@ -255,7 +264,7 @@ function writeFile {
 !define PICO_WINTERM_DIR "`$LOCALAPPDATA\Microsoft\Windows Terminal\Fragments\$product"
 !define PICO_REG_ROOT SHELL_CONTEXT
 !define UNINSTALL_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\$product"
-!define PICO_AppUserModel_ID "RaspberryPi.PicoSDK.$sdkVersion"
+!define PICO_AppUserModel_ID "$(pascalCase $company).$(pascalCase $basename).$sdkVersion"
 
 Name "`${TITLE}"
 Caption "`${TITLE}"
@@ -285,7 +294,7 @@ InstallDir ""
 
 OutFile "build\build-uninstaller-$suffix.exe"
 
-!define MUI_UNICON "resources\raspberrypi.ico"
+; !define MUI_UNICON "resources\raspberrypi.ico"
 
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_PAGE_FINISH
@@ -317,7 +326,7 @@ Section "Uninstall"
 
   RMDir /r /REBOOTOK "`$INSTDIR\pico-sdk-tools"
   RMDir /r /REBOOTOK "`$INSTDIR\picotool"
-  RMDir /r /REBOOTOK "`$INSTDIR\resources"
+  ; RMDir /r /REBOOTOK "`$INSTDIR\resources"
 
   Delete /REBOOTOK "`$INSTDIR\install.log"
   Delete /REBOOTOK "`$INSTDIR\pico-env.cmd"
@@ -330,9 +339,6 @@ Section "Uninstall"
   Delete /REBOOTOK "`$INSTDIR\uninstall.exe"
 
   RMDir /REBOOTOK "`$INSTDIR"
-  ; Remove the C:\Program Files\Raspberry Pi directory if it is empty
-  `${GetParent} "`$INSTDIR" `$R0
-  RMDir `$R0
 
   DeleteRegKey `${PICO_REG_ROOT} "`${UNINSTALL_KEY}"
 
@@ -348,7 +354,7 @@ SectionEnd
 
 OutFile "$binfile"
 
-!define MUI_ICON "resources\raspberrypi.ico"
+; !define MUI_ICON "resources\raspberrypi.ico"
 !define MUI_ABORTWARNING
 !define MUI_WELCOMEPAGE_TITLE "`${TITLE}"
 
@@ -418,8 +424,8 @@ Section
 
   CreateDirectory "`${PICO_SHORTCUTS_DIR}"
 
-  SetOutPath `$INSTDIR\resources
-  File /r resources\*.*
+  ; SetOutPath `$INSTDIR\resources
+  ; File /r resources\*.*
 
   SetOutPath `$INSTDIR
 
@@ -516,7 +522,7 @@ Section "-Pico environment" SecPico
   WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "DisplayName" "$($BuildType -eq 'system' ? $product : "$product (User)")"
   WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "UninstallString" "`$INSTDIR\uninstall.exe"
   WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "InstallPath" "`$INSTDIR"
-  WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "DisplayIcon" "`$INSTDIR\resources\raspberrypi.ico"
+  ; WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "DisplayIcon" "`$INSTDIR\resources\raspberrypi.ico"
   WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "DisplayVersion" "$version"
   WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "Publisher" "$company"
 
@@ -531,24 +537,16 @@ Section "-Pico environment" SecPico
     {
       "name": "Pico - Developer Command Prompt (SDK v$sdkVersion)",
       "commandline": "cmd.exe /k \"`$7\\pico-env.cmd\"",
-      "icon": "`$7\\resources\\raspberrypi.ico",
       "startingDirectory": "`$7"
     },
     {
       "name": "Pico - Developer PowerShell (SDK v$sdkVersion)",
       "commandline": "powershell.exe -NoExit -ExecutionPolicy Bypass -File \"`$7\\pico-env.ps1\"",
-      "icon": "`$7\\resources\\raspberrypi.ico",
       "startingDirectory": "`$7"
     }
   ]
 }
 "@ | writeFile "pico-terminals.json")
-
-  CreateDirectory "`${PICO_SHORTCUTS_DIR}\Pico - Documentation"
-  WriteINIStr "`${PICO_SHORTCUTS_DIR}\Pico - Documentation\Pico Datasheet.url" "InternetShortcut" "URL" "https://datasheets.raspberrypi.com/pico/pico-datasheet.pdf"
-  WriteINIStr "`${PICO_SHORTCUTS_DIR}\Pico - Documentation\Pico W Datasheet.url" "InternetShortcut" "URL" "https://datasheets.raspberrypi.com/picow/pico-w-datasheet.pdf"
-  WriteINIStr "`${PICO_SHORTCUTS_DIR}\Pico - Documentation\Pico C C++ SDK.url" "InternetShortcut" "URL" "https://datasheets.raspberrypi.com/pico/raspberry-pi-pico-c-sdk.pdf"
-  WriteINIStr "`${PICO_SHORTCUTS_DIR}\Pico - Documentation\Pico Python SDK.url" "InternetShortcut" "URL" "https://datasheets.raspberrypi.com/pico/raspberry-pi-pico-python-sdk.pdf"
 
   ; Reset working dir for pico-setup launched from the finish page
   SetOutPath "`$INSTDIR"
@@ -594,9 +592,9 @@ if (-not ($version -match 'Open On-Chip Debugger (?<version>[a-zA-Z0-9\.\-+]+) \
 }
 
 $filename = 'openocd-{0}-{1}-{2}.zip' -f
-  ($Matches.version -replace '-dirty$', ''),
-  ($Matches.timestamp -replace '[:-]', ''),
-  $suffix
+($Matches.version -replace '-dirty$', ''),
+($Matches.timestamp -replace '[:-]', ''),
+$suffix
 
 Write-Host "Saving OpenOCD package to $filename"
 exec { tar -a -cf "bin\$filename" -C "build\openocd-install\$msysEnv\bin" '*' -C "..\share\openocd" "scripts" }
