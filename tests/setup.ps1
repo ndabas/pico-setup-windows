@@ -2,14 +2,12 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
-$installPath = "C:\Pico SDK"
-
 $installer = Get-ChildItem bin\*.exe | Sort-Object LastWriteTime -Descending | Select-Object -First 1 -ExpandProperty FullName
 Write-Host "Starting $installer"
-$elapsed = Measure-Command { Start-Process -FilePath $installer -ArgumentList "/S", "/D=$installPath" -PassThru | Wait-Process }
+$elapsed = Measure-Command { Start-Process -FilePath $installer -ArgumentList "/S" -PassThru | Wait-Process }
 Write-Host ("Finished in {0:hh':'mm':'ss}" -f $elapsed)
 
-$uninstRegKey = "Microsoft\Windows\CurrentVersion\Uninstall\Raspberry Pi Pico SDK*"
+$uninstRegKey = "Microsoft\Windows\CurrentVersion\Uninstall\Pico SDK*"
 $installPath = (Get-ItemProperty -Path "HKCU:\Software\$uninstRegKey", "HKLM:\Software\$uninstRegKey", "HKLM:\Software\WOW6432Node\$uninstRegKey" -Name InstallPath -ErrorAction SilentlyContinue).InstallPath
 
 # Write-Host "Copying logs"

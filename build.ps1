@@ -384,15 +384,7 @@ Function .onInit
 
   ; Nothing in the registry either; use the defaults
   `${If} `$INSTDIR == ""
-    $(if ($BuildType -eq 'system') {
-    "StrCpy `$INSTDIR `"`$PROGRAMFILES$bitness`""
-    } else {
-    'GetKnownFolderPath $INSTDIR ${FOLDERID_UserProgramFiles}
-    ${If} $INSTDIR == ""
-      StrCpy $INSTDIR "$LOCALAPPDATA\Programs"
-    ${EndIf}'
-    })
-
+    `${GetRoot} `$WINDIR `$INSTDIR
     StrCpy `$INSTDIR "`$INSTDIR\`${PICO_INSTALL_DIR}"
   `${EndIf}
 
