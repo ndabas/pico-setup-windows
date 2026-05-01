@@ -51,7 +51,7 @@ jobs:
 
       - name: Check OpenOCD repository
         shell: pwsh
-        run: .\packages\common\build-id.ps1 openocd .\config\${{ matrix.config }}.json >> $env:GITHUB_ENV
+        run: .\packages\common\build-id.ps1 openocd .\config\x64-compile.json >> $env:GITHUB_ENV
 
       - name: Cache OpenOCD build
         uses: actions/cache@v5
@@ -61,7 +61,7 @@ jobs:
 
       - name: Check riscv-gnu-toolchain repository
         shell: pwsh
-        run: .\packages\common\build-id.ps1 riscv-gnu-toolchain .\config\${{ matrix.config }}.json >> $env:GITHUB_ENV
+        run: .\packages\common\build-id.ps1 riscv-gnu-toolchain .\config\x64-compile.json >> $env:GITHUB_ENV
 
       - name: Cache riscv-gnu-toolchain build
         uses: actions/cache@v5
