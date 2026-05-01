@@ -34,16 +34,9 @@ jobs:
           name: Pester-Test-Results
           path: testResults.xml
 
-  Build:
+  Build-Prerequisites:
     runs-on: windows-latest
     needs: Test-Scripts
-    strategy:
-      fail-fast: false
-      matrix:
-        config: [x64, x64-standalone]
-        build-type: [system]
-        include:
-          - { config: x64-standalone, build-type: user }
     steps:
 
       - name: Checkout
@@ -76,6 +69,52 @@ jobs:
           path: build/riscv-gnu-toolchain-install
           key: ${{ env.RISCV-GNU-TOOLCHAIN_BUILD_ID }}
 
+      - name: Compile
+        shell: pwsh
+        run: |
+          Set-StrictMode -Version Latest
+          $ErrorActionPreference = 'Stop'
+          $ProgressPreference = 'SilentlyContinue'
+
+          subst P: .
+          P:
+
+          .\build.ps1 -CompileConfig .\config\x64-compile.json -MSYS2Path (msys2 -c 'cygpath -m /').TrimEnd('\/')
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: Build-x64
+          path: |
+            build/pico-sdk-tools
+            build/openocd-install
+            build/riscv-gnu-toolchain-install
+
+  Build-Installer:
+    runs-on: windows-latest
+    needs: Build-Prerequisites
+    strategy:
+      fail-fast: false
+      matrix:
+        config: [x64, x64-standalone]
+        build-type: [system]
+        include:
+          - { config: x64-standalone, build-type: user }
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Turn off git autocrlf
+        shell: pwsh
+        run: git config --global core.autocrlf false
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: Build-x64
+          path: build
+
       - name: Build ${{ matrix.config }} (${{ matrix.build-type }})
         shell: pwsh
         run: |
@@ -86,7 +125,7 @@ jobs:
           subst P: .
           P:
 
-          .\build.ps1 .\config\${{ matrix.config }}.json -MSYS2Path (msys2 -c 'cygpath -m /').TrimEnd('\/') -SkipSigning -Compression zlib -BuildType ${{ matrix.build-type }}
+          .\build.ps1 -InstallerConfig .\config\${{ matrix.config }}.json -SkipSigning -Compression zlib -BuildType ${{ matrix.build-type }}
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v7
@@ -96,7 +135,7 @@ jobs:
 
   Test-Installer:
     runs-on: windows-${{ matrix.winver }}
-    needs: Build
+    needs: Build-Installer
     strategy:
       fail-fast: false
       matrix:
