@@ -351,7 +351,7 @@ Section "Uninstall"
   Delete /REBOOTOK "`$INSTDIR\pico-env.ps1"
   Delete /REBOOTOK "`$INSTDIR\pico-setup.cmd"
   Delete /REBOOTOK "`$INSTDIR\pico-setup.lnk"
-  Delete /REBOOTOK "`$INSTDIR\ReadMe.txt"
+  Delete /REBOOTOK "`$INSTDIR\README.txt"
   Delete /REBOOTOK "`$INSTDIR\version.ini"
 
   Delete /REBOOTOK "`$INSTDIR\uninstall.exe"
@@ -382,7 +382,7 @@ $($componentSelection ? '!insertmacro MUI_PAGE_COMPONENTS' : '')
 !define MUI_PAGE_CUSTOMFUNCTION_LEAVE DumpLog
 !insertmacro MUI_PAGE_INSTFILES
 
-!define MUI_FINISHPAGE_SHOWREADME "`$INSTDIR\ReadMe.txt"
+!define MUI_FINISHPAGE_SHOWREADME "`$INSTDIR\README.txt"
 !define MUI_FINISHPAGE_SHOWREADME_TEXT "Show ReadMe"
 !insertmacro MUI_PAGE_FINISH
 
@@ -527,7 +527,7 @@ Section "-Pico environment" SecPico
   File "packages\pico-setup-windows\pico-env.ps1"
   File "packages\pico-setup-windows\pico-env.cmd"
   File "packages\pico-setup-windows\pico-setup.cmd"
-  File "build\ReadMe.txt"
+  File "docs\README.txt"
 
   File /oname=uninstall.exe "build\uninstall-$suffix.exe"
   WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "DisplayName" "$($BuildType -eq 'system' ? $product : "$product (User)")"
