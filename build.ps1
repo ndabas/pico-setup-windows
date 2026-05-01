@@ -1,12 +1,12 @@
 [CmdletBinding()]
 param (
-  [Parameter(Mandatory = $true,
-    Position = 0,
-    HelpMessage = "Path to a JSON installer configuration file.")]
-  [Alias("PSPath")]
-  [ValidateNotNullOrEmpty()]
+  [Parameter(HelpMessage = "Path to a compile configuration file.")]
   [string]
-  $ConfigFile,
+  $CompileConfig,
+
+  [Parameter(HelpMessage = "Path to an installer configuration file.")]
+  [string]
+  $InstallerConfig,
 
   [Parameter(HelpMessage = "Path to MSYS2 installation. MSYS2 will be downloaded and installed to this path if it doesn't exist.")]
   [ValidatePattern('[\\\/]msys64$')]
@@ -36,22 +36,38 @@ $ProgressPreference = 'SilentlyContinue'
 
 . "$PSScriptRoot\common.ps1"
 
-Write-Host "Building from $ConfigFile"
-
 $basename = "pico-setup-windows"
 $version = (Get-Content "$PSScriptRoot\version.txt").Trim()
 $build = (Get-Date -Format FileDateTimeUniversal)
-$suffix = [io.path]::GetFileNameWithoutExtension($ConfigFile) + ($BuildType -eq 'user' ? '-user' : '' )
-$binfile = "bin\$basename-$suffix.exe"
 
 $tools = (Get-Content '.\config\tools.json' | ConvertFrom-Json).tools
 $repositories = (Get-Content '.\config\repositories.json' | ConvertFrom-Json).repositories
-$config = Get-Content $ConfigFile | ConvertFrom-Json
-$bitness = $config.bitness
-$env:MSYSTEM = $config.msysEnv
-$msysEnv = $config.msysEnv.ToLowerInvariant()
-$downloads = $config.downloads
-$componentSelection = ($config | Get-Member componentSelection) ? $config.componentSelection : $false
+
+$compileOpts = $null
+$installerOpts = $null
+$bitness = $null
+$msysEnv = $null
+$downloads = @()
+$componentSelection = $false
+
+if ($CompileConfig) {
+  Write-Host "Loading compile configuration from $CompileConfig"
+  $compileOpts = Get-Content $CompileConfig | ConvertFrom-Json
+  $bitness = $compileOpts.bitness
+  $msysEnv = $compileOpts.msysEnv
+}
+
+if ($InstallerConfig) {
+  Write-Host "Loading installer configuration from $InstallerConfig"
+  $installerOpts = Get-Content $InstallerConfig | ConvertFrom-Json
+  $bitness = $installerOpts.bitness
+  $msysEnv = $installerOpts.msysEnv
+  $downloads = $installerOpts.downloads
+  $componentSelection = ($installerOpts | Get-Member componentSelection) ? $installerOpts.componentSelection : $false
+}
+
+$env:MSYSTEM = $msysEnv
+$msysEnv = $msysEnv.ToLowerInvariant()
 
 mkdirp "build"
 mkdirp "bin"
@@ -149,6 +165,7 @@ if (-not ($sdkVersion -match $versionRegEx)) {
   Write-Error 'Could not determine Pico SDK version.'
 }
 $sdkVersionClean = $Matches[0]
+$env:PICO_SDK_VERSION = $sdkVersionClean
 $sdkVersionCommit = (git -C .\build\pico-sdk rev-parse --short HEAD)
 $product = "Pico SDK v$sdkVersion"
 $productDir = "Pico SDK v$sdkVersion"
@@ -156,11 +173,6 @@ $company = "Nikhil Dabas"
 
 Write-Host "SDK version: $sdkVersion ($sdkVersionCommit)"
 Write-Host "Installer version: $version"
-
-if (-not (Test-Path $MSYS2Path)) {
-  Write-Host 'Extracting MSYS2'
-  exec { & .\downloads\msys2.exe -y "-o$(Resolve-Path (Split-Path $MSYS2Path -Parent))" }
-}
 
 function sign {
   param ([string[]] $filesToSign)
@@ -194,7 +206,12 @@ $env:CHERE_INVOKING = 'yes'
 # Use real symlinks
 $env:MSYS = "winsymlinks:nativestrict"
 
-if (-not $SkipDownload) {
+if ($null -ne $compileOpts) {
+  if (-not (Test-Path $MSYS2Path)) {
+    Write-Host 'Extracting MSYS2'
+    exec { & .\downloads\msys2.exe -y "-o$(Resolve-Path (Split-Path $MSYS2Path -Parent))" }
+  }
+
   # First run setup
   msys 'uname -a'
   # Core update
@@ -206,22 +223,17 @@ if (-not $SkipDownload) {
 
   # pacboy adds MINGW_PACKAGE_PREFIX to package names suffixed with :p
   msys "pacboy -S --noconfirm --needed cmake:p ninja:p toolchain:p libusb:p hidapi:p libslirp:p"
-}
 
-if (-not (Test-Path ".\build\pico-sdk-tools\$msysEnv")) {
-  msys "cd build && ../packages/picotool/build-picotool.sh $sdkVersionClean"
+  $compileOpts.builds | ForEach-Object {
+    if (-not (Test-Path ".\build\$($_.dirName)\$msysEnv")) {
+      Write-Host "Building $($_.name)"
+      msys "cd build && ../$($_.buildScript)"
+    }
+    else {
+      Write-Host "Build output for $($_.name) already exists. Skipping build."
+    }
+  }
 }
-
-if (-not (Test-Path ".\build\openocd-install\$msysEnv")) {
-  msys "cd build && ../packages/openocd/build-openocd.sh"
-}
-
-if (-not (Test-Path ".\build\riscv-gnu-toolchain-install\$msysEnv")) {
-  msys "cd build && ../packages/riscv/build-riscv-gcc.sh"
-}
-
-$template = Get-Content ".\packages\pico-sdk-tools\pico-sdk-tools-config-version.cmake" -Raw
-$ExecutionContext.InvokeCommand.ExpandString($template) | Set-Content ".\build\pico-sdk-tools\$msysEnv\pico-sdk-tools-config-version.cmake"
 
 $endl = '$\r$\n'
 
@@ -246,6 +258,14 @@ function pascalCase {
 
   -join ($s -split '[-_ ]+' | ForEach-Object { $_.Substring(0, 1).ToUpper() + $_.Substring(1).ToLower() })
 }
+
+if ($null -eq $installerOpts) {
+  Write-Host "No installer configuration file provided. Skipping installer build."
+  exit 0
+}
+
+$suffix = [io.path]::GetFileNameWithoutExtension($InstallerConfig) + ($BuildType -eq 'user' ? '-user' : '' )
+$binfile = "bin\$basename-$suffix.exe"
 
 @"
 !include "FileFunc.nsh"
@@ -393,8 +413,9 @@ Section
   SetOutPath `$INSTDIR
 
   $(if ($bitness -eq '64') {
-  '${IfNot} ${IsNativeAMD64}
-    Abort "This installer only supports x86-64 versions of Windows."
+  '${IfNot} ${RunningX64}
+   ${AndIfNot} ${IsNativeARM64}
+    Abort "This installer only supports 64-bit versions of Windows."
   ${EndIf}'
   })
 

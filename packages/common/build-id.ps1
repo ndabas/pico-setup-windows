@@ -8,7 +8,7 @@ param (
 
   [Parameter(Mandatory = $true,
     Position = 1,
-    HelpMessage = "Path to a JSON installer configuration file.")]
+    HelpMessage = "Path to a compile configuration file.")]
   [Alias("PSPath")]
   [ValidateNotNullOrEmpty()]
   [string]
