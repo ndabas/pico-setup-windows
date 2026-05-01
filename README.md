@@ -6,7 +6,7 @@ This project aims to create an easy-to-use installer to get started on Windows (
 
 The installer automates the prerequisite installation on Windows, as explained in the official [Getting started with Raspberry Pi Pico](https://datasheets.raspberrypi.com/pico/getting-started-with-pico.pdf) guide.
 
-The rest of this README document is about developing the installer itself. If you just want to install and use the compilers and toolchain, download the release linked to above. Further information for users is in the [tutorial](docs/tutorial.md).
+The rest of this README document is about developing the installer itself. If you just want to install and use the compilers and toolchain, download the release linked to above. Further information for users is in the [README included with the installer](docs/README.txt).
 
 ## Included software
 

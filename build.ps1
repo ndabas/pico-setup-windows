@@ -223,8 +223,6 @@ if (-not (Test-Path ".\build\riscv-gnu-toolchain-install\$msysEnv")) {
 $template = Get-Content ".\packages\pico-sdk-tools\pico-sdk-tools-config-version.cmake" -Raw
 $ExecutionContext.InvokeCommand.ExpandString($template) | Set-Content ".\build\pico-sdk-tools\$msysEnv\pico-sdk-tools-config-version.cmake"
 
-exec { .\build\pandoc\pandoc.exe --from gfm --to gfm --output .\build\ReadMe.txt .\docs\tutorial.md }
-
 $endl = '$\r$\n'
 
 function writeFile {
