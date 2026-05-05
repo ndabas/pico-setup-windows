@@ -235,24 +235,6 @@ if ($null -ne $compileOpts) {
   }
 }
 
-$endl = '$\r$\n'
-
-function writeFile {
-  param ([string] $filename)
-
-  begin {
-    "FileOpen `$9 '$filename' w`r`n"
-  }
-  process {
-    $_ -split "[\r\n]+" | ForEach-Object {
-      "FileWrite `$9 ``${_}${endl}```r`n"
-    }
-  }
-  end {
-    "FileClose `$9`r`n"
-  }
-}
-
 function pascalCase {
   param ([string] $s)
 
@@ -274,12 +256,14 @@ $binfile = "bin\$basename-$suffix.exe"
 !include "WinCore.nsh"
 !include "WordFunc.nsh"
 !include "x64.nsh"
+
 !include "packages\pico-setup-windows\aumi.nsh"
+!include "packages\pico-setup-windows\WindowsTerminal.nsh"
 
 !define TITLE "$product"
 !define PICO_INSTALL_DIR "$productDir"
 !define PICO_SHORTCUTS_DIR "`$SMPROGRAMS\$product"
-!define PICO_WINTERM_DIR "`$LOCALAPPDATA\Microsoft\Windows Terminal\Fragments\$product"
+!define PICO_WINTERM_DIR "`${WINTERMDIR}\$product"
 !define PICO_REG_ROOT SHELL_CONTEXT
 !define UNINSTALL_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\$product"
 !define PICO_AppUserModel_ID "$(pascalCase $company).$(pascalCase $basename).$sdkVersion"
@@ -538,28 +522,15 @@ Section "-Pico environment" SecPico
   WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "Publisher" "$company"
 
   `${CreateShortcutEx} "`${PICO_SHORTCUTS_DIR}\Pico - Developer Command Prompt.lnk" "`${PICO_AppUserModel_ID}!cmd" ``"cmd.exe" '/k "`$INSTDIR\pico-env.cmd"'``
-  `${CreateShortcutEx} "`${PICO_SHORTCUTS_DIR}\Pico - Developer PowerShell.lnk" "`${PICO_AppUserModel_ID}!powershell" ``"powershell.exe" '-NoExit -ExecutionPolicy Bypass -File "`$INSTDIR\pico-env.ps1"'``
+  `${CreateShortcutEx} "`${PICO_SHORTCUTS_DIR}\Pico - Developer PowerShell.lnk" "`${PICO_AppUserModel_ID}!powershell" ``"powershell.exe" '-NoExit -ExecutionPolicy RemoteSigned -File "`$INSTDIR\pico-env.ps1"'``
 
   SetOutPath "`${PICO_WINTERM_DIR}"
-  `${WordReplace} "`$INSTDIR" "\" "\\" "+" `$7
-  $( @"
-{
-  "profiles": [
-    {
-      "name": "Pico - Developer Command Prompt (SDK v$sdkVersion)",
-      "commandline": "cmd.exe /k \"`$7\\pico-env.cmd\"",
-      "startingDirectory": "`$7"
-    },
-    {
-      "name": "Pico - Developer PowerShell (SDK v$sdkVersion)",
-      "commandline": "powershell.exe -NoExit -ExecutionPolicy Bypass -File \"`$7\\pico-env.ps1\"",
-      "startingDirectory": "`$7"
-    }
-  ]
-}
-"@ | writeFile "pico-terminals.json")
+  `${WINTERM_FRAGMENT_BEGIN} "pico-terminals.json"
+  `${WINTERM_PROFILE} "Pico - Developer Command Prompt (SDK v$sdkVersion)" ``cmd.exe /k "`$INSTDIR\pico-env.cmd"`` "`$INSTDIR" ""
+  `${WINTERM_PROFILE} "Pico - Developer PowerShell (SDK v$sdkVersion)" ``powershell.exe -NoExit -ExecutionPolicy RemoteSigned -File "`$INSTDIR\pico-env.ps1"`` "`$INSTDIR" ""
+  `${WINTERM_FRAGMENT_END}
 
-  ; Reset working dir for pico-setup launched from the finish page
+  ; Reset working dir
   SetOutPath "`$INSTDIR"
 
 SectionEnd
