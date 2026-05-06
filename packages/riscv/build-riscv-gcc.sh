@@ -16,6 +16,7 @@ mkdir -p "$INSTALLDIR"
 # - binutils has static libstdc++ and libgcc but needs a few other DLLs
 # - GDB is not static at all
 export LDFLAGS="-static -static-libgcc -static-libstdc++"
+export CXXFLAGS="-fno-char8_t"
 
 cd riscv-gnu-toolchain
 ./configure \
