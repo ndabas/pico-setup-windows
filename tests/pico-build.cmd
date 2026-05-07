@@ -4,22 +4,28 @@ goto main
 
 :test-build
 
+  echo ::group::Building in %BUILD_DIR%
   mkdir "%BUILD_DIR%"
   pushd "%BUILD_DIR%"
   cmake "%SRC_DIR%" -G Ninja -DCMAKE_BUILD_TYPE=Debug --fresh %* || exit /b 1
   ninja --quiet || exit /b 1
   popd
+  echo ::endgroup::
   goto :EOF
 
 :main
 
+echo ::group::Setting up Pico environment
 call "%PICO_INSTALL_PATH%\pico-env.cmd" || exit /b 1
+echo ::endgroup::
 
 set "PICO_REPOS_PATH=%PICO_INSTALL_PATH%"
 pushd "%PICO_REPOS_PATH%"
+echo ::group::Cloning FreeRTOS-Kernel
 if not exist "FreeRTOS-Kernel\.git" (
   git clone --depth=1 -b main "https://github.com/FreeRTOS/FreeRTOS-Kernel.git" || exit /b 1
 )
+echo ::endgroup::
 popd
 
 set "SRC_DIR=%PICO_REPOS_PATH%\pico-examples"

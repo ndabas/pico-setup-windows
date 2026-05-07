@@ -212,6 +212,7 @@ if ($null -ne $compileOpts) {
     exec { & .\downloads\msys2.exe -y "-o$(Resolve-Path (Split-Path $MSYS2Path -Parent))" }
   }
 
+  Write-Output "::group::Setting up MSYS2 environment"
   # First run setup
   msys 'uname -a'
   # Core update
@@ -223,14 +224,16 @@ if ($null -ne $compileOpts) {
 
   # pacboy adds MINGW_PACKAGE_PREFIX to package names suffixed with :p
   msys "pacboy -S --noconfirm --needed cmake:p ninja:p toolchain:p libusb:p hidapi:p libslirp:p"
+  Write-Output "::endgroup::"
 
   $compileOpts.builds | ForEach-Object {
     if (-not (Test-Path ".\build\$($_.dirName)\$msysEnv")) {
-      Write-Host "Building $($_.name)"
+      Write-Output "::group::Building $($_.name)"
       msys "cd build && ../$($_.buildScript)"
+      Write-Output "::endgroup::"
     }
     else {
-      Write-Host "Build output for $($_.name) already exists. Skipping build."
+      Write-Output "Build output for $($_.name) already exists. Skipping build."
     }
   }
 }
