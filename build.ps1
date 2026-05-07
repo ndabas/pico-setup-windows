@@ -129,7 +129,8 @@ if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
 }
 
 $repositories | ForEach-Object {
-  $repodir = Join-Path 'build' ([IO.Path]::GetFileNameWithoutExtension($_.href))
+  $reponame = [IO.Path]::GetFileNameWithoutExtension($_.href)
+  $repodir = Join-Path 'build' $reponame
 
   if ($SkipDownload) {
     Write-Host "Checking ${repodir}: " -NoNewline
@@ -146,7 +147,9 @@ $repositories | ForEach-Object {
     exec { git clone -b "$($_.tree)" --depth=1 -c advice.detachedHead=false "$($_.href)" "$repodir" }
 
     if ($_ | Get-Member submodules) {
+      Write-Output "::group::Cloning submodules for $reponame"
       exec { git -C "$repodir" submodule update --init --depth=1 }
+      Write-Output "::endgroup::"
     }
   }
 }
