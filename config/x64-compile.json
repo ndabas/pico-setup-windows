@@ -5,17 +5,20 @@
     {
       "name": "Pico SDK Tools",
       "buildScript": "packages/picotool/build-picotool.sh",
-      "dirName": "pico-sdk-tools"
+      "dirName": "pico-sdk-tools",
+      "installDirName": "pico-sdk-tools"
     },
     {
       "name": "OpenOCD",
       "buildScript": "packages/openocd/build-openocd.sh",
-      "dirName": "openocd-install"
+      "dirName": "openocd-install",
+      "installDirName": "openocd"
     },
     {
       "name": "RISC-V GNU Toolchain",
       "buildScript": "packages/riscv/build-riscv-gcc.sh",
-      "dirName": "riscv-gnu-toolchain-install"
+      "dirName": "riscv-gnu-toolchain-install",
+      "installDirName": "riscv-gnu-toolchain"
     }
   ]
 }
