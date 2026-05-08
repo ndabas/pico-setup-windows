@@ -317,12 +317,13 @@ $builds | ForEach-Object {
   "Section ``$($_.name)`` Sec$($_.shortName)"
 
   if ($_ | Get-Member dirName) {
-    "  SetOutPath '`$INSTDIR\$($_.dirName)'"
+    "  SetOutPath '`$INSTDIR\$($_.installDirName)'"
     "  File /r build\$($_.dirName)\$msysEnv\*.*"
   }
 
   'SectionEnd'
   "LangString DESC_Sec$($_.shortName) `${LANG_ENGLISH} ``$($_.name)``"
+  ''
 } | Out-File -FilePath "build\installer-sections.nsh" -Append
 
 if ($componentSelection) {
@@ -342,6 +343,7 @@ $downloads + $builds | ForEach-Object {
     "Section un.$($_.shortName)"
     "  RMDir /r /REBOOTOK ```$INSTDIR\$($_.dirName)``"
     'SectionEnd'
+    ''
   }
 } | Out-File -FilePath "build\uninstaller-sections.nsh"
 
