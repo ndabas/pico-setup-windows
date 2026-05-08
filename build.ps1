@@ -48,6 +48,7 @@ $installerOpts = $null
 $bitness = $null
 $msysEnv = $null
 $downloads = @()
+$builds = @()
 $componentSelection = $false
 
 if ($CompileConfig) {
@@ -63,7 +64,12 @@ if ($InstallerConfig) {
   $bitness = $installerOpts.bitness
   $msysEnv = $installerOpts.msysEnv
   $downloads = $installerOpts.downloads
+  $builds = (Get-Content ".\config\$($installerOpts.buildsFrom)" | ConvertFrom-Json).builds
   $componentSelection = ($installerOpts | Get-Member componentSelection) ? $installerOpts.componentSelection : $false
+}
+
+($downloads + $tools + $builds) | ForEach-Object {
+  $_ | Add-Member -NotePropertyName 'shortName' -NotePropertyValue ($_.name -replace '[^a-zA-Z0-9]', '')
 }
 
 $env:MSYSTEM = $msysEnv
@@ -73,7 +79,6 @@ mkdirp "build"
 mkdirp "bin"
 
 ($downloads + $tools) | ForEach-Object {
-  $_ | Add-Member -NotePropertyName 'shortName' -NotePropertyValue ($_.name -replace '[^a-zA-Z0-9]', '')
   $outfile = "downloads/$($_.file)"
 
   if ($SkipDownload) {
@@ -256,7 +261,6 @@ $suffix = [io.path]::GetFileNameWithoutExtension($InstallerConfig) + ($BuildType
 $binfile = "bin\$basename-$suffix.exe"
 
 $downloads | ForEach-Object {
-
   "Section ``$($_.name)`` Sec$($_.shortName)"
   'ClearErrors'
 
@@ -282,7 +286,7 @@ $downloads | ForEach-Object {
     }
 
     "DetailPrint ``$($_.name) returned `$1``"
-    "Delete /REBOOTOK ``$0``"
+    "Delete /REBOOTOK ```$0``"
 
     '${If} ${Errors}'
     "  Abort ``Installation of $($_.name) failed``"
@@ -308,11 +312,23 @@ $downloads | ForEach-Object {
   "LangString DESC_Sec$($_.shortName) `${LANG_ENGLISH} ``$($_.name)``"
 } | Out-File -FilePath "build\installer-sections.nsh"
 
+$builds | ForEach-Object {
+  "Section ``$($_.name)`` Sec$($_.shortName)"
+
+  if ($_ | Get-Member dirName) {
+    "SetOutPath '`$INSTDIR\$($_.dirName)'`r`n"
+    "File /r build\$($_.dirName)\$msysEnv\*.*"
+  }
+
+  'SectionEnd'
+  "LangString DESC_Sec$($_.shortName) `${LANG_ENGLISH} ``$($_.name)``"
+} | Out-File -FilePath "build\installer-sections.nsh" -Append
+
 if ($componentSelection) {
   {
     '!insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN'
 
-    $($downloads | ForEach-Object {
+    $($downloads + $builds | ForEach-Object {
       "  !insertmacro MUI_DESCRIPTION_TEXT `${Sec$($_.shortName)} `$(DESC_Sec$($_.shortName))"
     })
 
@@ -520,29 +536,10 @@ SectionEnd
 
 !include "build\installer-sections.nsh"
 
-Section "-OpenOCD" SecOpenOCD
-
-  SetOutPath "`$INSTDIR\openocd"
-  File "build\openocd-install\$msysEnv\bin\*.*"
-  SetOutPath "`$INSTDIR\openocd\scripts"
-  File /r "build\openocd-install\$msysEnv\share\openocd\scripts\*.*"
-
-SectionEnd
-
-Section "-riscv-gnu-toolchain" SecRiscV
-
-  SetOutPath "`$INSTDIR\riscv-gnu-toolchain"
-  File /r "build\riscv-gnu-toolchain-install\$msysEnv\*.*"
-
-SectionEnd
-
 Section "-Pico environment" SecPico
 
   SetOutPath "`$INSTDIR\pico-sdk"
   File /r "build\pico-sdk\*.*"
-
-  SetOutPath "`$INSTDIR\pico-sdk-tools"
-  File /r "build\pico-sdk-tools\$msysEnv\*.*"
 
   SetOutPath "`$INSTDIR"
   WriteINIStr "`$INSTDIR\version.ini" "pico-setup-windows" "PICO_SDK_VERSION" "`${PICO_SDK_VERSION}"
