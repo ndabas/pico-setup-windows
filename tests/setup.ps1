@@ -2,6 +2,8 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
+. "$PSScriptRoot\..\common.ps1"
+
 $installer = Get-ChildItem bin\*.exe | Sort-Object LastWriteTime -Descending | Select-Object -First 1 -ExpandProperty FullName
 Write-Host "Starting $installer"
 $elapsed = Measure-Command { Start-Process -FilePath $installer -ArgumentList "/S" -PassThru | Wait-Process }
@@ -29,5 +31,8 @@ function Update-EnvironmentVariables {
 
 Update-EnvironmentVariables
 
-cmd /c call "$installPath\pico-setup.cmd" "$installPath" "&&" call "$PSScriptRoot\pico-build.cmd"
-exit $LASTEXITCODE
+Write-Output "::group::Running pico-setup.cmd"
+exec { cmd /c call "$installPath\pico-setup.cmd" "$installPath" }
+Write-Output "::endgroup::"
+
+exec { cmd /c call "$PSScriptRoot\pico-build.cmd" }
