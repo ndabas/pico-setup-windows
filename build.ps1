@@ -388,7 +388,7 @@ VIProductVersion $sdkVersionClean.0
 
 !include "build\installer-header.nsh"
 
-!define PICO_INSTALL_DIR PRODUCT_DIR
+!define PICO_INSTALL_DIR "`${PRODUCT_DIR}"
 !define PICO_SHORTCUTS_DIR "`$SMPROGRAMS\`${PRODUCT}"
 !define PICO_WINTERM_DIR "`${WINTERMDIR}\`${PRODUCT}"
 !define PICO_REG_ROOT SHELL_CONTEXT
