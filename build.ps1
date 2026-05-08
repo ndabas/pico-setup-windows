@@ -255,30 +255,87 @@ if ($null -eq $installerOpts) {
 $suffix = [io.path]::GetFileNameWithoutExtension($InstallerConfig) + ($BuildType -eq 'user' ? '-user' : '' )
 $binfile = "bin\$basename-$suffix.exe"
 
+$downloads | ForEach-Object {
+
+  "Section ``$($_.name)`` Sec$($_.shortName)"
+  'ClearErrors'
+
+  if ($_ | Get-Member additionalFiles) {
+    $_.additionalFiles | ForEach-Object {
+      "File /oname=`$PLUGINSDIR\$(Split-Path -Leaf $_) $_`r`n"
+    }
+  }
+
+  if (($_ | Get-Member exec) -or ($_ | Get-Member execToLog)) {
+
+    'SetOutPath "$TEMP"'
+    "File ``downloads\$($_.file)``"
+    "StrCpy `$0 ```$TEMP\$($_.file)``"
+
+    if ($_ | Get-Member exec) {
+      "ExecWait ``$($_.exec)`` `$1"
+    }
+
+    if ($_ | Get-Member execToLog) {
+      "nsExec::ExecToLog ``$($_.execToLog)``"
+      "Pop `$1"
+    }
+
+    "DetailPrint ``$($_.name) returned `$1``"
+    "Delete /REBOOTOK ``$0``"
+
+    '${If} ${Errors}'
+    "  Abort ``Installation of $($_.name) failed``"
+
+    if ($_ | Get-Member rebootExitCodes) {
+      $_.rebootExitCodes | ForEach-Object {
+        "`${ElseIf} `$1 = $_"
+        '    SetRebootFlag true'
+      }
+    }
+
+    '${ElseIf} `$1 <> 0'
+    "  Abort ``Installation of $($_.name) failed``"
+    '${EndIf}'
+  }
+
+  if ($_ | Get-Member dirName) {
+    "SetOutPath '`$INSTDIR\$($_.dirName)'`r`n"
+    "File /r build\$($_.dirName)\*.*"
+  }
+
+  'SectionEnd'
+  "LangString DESC_Sec$($_.shortName) `${LANG_ENGLISH} ``$($_.name)``"
+} | Out-File -FilePath "build\installer-sections.nsh"
+
+if ($componentSelection) {
+  {
+    '!insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN'
+
+    $($downloads | ForEach-Object {
+      "  !insertmacro MUI_DESCRIPTION_TEXT `${Sec$($_.shortName)} `$(DESC_Sec$($_.shortName))"
+    })
+
+    '!insertmacro MUI_FUNCTION_DESCRIPTION_END'
+  } | Out-File -FilePath "build\installer-sections.nsh" -Append
+}
+
 @"
-!include "FileFunc.nsh"
-!include "LogicLib.nsh"
-!include "MUI2.nsh"
-!include "WinCore.nsh"
-!include "WordFunc.nsh"
-!include "x64.nsh"
-
-!include "packages\pico-setup-windows\aumi.nsh"
-!include "packages\pico-setup-windows\WindowsTerminal.nsh"
-
+!define COMPANY "$company"
+!define PRODUCT "$product"
+!define PRODUCT_DIR "$productDir"
 !define TITLE "$product"
-!define PICO_INSTALL_DIR "$productDir"
-!define PICO_SHORTCUTS_DIR "`$SMPROGRAMS\$product"
-!define PICO_WINTERM_DIR "`${WINTERMDIR}\$product"
-!define PICO_REG_ROOT SHELL_CONTEXT
-!define UNINSTALL_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\$product"
-!define PICO_AppUserModel_ID "$(pascalCase $company).$(pascalCase $basename).$sdkVersion"
+!define VERSION "$version"
+!define BITNESS $bitness
+!define OUTPUT_FILE "$binfile"
+!define PICO_SDK_VERSION "$sdkVersion"
+!define AUMID "$(pascalCase $company).$(pascalCase $basename).$sdkVersion"
+!define ARP_DISPLAY_NAME "$($BuildType -eq 'system' ? $product : "$product (User)")"
+!define SHELL_VAR_CONTEXT $($BuildType -eq 'system' ? 'all' : 'current')
+!define UNINSTALL_KEY_OLD "Software\Microsoft\Windows\CurrentVersion\Uninstall\$basename-$sdkVersion"
 
-Name "`${TITLE}"
-Caption "`${TITLE}"
-XPStyle on
-ManifestDPIAware true
-Unicode true
+$($componentSelection ? '!define ALLOW_COMPONENT_SELECTION' : '')
+
 SetCompressor $Compression
 RequestExecutionLevel $($BuildType -eq 'system' ? 'admin' : 'user')
 
@@ -291,6 +348,33 @@ VIAddVersionKey "LegalCopyright" "$company"
 VIAddVersionKey "CompanyName" "$company"
 VIFileVersion $version.0
 VIProductVersion $sdkVersionClean.0
+"@ | Out-File -FilePath "build\installer-header.nsh"
+
+@"
+!include "FileFunc.nsh"
+!include "LogicLib.nsh"
+!include "MUI2.nsh"
+!include "WinCore.nsh"
+!include "WordFunc.nsh"
+!include "x64.nsh"
+
+!include "packages\pico-setup-windows\aumi.nsh"
+!include "packages\pico-setup-windows\WindowsTerminal.nsh"
+
+!include "build\installer-header.nsh"
+
+!define PICO_INSTALL_DIR PRODUCT_DIR
+!define PICO_SHORTCUTS_DIR "`$SMPROGRAMS\`${PRODUCT}"
+!define PICO_WINTERM_DIR "`${WINTERMDIR}\`${PRODUCT}"
+!define PICO_REG_ROOT SHELL_CONTEXT
+!define UNINSTALL_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\`${PRODUCT}"
+!define PICO_AppUserModel_ID AUMID
+
+Name "`${TITLE}"
+Caption "`${TITLE}"
+XPStyle on
+ManifestDPIAware true
+Unicode true
 
 ; Since we're packaging up a bunch of installers, the "Space required" shown is inaccurate
 SpaceTexts "none"
@@ -300,7 +384,7 @@ InstallDir ""
 
 !ifdef BUILD_UNINSTALLER
 
-OutFile "build\build-uninstaller-$suffix.exe"
+OutFile "build\build-uninstaller.exe"
 
 ; !define MUI_UNICON "resources\raspberrypi.ico"
 
@@ -315,8 +399,8 @@ OutFile "build\build-uninstaller-$suffix.exe"
 
 Function un.onInit
 
-  SetShellVarContext $($BuildType -eq 'system' ? 'all' : 'current')
-  SetRegView $bitness
+  SetShellVarContext `${SHELL_VAR_CONTEXT}
+  SetRegView `${BITNESS}
 
 FunctionEnd
 
@@ -354,20 +438,22 @@ SectionEnd
 
 Section
 
-  WriteUninstaller `$INSTDIR\uninstall-$suffix.exe
+  WriteUninstaller `$INSTDIR\uninstall.exe
 
 SectionEnd
 
 !else
 
-OutFile "$binfile"
+OutFile "`${OUTPUT_FILE}"
 
 ; !define MUI_ICON "resources\raspberrypi.ico"
 !define MUI_ABORTWARNING
 !define MUI_WELCOMEPAGE_TITLE "`${TITLE}"
 
 !insertmacro MUI_PAGE_WELCOME
-$($componentSelection ? '!insertmacro MUI_PAGE_COMPONENTS' : '')
+!ifdef ALLOW_COMPONENT_SELECTION
+  !insertmacro MUI_PAGE_COMPONENTS
+!endif
 !insertmacro MUI_PAGE_DIRECTORY
 !define MUI_PAGE_CUSTOMFUNCTION_LEAVE DumpLog
 !insertmacro MUI_PAGE_INSTFILES
@@ -382,8 +468,8 @@ $($componentSelection ? '!insertmacro MUI_PAGE_COMPONENTS' : '')
 
 Function .onInit
 
-  SetShellVarContext $($BuildType -eq 'system' ? 'all' : 'current')
-  SetRegView $bitness
+  SetShellVarContext `${SHELL_VAR_CONTEXT}
+  SetRegView `${BITNESS}
 
   ; No /D= on the command line
   `${If} `$INSTDIR == ""
@@ -402,15 +488,15 @@ Section
 
   SetOutPath `$INSTDIR
 
-  $(if ($bitness -eq '64') {
-  '${IfNot} ${RunningX64}
-   ${AndIfNot} ${IsNativeARM64}
+  !if `${BITNESS} = 64
+  `${IfNot} `${RunningX64}
+  `${AndIfNot} `${IsNativeARM64}
     Abort "This installer only supports 64-bit versions of Windows."
-  ${EndIf}'
-  })
+  `${EndIf}
+  !endif
 
   ; Uninstall previous version
-  ReadRegStr `$R0 HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\$basename-$sdkVersion" "UninstallString"
+  ReadRegStr `$R0 HKCU "`${UNINSTALL_KEY_OLD}" "UninstallString"
   `${If} `$R0 == ""
     ReadRegStr `$R0 `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "UninstallString"
   `${EndIf}
@@ -432,61 +518,7 @@ Section
 
 SectionEnd
 
-$($downloads | ForEach-Object {
-@"
-
-Section "$($_.name)" Sec$($_.shortName)
-
-  ClearErrors
-
-  $(if ($_ | Get-Member additionalFiles) {
-    $_.additionalFiles | ForEach-Object {
-      "File /oname=`$PLUGINSDIR\$(Split-Path -Leaf $_) $_`r`n"
-    }
-  })
-
-  $(if (($_ | Get-Member exec) -or ($_ | Get-Member execToLog)) {
-@"
-    SetOutPath "`$TEMP"
-    File "downloads\$($_.file)"
-    StrCpy `$0 "`$TEMP\$($_.file)"
-
-    $(if ($_ | Get-Member exec) {
-      "ExecWait ``$($_.exec)`` `$1"
-    })
-
-    $(if ($_ | Get-Member execToLog) {
-      "nsExec::ExecToLog ``$($_.execToLog)```r`n"
-      "Pop `$1"
-    })
-
-    DetailPrint "$($_.name) returned `$1"
-    Delete /REBOOTOK "`$0"
-
-    `${If} `${Errors}
-      Abort "Installation of $($_.name) failed"
-    $(if ($_ | Get-Member rebootExitCodes) {
-      $_.rebootExitCodes | ForEach-Object {
-        "`${ElseIf} `$1 = $_`r`n    SetRebootFlag true"
-      }
-    })
-    `${ElseIf} `$1 <> 0
-      Abort "Installation of $($_.name) failed"
-    `${EndIf}
-"@
-  })
-
-  $(if ($_ | Get-Member dirName) {
-    "SetOutPath '`$INSTDIR\$($_.dirName)'`r`n"
-    "File /r build\$($_.dirName)\*.*"
-  })
-
-SectionEnd
-
-LangString DESC_Sec$($_.shortName) `${LANG_ENGLISH} "$($_.name)"
-
-"@
-})
+!include "build\installer-sections.nsh"
 
 Section "-OpenOCD" SecOpenOCD
 
@@ -513,41 +545,33 @@ Section "-Pico environment" SecPico
   File /r "build\pico-sdk-tools\$msysEnv\*.*"
 
   SetOutPath "`$INSTDIR"
-  WriteINIStr "`$INSTDIR\version.ini" "pico-setup-windows" "PICO_SDK_VERSION" "$sdkVersion"
+  WriteINIStr "`$INSTDIR\version.ini" "pico-setup-windows" "PICO_SDK_VERSION" "`${PICO_SDK_VERSION}"
   File "packages\pico-setup-windows\pico-env.ps1"
   File "packages\pico-setup-windows\pico-env.cmd"
   File "packages\pico-setup-windows\pico-setup.cmd"
   File "docs\README.txt"
 
-  File /oname=uninstall.exe "build\uninstall-$suffix.exe"
-  WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "DisplayName" "$($BuildType -eq 'system' ? $product : "$product (User)")"
+  File "build\uninstall.exe"
+  WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "DisplayName" "`${ARP_DISPLAY_NAME}"
   WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "UninstallString" "`$INSTDIR\uninstall.exe"
   WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "InstallPath" "`$INSTDIR"
   ; WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "DisplayIcon" "`$INSTDIR\resources\raspberrypi.ico"
-  WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "DisplayVersion" "$version"
-  WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "Publisher" "$company"
+  WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "DisplayVersion" "`${VERSION}"
+  WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "Publisher" "`${COMPANY}"
 
   `${CreateShortcutEx} "`${PICO_SHORTCUTS_DIR}\Pico - Developer Command Prompt.lnk" "`${PICO_AppUserModel_ID}!cmd" ``"cmd.exe" '/k "`$INSTDIR\pico-env.cmd"'``
   `${CreateShortcutEx} "`${PICO_SHORTCUTS_DIR}\Pico - Developer PowerShell.lnk" "`${PICO_AppUserModel_ID}!powershell" ``"powershell.exe" '-NoExit -ExecutionPolicy RemoteSigned -File "`$INSTDIR\pico-env.ps1"'``
 
   SetOutPath "`${PICO_WINTERM_DIR}"
   `${WINTERM_FRAGMENT_BEGIN} "pico-terminals.json"
-  `${WINTERM_PROFILE} "Pico - Developer Command Prompt (SDK v$sdkVersion)" ``cmd.exe /k "`$INSTDIR\pico-env.cmd"`` "`$INSTDIR" ""
-  `${WINTERM_PROFILE} "Pico - Developer PowerShell (SDK v$sdkVersion)" ``powershell.exe -NoExit -ExecutionPolicy RemoteSigned -File "`$INSTDIR\pico-env.ps1"`` "`$INSTDIR" ""
+  `${WINTERM_PROFILE} "Pico - Developer Command Prompt (SDK v`${PICO_SDK_VERSION})" ``cmd.exe /k "`$INSTDIR\pico-env.cmd"`` "`$INSTDIR" ""
+  `${WINTERM_PROFILE} "Pico - Developer PowerShell (SDK v`${PICO_SDK_VERSION})" ``powershell.exe -NoExit -ExecutionPolicy RemoteSigned -File "`$INSTDIR\pico-env.ps1"`` "`$INSTDIR" ""
   `${WINTERM_FRAGMENT_END}
 
   ; Reset working dir
   SetOutPath "`$INSTDIR"
 
 SectionEnd
-
-!if $($componentSelection ? 1 : 0)
-!insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
-$($downloads | ForEach-Object {
-  "  !insertmacro MUI_DESCRIPTION_TEXT `${Sec$($_.shortName)} `$(DESC_Sec$($_.shortName))`n"
-})
-!insertmacro MUI_FUNCTION_DESCRIPTION_END
-!endif
 
 !endif # BUILD_UNINSTALLER
 "@ | Set-Content ".\$basename-$suffix.nsi"
@@ -556,11 +580,11 @@ exec { .\build\NSIS\makensis /DBUILD_UNINSTALLER ".\$basename-$suffix.nsi" }
 
 # The 'installer' that just writes the uninstaller asks for admin access, which is not actually needed.
 $env:__COMPAT_LAYER = "RunAsInvoker"
-exec { Start-Process -FilePath ".\build\build-uninstaller-$suffix.exe" -ArgumentList "/S /D=$(Join-Path $PSScriptRoot 'build')" -Wait }
+exec { Start-Process -FilePath ".\build\build-uninstaller.exe" -ArgumentList "/S /D=$(Join-Path $PSScriptRoot 'build')" -Wait }
 $env:__COMPAT_LAYER = ""
 
 # Sign files before packaging up the installer
-sign "build\uninstall-$suffix.exe",
+sign "build\uninstall.exe",
 "build\openocd-install\$msysEnv\bin\openocd.exe",
 "build\pico-sdk-tools\$msysEnv\elf2uf2\elf2uf2.exe",
 "build\pico-sdk-tools\$msysEnv\pioasm\pioasm.exe",
