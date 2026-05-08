@@ -36,5 +36,6 @@ if ($LASTEXITCODE -ne 0) {
   exit $LASTEXITCODE
 }
 
+$env:PICO_INSTALL_PATH = $installPath
 cmd /c call "$PSScriptRoot\pico-build.cmd"
 exit $LASTEXITCODE
