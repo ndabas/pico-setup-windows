@@ -262,62 +262,63 @@ $binfile = "bin\$basename-$suffix.exe"
 
 $downloads | ForEach-Object {
   "Section ``$($_.name)`` Sec$($_.shortName)"
-  'ClearErrors'
+  '  ClearErrors'
 
   if ($_ | Get-Member additionalFiles) {
     $_.additionalFiles | ForEach-Object {
-      "File /oname=`$PLUGINSDIR\$(Split-Path -Leaf $_) $_`r`n"
+      "  File /oname=`$PLUGINSDIR\$(Split-Path -Leaf $_) $_"
     }
   }
 
   if (($_ | Get-Member exec) -or ($_ | Get-Member execToLog)) {
 
-    'SetOutPath "$TEMP"'
-    "File ``downloads\$($_.file)``"
-    "StrCpy `$0 ```$TEMP\$($_.file)``"
+    '  SetOutPath "$TEMP"'
+    "  File ``downloads\$($_.file)``"
+    "  StrCpy `$0 ```$TEMP\$($_.file)``"
 
     if ($_ | Get-Member exec) {
-      "ExecWait ``$($_.exec)`` `$1"
+      "  ExecWait ``$($_.exec)`` `$1"
     }
 
     if ($_ | Get-Member execToLog) {
-      "nsExec::ExecToLog ``$($_.execToLog)``"
-      "Pop `$1"
+      "  nsExec::ExecToLog ``$($_.execToLog)``"
+      "  Pop `$1"
     }
 
-    "DetailPrint ``$($_.name) returned `$1``"
-    "Delete /REBOOTOK ```$0``"
+    "  DetailPrint ``$($_.name) returned `$1``"
+    "  Delete /REBOOTOK ```$0``"
 
-    '${If} ${Errors}'
-    "  Abort ``Installation of $($_.name) failed``"
+    '  ${If} ${Errors}'
+    "    Abort ``Installation of $($_.name) failed``"
 
     if ($_ | Get-Member rebootExitCodes) {
       $_.rebootExitCodes | ForEach-Object {
-        "`${ElseIf} `$1 = $_"
+        "  `${ElseIf} `$1 = $_"
         '    SetRebootFlag true'
       }
     }
 
-    '${ElseIf} `$1 <> 0'
-    "  Abort ``Installation of $($_.name) failed``"
-    '${EndIf}'
+    '  ${ElseIf} $1 <> 0'
+    "    Abort ``Installation of $($_.name) failed``"
+    '  ${EndIf}'
   }
 
   if ($_ | Get-Member dirName) {
-    "SetOutPath '`$INSTDIR\$($_.dirName)'`r`n"
-    "File /r build\$($_.dirName)\*.*"
+    "  SetOutPath '`$INSTDIR\$($_.dirName)'"
+    "  File /r build\$($_.dirName)\*.*"
   }
 
   'SectionEnd'
   "LangString DESC_Sec$($_.shortName) `${LANG_ENGLISH} ``$($_.name)``"
+  ''
 } | Out-File -FilePath "build\installer-sections.nsh"
 
 $builds | ForEach-Object {
   "Section ``$($_.name)`` Sec$($_.shortName)"
 
   if ($_ | Get-Member dirName) {
-    "SetOutPath '`$INSTDIR\$($_.dirName)'`r`n"
-    "File /r build\$($_.dirName)\$msysEnv\*.*"
+    "  SetOutPath '`$INSTDIR\$($_.dirName)'"
+    "  File /r build\$($_.dirName)\$msysEnv\*.*"
   }
 
   'SectionEnd'
@@ -325,7 +326,7 @@ $builds | ForEach-Object {
 } | Out-File -FilePath "build\installer-sections.nsh" -Append
 
 if ($componentSelection) {
-  {
+  & {
     '!insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN'
 
     $($downloads + $builds | ForEach-Object {
@@ -335,6 +336,14 @@ if ($componentSelection) {
     '!insertmacro MUI_FUNCTION_DESCRIPTION_END'
   } | Out-File -FilePath "build\installer-sections.nsh" -Append
 }
+
+$downloads + $builds | ForEach-Object {
+  if ($_ | Get-Member dirName) {
+    "Section un.$($_.shortName)"
+    "  RMDir /r /REBOOTOK ```$INSTDIR\$($_.dirName)``"
+    'SectionEnd'
+  }
+} | Out-File -FilePath "build\uninstaller-sections.nsh"
 
 @"
 !define COMPANY "$company"
@@ -420,20 +429,12 @@ Function un.onInit
 
 FunctionEnd
 
+!include "build\uninstaller-sections.nsh"
+
 Section "Uninstall"
 
   RMDir /r /REBOOTOK "`${PICO_SHORTCUTS_DIR}"
   RMDir /r /REBOOTOK "`${PICO_WINTERM_DIR}"
-
-  RMDir /r /REBOOTOK "`$INSTDIR\cmake"
-  RMDir /r /REBOOTOK "`$INSTDIR\gcc-arm-none-eabi"
-  RMDir /r /REBOOTOK "`$INSTDIR\git"
-  RMDir /r /REBOOTOK "`$INSTDIR\ninja"
-  RMDir /r /REBOOTOK "`$INSTDIR\openocd"
-  RMDir /r /REBOOTOK "`$INSTDIR\python"
-
-  RMDir /r /REBOOTOK "`$INSTDIR\pico-sdk-tools"
-  RMDir /r /REBOOTOK "`$INSTDIR\picotool"
   ; RMDir /r /REBOOTOK "`$INSTDIR\resources"
 
   Delete /REBOOTOK "`$INSTDIR\install.log"
