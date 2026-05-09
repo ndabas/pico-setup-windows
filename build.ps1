@@ -13,11 +13,9 @@ param (
   [string]
   $MSYS2Path = '.\build\msys64',
 
-  [switch]
-  $SkipDownload,
-
-  [switch]
-  $SkipSigning,
+  [Parameter(Mandatory=$True)]
+  [ValidateSet('Download', 'Compile', 'Sign', 'Installer', 'Archive')]
+  [string[]]$Target,
 
   [ValidateSet('zlib', 'bzip2', 'lzma')]
   [string]
@@ -43,6 +41,15 @@ $build = (Get-Date -Format FileDateTimeUniversal)
 $tools = (Get-Content '.\config\tools.json' | ConvertFrom-Json).tools
 $repositories = (Get-Content '.\config\repositories.json' | ConvertFrom-Json).repositories
 
+[Flags()] enum BuildTargets {
+  Download = 1
+  Compile = 2
+  Sign = 4
+  Installer = 8
+  Archive = 16
+}
+$buildTargets = [BuildTargets] $Target
+
 $compileOpts = $null
 $installerOpts = $null
 $bitness = $null
@@ -54,6 +61,7 @@ $componentSelection = $false
 if ($CompileConfig) {
   Write-Host "Loading compile configuration from $CompileConfig"
   $compileOpts = Get-Content $CompileConfig | ConvertFrom-Json
+  $builds = $compileOpts.builds
   $bitness = $compileOpts.bitness
   $msysEnv = $compileOpts.msysEnv
 }
@@ -64,7 +72,6 @@ if ($InstallerConfig) {
   $bitness = $installerOpts.bitness
   $msysEnv = $installerOpts.msysEnv
   $downloads = $installerOpts.downloads
-  $builds = (Get-Content ".\config\$($installerOpts.buildsFrom)" | ConvertFrom-Json).builds
   $componentSelection = ($installerOpts | Get-Member componentSelection) ? $installerOpts.componentSelection : $false
 }
 
@@ -81,7 +88,7 @@ mkdirp "bin"
 ($downloads + $tools) | ForEach-Object {
   $outfile = "downloads/$($_.file)"
 
-  if ($SkipDownload) {
+  if (-not $buildTargets.HasFlag([BuildTargets]::Download)) {
     Write-Host "Checking $($_.name): " -NoNewline
     if (-not (Test-Path $outfile)) {
       Write-Error "$outfile not found"
@@ -137,7 +144,7 @@ $repositories | ForEach-Object {
   $reponame = [IO.Path]::GetFileNameWithoutExtension($_.href)
   $repodir = Join-Path 'build' $reponame
 
-  if ($SkipDownload) {
+  if (-not $buildTargets.HasFlag([BuildTargets]::Download)) {
     Write-Host "Checking ${repodir}: " -NoNewline
     if (-not (Test-Path $repodir)) {
       Write-Error "$repodir not found"
@@ -185,7 +192,7 @@ Write-Host "Installer version: $version"
 function sign {
   param ([string[]] $filesToSign)
 
-  if ($SkipSigning) {
+  if (-not $buildTargets.HasFlag([BuildTargets]::Sign)) {
     Write-Warning "Skipping code signing."
   }
   else {
@@ -214,7 +221,7 @@ $env:CHERE_INVOKING = 'yes'
 # Use real symlinks
 $env:MSYS = "winsymlinks:nativestrict"
 
-if ($null -ne $compileOpts) {
+if ($buildTargets.HasFlag([BuildTargets]::Compile)) {
   if (-not (Test-Path $MSYS2Path)) {
     Write-Host 'Extracting MSYS2'
     exec { & .\downloads\msys2.exe -y "-o$(Resolve-Path (Split-Path $MSYS2Path -Parent))" }
@@ -252,7 +259,7 @@ function pascalCase {
   -join ($s -split '[-_ ]+' | ForEach-Object { $_.Substring(0, 1).ToUpper() + $_.Substring(1).ToLower() })
 }
 
-if ($null -eq $installerOpts) {
+if (-not $buildTargets.HasFlag([BuildTargets]::Installer)) {
   Write-Host "No installer configuration file provided. Skipping installer build."
   exit 0
 }
@@ -377,206 +384,7 @@ VIFileVersion $version.0
 VIProductVersion $sdkVersionClean.0
 "@ | Out-File -FilePath "build\installer-header.nsh"
 
-@"
-!include "FileFunc.nsh"
-!include "LogicLib.nsh"
-!include "MUI2.nsh"
-!include "WinCore.nsh"
-!include "WordFunc.nsh"
-!include "x64.nsh"
-
-!include "packages\pico-setup-windows\aumi.nsh"
-!include "packages\pico-setup-windows\WindowsTerminal.nsh"
-
-!include "build\installer-header.nsh"
-
-!define PICO_INSTALL_DIR "`${PRODUCT_DIR}"
-!define PICO_SHORTCUTS_DIR "`$SMPROGRAMS\`${PRODUCT}"
-!define PICO_WINTERM_DIR "`${WINTERMDIR}\`${PRODUCT}"
-!define PICO_REG_ROOT SHELL_CONTEXT
-!define UNINSTALL_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\`${PRODUCT}"
-!define PICO_AppUserModel_ID AUMID
-
-Name "`${TITLE}"
-Caption "`${TITLE}"
-XPStyle on
-ManifestDPIAware true
-Unicode true
-
-; Since we're packaging up a bunch of installers, the "Space required" shown is inaccurate
-SpaceTexts "none"
-
-; We set the default INSTDIR ourselves in .onInit
-InstallDir ""
-
-!ifdef BUILD_UNINSTALLER
-
-OutFile "build\build-uninstaller.exe"
-
-; !define MUI_UNICON "resources\raspberrypi.ico"
-
-!insertmacro MUI_PAGE_INSTFILES
-!insertmacro MUI_PAGE_FINISH
-
-!insertmacro MUI_UNPAGE_CONFIRM
-!insertmacro MUI_UNPAGE_INSTFILES
-!insertmacro MUI_UNPAGE_FINISH
-
-!insertmacro MUI_LANGUAGE "English"
-
-Function un.onInit
-
-  SetShellVarContext `${SHELL_VAR_CONTEXT}
-  SetRegView `${BITNESS}
-
-FunctionEnd
-
-!include "build\uninstaller-sections.nsh"
-
-Section "Uninstall"
-
-  RMDir /r /REBOOTOK "`${PICO_SHORTCUTS_DIR}"
-  RMDir /r /REBOOTOK "`${PICO_WINTERM_DIR}"
-  ; RMDir /r /REBOOTOK "`$INSTDIR\resources"
-
-  Delete /REBOOTOK "`$INSTDIR\install.log"
-  Delete /REBOOTOK "`$INSTDIR\pico-env.cmd"
-  Delete /REBOOTOK "`$INSTDIR\pico-env.ps1"
-  Delete /REBOOTOK "`$INSTDIR\pico-setup.cmd"
-  Delete /REBOOTOK "`$INSTDIR\pico-setup.lnk"
-  Delete /REBOOTOK "`$INSTDIR\README.txt"
-  Delete /REBOOTOK "`$INSTDIR\version.ini"
-
-  Delete /REBOOTOK "`$INSTDIR\uninstall.exe"
-
-  RMDir /REBOOTOK "`$INSTDIR"
-
-  DeleteRegKey `${PICO_REG_ROOT} "`${UNINSTALL_KEY}"
-
-SectionEnd
-
-Section
-
-  WriteUninstaller `$INSTDIR\uninstall.exe
-
-SectionEnd
-
-!else
-
-OutFile "`${OUTPUT_FILE}"
-
-; !define MUI_ICON "resources\raspberrypi.ico"
-!define MUI_ABORTWARNING
-!define MUI_WELCOMEPAGE_TITLE "`${TITLE}"
-
-!insertmacro MUI_PAGE_WELCOME
-!ifdef ALLOW_COMPONENT_SELECTION
-  !insertmacro MUI_PAGE_COMPONENTS
-!endif
-!insertmacro MUI_PAGE_DIRECTORY
-!define MUI_PAGE_CUSTOMFUNCTION_LEAVE DumpLog
-!insertmacro MUI_PAGE_INSTFILES
-
-!define MUI_FINISHPAGE_SHOWREADME "`$INSTDIR\README.txt"
-!define MUI_FINISHPAGE_SHOWREADME_TEXT "Show ReadMe"
-!insertmacro MUI_PAGE_FINISH
-
-!insertmacro MUI_LANGUAGE "English"
-
-!include "packages\pico-setup-windows\DumpLog.nsh"
-
-Function .onInit
-
-  SetShellVarContext `${SHELL_VAR_CONTEXT}
-  SetRegView `${BITNESS}
-
-  ; No /D= on the command line
-  `${If} `$INSTDIR == ""
-    ReadRegStr `$INSTDIR `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "InstallPath"
-  `${EndIf}
-
-  ; Nothing in the registry either; use the defaults
-  `${If} `$INSTDIR == ""
-    `${GetRoot} `$WINDIR `$INSTDIR
-    StrCpy `$INSTDIR "`$INSTDIR\`${PICO_INSTALL_DIR}"
-  `${EndIf}
-
-FunctionEnd
-
-Section
-
-  SetOutPath `$INSTDIR
-
-  !if `${BITNESS} = 64
-  `${IfNot} `${RunningX64}
-  `${AndIfNot} `${IsNativeARM64}
-    Abort "This installer only supports 64-bit versions of Windows."
-  `${EndIf}
-  !endif
-
-  ; Uninstall previous version
-  ReadRegStr `$R0 HKCU "`${UNINSTALL_KEY_OLD}" "UninstallString"
-  `${If} `$R0 == ""
-    ReadRegStr `$R0 `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "UninstallString"
-  `${EndIf}
-  `${If} `$R0 != ""
-    `${GetParent} "`$R0" `$R1
-    DetailPrint "Uninstalling previous version..."
-    ExecWait '"`$R0" /S _?=`$R1' `$1
-    DetailPrint "Uninstaller returned `$1"
-  `${EndIf}
-
-  InitPluginsDir
-
-  CreateDirectory "`${PICO_SHORTCUTS_DIR}"
-
-  ; SetOutPath `$INSTDIR\resources
-  ; File /r resources\*.*
-
-  SetOutPath `$INSTDIR
-
-SectionEnd
-
-!include "build\installer-sections.nsh"
-
-Section "-Pico environment" SecPico
-
-  SetOutPath "`$INSTDIR\pico-sdk"
-  File /r "build\pico-sdk\*.*"
-
-  SetOutPath "`$INSTDIR"
-  WriteINIStr "`$INSTDIR\version.ini" "pico-setup-windows" "PICO_SDK_VERSION" "`${PICO_SDK_VERSION}"
-  File "packages\pico-setup-windows\pico-env.ps1"
-  File "packages\pico-setup-windows\pico-env.cmd"
-  File "packages\pico-setup-windows\pico-setup.cmd"
-  File "docs\README.txt"
-
-  File "build\uninstall.exe"
-  WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "DisplayName" "`${ARP_DISPLAY_NAME}"
-  WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "UninstallString" "`$INSTDIR\uninstall.exe"
-  WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "InstallPath" "`$INSTDIR"
-  ; WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "DisplayIcon" "`$INSTDIR\resources\raspberrypi.ico"
-  WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "DisplayVersion" "`${VERSION}"
-  WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "Publisher" "`${COMPANY}"
-
-  `${CreateShortcutEx} "`${PICO_SHORTCUTS_DIR}\Pico - Developer Command Prompt.lnk" "`${PICO_AppUserModel_ID}!cmd" ``"cmd.exe" '/k "`$INSTDIR\pico-env.cmd"'``
-  `${CreateShortcutEx} "`${PICO_SHORTCUTS_DIR}\Pico - Developer PowerShell.lnk" "`${PICO_AppUserModel_ID}!powershell" ``"powershell.exe" '-NoExit -ExecutionPolicy RemoteSigned -File "`$INSTDIR\pico-env.ps1"'``
-
-  SetOutPath "`${PICO_WINTERM_DIR}"
-  `${WINTERM_FRAGMENT_BEGIN} "pico-terminals.json"
-  `${WINTERM_PROFILE} "Pico - Developer Command Prompt (SDK v`${PICO_SDK_VERSION})" ``cmd.exe /k "`$INSTDIR\pico-env.cmd"`` "`$INSTDIR" ""
-  `${WINTERM_PROFILE} "Pico - Developer PowerShell (SDK v`${PICO_SDK_VERSION})" ``powershell.exe -NoExit -ExecutionPolicy RemoteSigned -File "`$INSTDIR\pico-env.ps1"`` "`$INSTDIR" ""
-  `${WINTERM_FRAGMENT_END}
-
-  ; Reset working dir
-  SetOutPath "`$INSTDIR"
-
-SectionEnd
-
-!endif # BUILD_UNINSTALLER
-"@ | Set-Content ".\$basename-$suffix.nsi"
-
-exec { .\build\NSIS\makensis /DBUILD_UNINSTALLER ".\$basename-$suffix.nsi" }
+exec { .\build\NSIS\makensis /DBUILD_UNINSTALLER ".\$basename.nsi" }
 
 # The 'installer' that just writes the uninstaller asks for admin access, which is not actually needed.
 $env:__COMPAT_LAYER = "RunAsInvoker"
@@ -590,7 +398,7 @@ sign "build\uninstall.exe",
 "build\pico-sdk-tools\$msysEnv\pioasm\pioasm.exe",
 "build\pico-sdk-tools\$msysEnv\picotool\picotool.exe"
 
-exec { .\build\NSIS\makensis ".\$basename-$suffix.nsi" }
+exec { .\build\NSIS\makensis ".\$basename.nsi" }
 Write-Host "Installer saved to $binfile"
 
 # Sign the installer

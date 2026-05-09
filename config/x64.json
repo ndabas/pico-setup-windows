@@ -36,6 +36,5 @@
         "packages\\pico-setup-windows\\git.inf"
       ]
     }
-  ],
-  "buildsFrom": "x64-compile.json"
+  ]
 }

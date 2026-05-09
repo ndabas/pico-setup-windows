@@ -5,6 +5,7 @@
 !include "WordFunc.nsh"
 
 # Write Windows terminal profile JSON files.
+# https://learn.microsoft.com/en-us/windows/terminal/json-fragment-extensions
 
 !define WINTERMDIR "$LOCALAPPDATA\Microsoft\Windows Terminal\Fragments"
 

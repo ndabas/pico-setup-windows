@@ -1,9 +1,6 @@
 # Downloaded files
 downloads/
 
-# Generated NSIS scripts
-pico-setup-windows-*.nsi
-
 # Built installers
 bin/
 
