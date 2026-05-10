@@ -65,7 +65,6 @@ Section "Uninstall"
   Delete /REBOOTOK "$INSTDIR\pico-setup.cmd"
   Delete /REBOOTOK "$INSTDIR\pico-setup.lnk"
   Delete /REBOOTOK "$INSTDIR\README.txt"
-  Delete /REBOOTOK "$INSTDIR\version.ini"
 
   Delete /REBOOTOK "$INSTDIR\uninstall.exe"
 
@@ -165,7 +164,6 @@ Section "-Pico environment" SecPico
   File /r "build\pico-sdk\*.*"
 
   SetOutPath "$INSTDIR"
-  WriteINIStr "$INSTDIR\version.ini" "pico-setup-windows" "PICO_SDK_VERSION" "${PICO_SDK_VERSION}"
   File "packages\pico-setup-windows\pico-env.ps1"
   File "packages\pico-setup-windows\pico-env.cmd"
   File "packages\pico-setup-windows\pico-setup.cmd"

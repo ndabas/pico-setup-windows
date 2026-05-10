@@ -259,8 +259,8 @@ function pascalCase {
   -join ($s -split '[-_ ]+' | ForEach-Object { $_.Substring(0, 1).ToUpper() + $_.Substring(1).ToLower() })
 }
 
-if (-not $buildTargets.HasFlag([BuildTargets]::Installer)) {
-  Write-Host "No installer configuration file provided. Skipping installer build."
+if ($null -eq $installerOpts) {
+  Write-Host "No installer configuration file provided. Skipping archive/installer build."
   exit 0
 }
 
@@ -384,22 +384,26 @@ VIFileVersion $version.0
 VIProductVersion $sdkVersionClean.0
 "@ | Out-File -FilePath "build\installer-header.nsh"
 
-exec { .\build\NSIS\makensis /DBUILD_UNINSTALLER ".\$basename.nsi" }
+if ($buildTargets.HasFlag([BuildTargets]::Installer)) {
+  exec { .\build\NSIS\makensis /DBUILD_UNINSTALLER ".\$basename.nsi" }
 
-# The 'installer' that just writes the uninstaller asks for admin access, which is not actually needed.
-$env:__COMPAT_LAYER = "RunAsInvoker"
-exec { Start-Process -FilePath ".\build\build-uninstaller.exe" -ArgumentList "/S /D=$(Join-Path $PSScriptRoot 'build')" -Wait }
-$env:__COMPAT_LAYER = ""
+  # The 'installer' that just writes the uninstaller asks for admin access, which is not actually needed.
+  $env:__COMPAT_LAYER = "RunAsInvoker"
+  exec { Start-Process -FilePath ".\build\build-uninstaller.exe" -ArgumentList "/S /D=$(Join-Path $PSScriptRoot 'build')" -Wait }
+  $env:__COMPAT_LAYER = ""
+}
 
-# Sign files before packaging up the installer
+# Sign files before packaging
 sign "build\uninstall.exe",
 "build\openocd-install\$msysEnv\bin\openocd.exe",
 "build\pico-sdk-tools\$msysEnv\elf2uf2\elf2uf2.exe",
 "build\pico-sdk-tools\$msysEnv\pioasm\pioasm.exe",
 "build\pico-sdk-tools\$msysEnv\picotool\picotool.exe"
 
-exec { .\build\NSIS\makensis ".\$basename.nsi" }
-Write-Host "Installer saved to $binfile"
+if ($buildTargets.HasFlag([BuildTargets]::Installer)) {
+  exec { .\build\NSIS\makensis ".\$basename.nsi" }
+  Write-Host "Installer saved to $binfile"
+}
 
 # Sign the installer
 sign $binfile
