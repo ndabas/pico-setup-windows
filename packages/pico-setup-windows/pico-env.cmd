@@ -25,20 +25,8 @@ goto main
 :main
 
 pushd "%~dp0"
-
-for /f "skip=1 tokens=*" %%i in (version.ini) do (
-  echo %%i
-  set "%%i"
-)
-
 set "PICO_INSTALL_PATH=%CD%"
-
 popd
-
-if not defined PICO_SDK_VERSION (
-  echo ERROR: Unable to determine Pico SDK version.
-  set /a errors += 1
-)
 
 set "PICO_SDK_PATH=%PICO_INSTALL_PATH%\pico-sdk"
 
