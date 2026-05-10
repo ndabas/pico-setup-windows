@@ -13,7 +13,7 @@ param (
   [string]
   $MSYS2Path = '.\build\msys64',
 
-  [Parameter(Mandatory=$True)]
+  [Parameter(Mandatory = $True)]
   [ValidateSet('Download', 'Compile', 'Sign', 'Installer', 'Archive')]
   [string[]]$Target,
 
@@ -57,6 +57,14 @@ $msysEnv = $null
 $downloads = @()
 $builds = @()
 $componentSelection = $false
+
+$additionalDirs = @()
+$additionalFiles = @(
+  "packages\pico-setup-windows\pico-env.ps1"
+  "packages\pico-setup-windows\pico-env.cmd"
+  "packages\pico-setup-windows\pico-setup.cmd"
+  "docs\README.txt"
+)
 
 if ($CompileConfig) {
   Write-Host "Loading compile configuration from $CompileConfig"
@@ -143,6 +151,14 @@ if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
 $repositories | ForEach-Object {
   $reponame = [IO.Path]::GetFileNameWithoutExtension($_.href)
   $repodir = Join-Path 'build' $reponame
+
+  if ($reponame.StartsWith('pico-')) {
+    $additionalDirs += [PSCustomObject]@{
+      'dirName'   = $reponame
+      'name'      = $reponame
+      'shortName' = ($reponame -replace '[^a-zA-Z0-9]', '')
+    }
+  }
 
   if (-not $buildTargets.HasFlag([BuildTargets]::Download)) {
     Write-Host "Checking ${repodir}: " -NoNewline
@@ -267,7 +283,7 @@ if ($null -eq $installerOpts) {
 $suffix = [io.path]::GetFileNameWithoutExtension($InstallerConfig) + ($BuildType -eq 'user' ? '-user' : '' )
 $binfile = "bin\$basename-$suffix.exe"
 
-$downloads | ForEach-Object {
+$downloads + $additionalDirs | ForEach-Object {
   "Section ``$($_.name)`` Sec$($_.shortName)"
   '  ClearErrors'
 
@@ -337,15 +353,24 @@ if ($componentSelection) {
   & {
     '!insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN'
 
-    $($downloads + $builds | ForEach-Object {
-      "  !insertmacro MUI_DESCRIPTION_TEXT `${Sec$($_.shortName)} `$(DESC_Sec$($_.shortName))"
-    })
+    $($downloads + $additionalDirs + $builds | ForEach-Object {
+        "  !insertmacro MUI_DESCRIPTION_TEXT `${Sec$($_.shortName)} `$(DESC_Sec$($_.shortName))"
+      })
 
     '!insertmacro MUI_FUNCTION_DESCRIPTION_END'
   } | Out-File -FilePath "build\installer-sections.nsh" -Append
 }
 
-$downloads + $builds | ForEach-Object {
+& {
+  'Section "-PicoSetup"'
+  '  SetOutPath $INSTDIR'
+  $additionalFiles | ForEach-Object {
+    "  File ``$_``"
+  }
+  'SectionEnd'
+} | Out-File -FilePath "build\installer-sections.nsh" -Append
+
+$downloads + $additionalDirs + $builds | ForEach-Object {
   if ($_ | Get-Member dirName) {
     "Section un.$($_.shortName)"
     "  RMDir /r /REBOOTOK ```$INSTDIR\$($_.dirName)``"
@@ -353,6 +378,14 @@ $downloads + $builds | ForEach-Object {
     ''
   }
 } | Out-File -FilePath "build\uninstaller-sections.nsh"
+
+& {
+  'Section un.PicoSetup'
+  $additionalFiles | ForEach-Object {
+    "  Delete ```$INSTDIR\$(Split-Path -Leaf $_)``"
+  }
+  'SectionEnd'
+} | Out-File -FilePath "build\uninstaller-sections.nsh" -Append
 
 @"
 !define COMPANY "$company"
