@@ -60,11 +60,7 @@ Section "Uninstall"
   ; RMDir /r /REBOOTOK "$INSTDIR\resources"
 
   Delete /REBOOTOK "$INSTDIR\install.log"
-  Delete /REBOOTOK "$INSTDIR\pico-env.cmd"
-  Delete /REBOOTOK "$INSTDIR\pico-env.ps1"
-  Delete /REBOOTOK "$INSTDIR\pico-setup.cmd"
   Delete /REBOOTOK "$INSTDIR\pico-setup.lnk"
-  Delete /REBOOTOK "$INSTDIR\README.txt"
 
   Delete /REBOOTOK "$INSTDIR\uninstall.exe"
 
@@ -160,15 +156,8 @@ SectionEnd
 
 Section "-Pico environment" SecPico
 
-  SetOutPath "$INSTDIR\pico-sdk"
-  File /r "build\pico-sdk\*.*"
-
   SetOutPath "$INSTDIR"
-  File "packages\pico-setup-windows\pico-env.ps1"
-  File "packages\pico-setup-windows\pico-env.cmd"
-  File "packages\pico-setup-windows\pico-setup.cmd"
-  File "docs\README.txt"
-
+  
   File "build\uninstall.exe"
   WriteRegStr ${PICO_REG_ROOT} "${UNINSTALL_KEY}" "DisplayName" "${ARP_DISPLAY_NAME}"
   WriteRegStr ${PICO_REG_ROOT} "${UNINSTALL_KEY}" "UninstallString" "$INSTDIR\uninstall.exe"
