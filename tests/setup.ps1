@@ -2,18 +2,6 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
-$installer = Get-ChildItem bin\*.exe | Sort-Object LastWriteTime -Descending | Select-Object -First 1 -ExpandProperty FullName
-Write-Host "Starting $installer"
-$elapsed = Measure-Command { Start-Process -FilePath $installer -ArgumentList "/S" -PassThru | Wait-Process }
-Write-Host ("Finished in {0:hh':'mm':'ss}" -f $elapsed)
-
-$uninstRegKey = "Microsoft\Windows\CurrentVersion\Uninstall\Pico SDK*"
-$installPath = (Get-ItemProperty -Path "HKCU:\Software\$uninstRegKey", "HKLM:\Software\$uninstRegKey", "HKLM:\Software\WOW6432Node\$uninstRegKey" -Name InstallPath -ErrorAction SilentlyContinue).InstallPath
-
-# Write-Host "Copying logs"
-# New-Item -Path logs -Type Directory -Force | Out-Null
-# Copy-Item "$installPath\install.log" .\logs
-
 # See: https://stackoverflow.com/a/22670892/12156188
 function Update-EnvironmentVariables {
   foreach ($level in "Machine", "User") {
@@ -27,7 +15,31 @@ function Update-EnvironmentVariables {
   }
 }
 
-Update-EnvironmentVariables
+$installer = Get-ChildItem bin\pico-setup-windows-* | Sort-Object LastWriteTime -Descending | Select-Object -First 1 -ExpandProperty FullName
+$installPath = ''
+
+if ($installer.EndsWith('.exe')) {
+  Write-Host "Starting $installer"
+  $elapsed = Measure-Command { Start-Process -FilePath $installer -ArgumentList "/S" -PassThru | Wait-Process }
+  Write-Host ("Finished in {0:hh':'mm':'ss}" -f $elapsed)
+
+  $uninstRegKey = "Microsoft\Windows\CurrentVersion\Uninstall\Pico SDK*"
+  $installPath = (Get-ItemProperty -Path "HKCU:\Software\$uninstRegKey", "HKLM:\Software\$uninstRegKey", "HKLM:\Software\WOW6432Node\$uninstRegKey" -Name InstallPath -ErrorAction SilentlyContinue).InstallPath
+
+  # Write-Host "Copying logs"
+  # New-Item -Path logs -Type Directory -Force | Out-Null
+  # Copy-Item "$installPath\install.log" .\logs
+
+  Update-EnvironmentVariables
+} elseif ($installer.EndsWith('.zip')) {
+  $installPath = Join-Path $env:SystemDrive "Pico"
+  
+  Write-Host "Extracting $installer to $installPath"
+  $elapsed = Measure-Command { Expand-Archive -Path $installer -DestinationPath $installPath -Force }
+  Write-Host ("Finished in {0:hh':'mm':'ss}" -f $elapsed)
+} else {
+  throw "Unknown installer format: $installer"
+}
 
 Write-Output "::group::Running pico-setup.cmd"
 cmd /c call "$installPath\pico-setup.cmd" "$installPath"
