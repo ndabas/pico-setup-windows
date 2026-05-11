@@ -9,7 +9,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Test scripts
+      - name: Test PowerShell scripts
         shell: pwsh
         run: |
           $pesterConfig = @{
@@ -27,6 +27,11 @@ jobs:
             }
           }
           Invoke-Pester -Configuration $pesterConfig
+
+      - name: Test Python scripts
+        shell: pwsh
+        working-directory: packages\common
+        run: python -m unittest mkzip
 
       - name: Upload test results
         uses: actions/upload-artifact@v7
@@ -98,8 +103,10 @@ jobs:
       matrix:
         config: [x64, x64-standalone]
         build-type: [system]
+        target: [Installer]
         include:
-          - { config: x64-standalone, build-type: user }
+          - { config: x64-standalone, build-type: user, target: Installer }
+          - { config: x64-standalone, build-type: user, target: Archive }
     steps:
 
       - name: Checkout
@@ -125,16 +132,16 @@ jobs:
           subst P: .
           P:
 
-          .\build.ps1 -CompileConfig .\config\x64-compile.json -InstallerConfig .\config\${{ matrix.config }}.json -Compression zlib -BuildType ${{ matrix.build-type }} -Target Download,Installer
+          .\build.ps1 -CompileConfig .\config\x64-compile.json -InstallerConfig .\config\${{ matrix.config }}.json -Compression zlib -BuildType ${{ matrix.build-type }} -Target Download,${{ matrix.target }}
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: Package-${{ matrix.config }}-${{ matrix.build-type }}
+          name: Package-${{ matrix.config }}-${{ matrix.build-type }}-${{ matrix.target }}
           path: bin/
 
   Test-Installer:
-    runs-on: windows-${{ matrix.winver }}
+    runs-on: windows-latest
     needs: Build-Installer
     strategy:
       fail-fast: false
@@ -142,8 +149,10 @@ jobs:
         winver: ['2025']
         config: [x64, x64-standalone]
         build-type: [system]
+        target: [Installer]
         include:
-          - { winver: '2025', config: x64-standalone, build-type: user }
+          - { winver: '2025', config: x64-standalone, build-type: user, target: Installer }
+          - { winver: '2025', config: x64-standalone, build-type: user, target: Archive }
     steps:
 
       - name: Checkout
@@ -152,7 +161,7 @@ jobs:
       - name: Download installer artifact
         uses: actions/download-artifact@v8
         with:
-          name: Package-${{ matrix.config }}-${{ matrix.build-type }}
+          name: Package-${{ matrix.config }}-${{ matrix.build-type }}-${{ matrix.target }}
           path: bin
 
       - name: Test ${{ matrix.config }} (${{ matrix.build-type }})

@@ -7,3 +7,8 @@ bin/
 # Builds/staging
 build/
 build-*/
+
+# Python byte-compiled / optimized / DLL files
+__pycache__/
+*.py[codz]
+*$py.class

@@ -148,6 +148,10 @@ if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
   $env:PATH = $env:PATH + ';' + (Resolve-Path .\build\git\cmd).Path
 }
 
+if (-not (Get-Command python -ErrorAction SilentlyContinue)) {
+  $env:PATH = $env:PATH + ';' + (Resolve-Path .\build\python).Path
+}
+
 $repositories | ForEach-Object {
   $reponame = [IO.Path]::GetFileNameWithoutExtension($_.href)
   $repodir = Join-Path 'build' $reponame
@@ -280,8 +284,11 @@ if ($null -eq $installerOpts) {
   exit 0
 }
 
-$suffix = [io.path]::GetFileNameWithoutExtension($InstallerConfig) + ($BuildType -eq 'user' ? '-user' : '' )
-$binfile = "bin\$basename-$suffix.exe"
+$suffix = [io.path]::GetFileNameWithoutExtension($InstallerConfig)
+$exefile = "bin\$basename-$suffix$($BuildType -eq 'user' ? '-user' : '' ).exe"
+$zipfile = "bin\$basename-$suffix.zip"
+
+$archiveContents = @() + $additionalFiles
 
 $downloads + $additionalDirs | ForEach-Object {
   "Section ``$($_.name)`` Sec$($_.shortName)"
@@ -329,6 +336,8 @@ $downloads + $additionalDirs | ForEach-Object {
   if ($_ | Get-Member dirName) {
     "  SetOutPath '`$INSTDIR\$($_.dirName)'"
     "  File /r build\$($_.dirName)\*.*"
+
+    $archiveContents += "build\$($_.dirName)"
   }
 
   'SectionEnd'
@@ -342,6 +351,8 @@ $builds | ForEach-Object {
   if ($_ | Get-Member dirName) {
     "  SetOutPath '`$INSTDIR\$($_.installDirName)'"
     "  File /r build\$($_.dirName)\$msysEnv\*.*"
+
+    $archiveContents += "$($_.installDirName): build\$($_.dirName)\$msysEnv"
   }
 
   'SectionEnd'
@@ -394,7 +405,7 @@ $downloads + $additionalDirs + $builds | ForEach-Object {
 !define TITLE "$product"
 !define VERSION "$version"
 !define BITNESS $bitness
-!define OUTPUT_FILE "$binfile"
+!define OUTPUT_FILE "$exefile"
 !define PICO_SDK_VERSION "$sdkVersion"
 !define AUMID "$(pascalCase $company).$(pascalCase $basename).$sdkVersion"
 !define ARP_DISPLAY_NAME "$($BuildType -eq 'system' ? $product : "$product (User)")"
@@ -435,11 +446,17 @@ sign "build\uninstall.exe",
 
 if ($buildTargets.HasFlag([BuildTargets]::Installer)) {
   exec { .\build\NSIS\makensis ".\$basename.nsi" }
-  Write-Host "Installer saved to $binfile"
+  Write-Host "Installer saved to $exefile"
+
+  # Sign the installer
+  sign $exefile
 }
 
-# Sign the installer
-sign $binfile
+if ($buildTargets.HasFlag([BuildTargets]::Archive)) {
+  $archiveContents -join "`n" | Out-File -FilePath "build\archive-contents.txt"
+  exec { python .\packages\common\mkzip.py -f "$zipfile" "@build\archive-contents.txt" }
+  Write-Host "Archive saved to $zipfile"
+}
 
 # Package OpenOCD separately as well
 
