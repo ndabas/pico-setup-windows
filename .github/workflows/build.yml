@@ -3,9 +3,10 @@ permissions:
   contents: write
 on:
   push:
+    branches:
+      - '**'
     tags-ignore:
       - 'v*'
-  pull_request:
 jobs:
 
   Test-Scripts:
