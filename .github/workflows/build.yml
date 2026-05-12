@@ -196,6 +196,7 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           pattern: Package-*
+          merge-multiple: true
           path: bin
 
       - name: Publish release
