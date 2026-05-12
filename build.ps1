@@ -284,9 +284,8 @@ if ($null -eq $installerOpts) {
   exit 0
 }
 
-$suffix = [io.path]::GetFileNameWithoutExtension($InstallerConfig)
-$exefile = "bin\$basename-$suffix$($BuildType -eq 'user' ? '-user' : '' ).exe"
-$zipfile = "bin\$basename-$suffix.zip"
+$suffix = [io.path]::GetFileNameWithoutExtension($InstallerConfig) + ($BuildType -eq 'user' ? '-user' : '' )
+$exefile = "bin\$basename-$suffix.exe"
 
 $archiveContents = @() + $additionalFiles
 
@@ -453,22 +452,21 @@ if ($buildTargets.HasFlag([BuildTargets]::Installer)) {
 }
 
 if ($buildTargets.HasFlag([BuildTargets]::Archive)) {
+  $suffix = $compileOpts.architecture
+
+  $compileOpts.builds | ForEach-Object {
+    Write-Host "Checking version for $($_.name): " -NoNewline
+    $checkVersionCmd = $_.checkVersion
+    $version = (cmd /c cd "build\$($_.dirName)\$msysEnv" '&&' @checkVersionCmd '2>&1' | Select-String -Pattern $versionRegEx).Matches.Value
+    Write-Host $version
+
+    $zipfile = "bin\$($_.installDirName)-$version-$suffix.zip"
+    exec { python .\packages\common\mkzip.py -f "$zipfile" "build\$($_.dirName)\$msysEnv\" }
+    Write-Host "Archive saved to $zipfile"
+  }
+
   $archiveContents -join "`n" | Out-File -FilePath "build\archive-contents.txt"
+  $zipfile = "bin\$basename-$suffix.zip"
   exec { python .\packages\common\mkzip.py -f "$zipfile" "@build\archive-contents.txt" }
   Write-Host "Archive saved to $zipfile"
 }
-
-# Package OpenOCD separately as well
-
-$version = (cmd /c ".\build\openocd-install\$msysEnv\bin\openocd.exe" --version '2>&1')[0]
-if (-not ($version -match 'Open On-Chip Debugger (?<version>[a-zA-Z0-9\.\-+]+) \((?<timestamp>[0-9\-:]+)\)')) {
-  Write-Error 'Could not determine openocd version'
-}
-
-$filename = 'openocd-{0}-{1}-{2}.zip' -f
-($Matches.version -replace '-dirty$', ''),
-($Matches.timestamp -replace '[:-]', ''),
-$suffix
-
-Write-Host "Saving OpenOCD package to $filename"
-exec { tar -a -cf "bin\$filename" -C "build\openocd-install\$msysEnv\bin" '*' -C "..\share\openocd" "scripts" }
