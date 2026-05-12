@@ -122,7 +122,7 @@ jobs:
           name: Build-x64
           path: build
 
-      - name: Build ${{ matrix.config }} (${{ matrix.build-type }})
+      - name: Build ${{ matrix.config }} ${{ matrix.target }} (${{ matrix.build-type }})
         shell: pwsh
         run: |
           Set-StrictMode -Version Latest

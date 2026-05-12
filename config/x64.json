@@ -1,4 +1,5 @@
 {
+  "architecture": "x64",
   "bitness": 64,
   "msysEnv": "UCRT64",
   "componentSelection": true,
