@@ -1,5 +1,11 @@
 name: Build
-on: [push, pull_request]
+permissions:
+  contents: write
+on:
+  push:
+    tags-ignore:
+      - 'v*'
+  pull_request:
 jobs:
 
   Test-Scripts:
@@ -175,3 +181,24 @@ jobs:
         with:
           name: Installer-Logs-Windows-${{ matrix.winver }}-${{ matrix.config }}-${{ matrix.build-type }}
           path: logs/
+
+  Publish-Release:
+    runs-on: windows-latest
+    needs: Build-Installer
+    if: github.event_name == 'push'
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Download installer artifact
+        uses: actions/download-artifact@v8
+        with:
+          pattern: Package-*
+          path: bin
+
+      - name: Publish release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: .github/publish-release.sh
