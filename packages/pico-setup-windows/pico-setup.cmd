@@ -1,8 +1,9 @@
 @if not defined _echo echo off
 
-set interactive=%~2
+set interactive=1
+if /I [%1] equ [-noninteractive] set interactive=0
 
-call "%~dp0pico-env.cmd" "%~1" || exit /b 1
+call "%~dp0pico-env.cmd" || exit /b 1
 setlocal enabledelayedexpansion
 
 rem This is mostly a port of pico-setup
@@ -12,9 +13,8 @@ set "GITHUB_PREFIX=https://github.com/raspberrypi/"
 set "GITHUB_SUFFIX=.git"
 set "SDK_BRANCH=sdk-%PICO_SDK_VERSION%"
 
-set "PICO_REPOS_PATH=%~1"
-mkdir "%PICO_REPOS_PATH%"
-pushd "%PICO_REPOS_PATH%"
+pushd "%~dp0"
+set "PICO_REPOS_PATH=%CD%"
 
 for %%i in (examples extras playground) do (
   set "DEST=%PICO_REPOS_PATH%\pico-%%i"
@@ -50,9 +50,6 @@ for %%j in (pico pico2) do (
 )
 
 if "%interactive%" equ "1" (
-  rem Open repo folder in Explorer
-  start .
-
   rem Keep the terminal window open
   pause
 )
