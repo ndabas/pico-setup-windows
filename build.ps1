@@ -64,6 +64,7 @@ $additionalFiles = @(
   "packages\pico-setup-windows\pico-env.cmd"
   "packages\pico-setup-windows\pico-setup.cmd"
   "docs\README.txt"
+  "build\VERSIONS.txt"
 )
 
 if ($CompileConfig) {
@@ -93,6 +94,32 @@ $msysEnv = $msysEnv.ToLowerInvariant()
 mkdirp "build"
 mkdirp "bin"
 
+"Included in this release:" | Out-File -FilePath "build\VERSIONS.txt"
+
+$versionRegEx = '([0-9]+\.)+[0-9]+'
+
+function guessVersion {
+  param ($downloadInfo)
+
+  # Display versions of packaged installers, for information only. We try to
+  # extract it from:
+  # 1. The file name
+  # 2. The download URL
+  # 3. The version metadata in the file
+  #
+  # This fails for MSYS2, because there is no version number (only a timestamp)
+  # and the version that gets reported is 7-zip SFX version.
+  $fileVersion = ''
+  if ($_.file -match $versionRegEx -or $_.href -match $versionRegEx) {
+    $fileVersion = $Matches[0]
+  }
+  else {
+    $fileVersion = (Get-ChildItem $outfile).VersionInfo.ProductVersion
+  }
+
+  $fileVersion ? $fileVersion : $_.file
+}
+
 ($downloads + $tools) | ForEach-Object {
   $outfile = "downloads/$($_.file)"
 
@@ -107,29 +134,7 @@ mkdirp "bin"
     exec { curl.exe --fail --silent --show-error --url "$($_.href)" --location --output "$outfile" --create-dirs --remote-time --time-cond "downloads/$($_.file)" }
   }
 
-  # Display versions of packaged installers, for information only. We try to
-  # extract it from:
-  # 1. The file name
-  # 2. The download URL
-  # 3. The version metadata in the file
-  #
-  # This fails for MSYS2, because there is no version number (only a timestamp)
-  # and the version that gets reported is 7-zip SFX version.
-  $fileVersion = ''
-  $versionRegEx = '([0-9]+\.)+[0-9]+'
-  if ($_.file -match $versionRegEx -or $_.href -match $versionRegEx) {
-    $fileVersion = $Matches[0]
-  }
-  else {
-    $fileVersion = (Get-ChildItem $outfile).VersionInfo.ProductVersion
-  }
-
-  if ($fileVersion) {
-    Write-Host $fileVersion
-  }
-  else {
-    Write-Host $_.file
-  }
+  guessVersion $_ | Write-Host
 
   if ($_ | Get-Member dirName) {
     $strip = 0;
@@ -164,14 +169,7 @@ $repositories | ForEach-Object {
     }
   }
 
-  if (-not $buildTargets.HasFlag([BuildTargets]::Download)) {
-    Write-Host "Checking ${repodir}: " -NoNewline
-    if (-not (Test-Path $repodir)) {
-      Write-Error "$repodir not found"
-    }
-    exec { git -C "$repodir" describe --all }
-  }
-  else {
+  if ($buildTargets.HasFlag([BuildTargets]::Download)) {
     if (Test-Path $repodir) {
       Remove-Item $repodir -Recurse -Force
     }
@@ -184,6 +182,15 @@ $repositories | ForEach-Object {
       Write-Output "::endgroup::"
     }
   }
+
+  Write-Host "Checking ${repodir}: " -NoNewline
+  if (-not (Test-Path $repodir)) {
+    Write-Error "$repodir not found"
+  }
+  $tree = exec { git -C "$repodir" describe --all }
+  Write-Host $tree
+
+  "- ${reponame}: $tree" | Out-File -FilePath "build\VERSIONS.txt" -Append
 }
 
 # BTstack needs the PyCryptodome module
@@ -443,6 +450,27 @@ sign "build\uninstall.exe",
 "build\pico-sdk-tools\$msysEnv\pioasm\pioasm.exe",
 "build\pico-sdk-tools\$msysEnv\picotool\picotool.exe"
 
+$suffix = $compileOpts.architecture
+
+$downloads | ForEach-Object {
+  "- $($_.name): $(guessVersion $_)"
+} | Out-File -FilePath "build\VERSIONS.txt" -Append
+
+$compileOpts.builds | ForEach-Object {
+  Write-Host "Checking version for $($_.name): " -NoNewline
+  $checkVersionCmd = $_.checkVersion
+  $version = (cmd /c cd "build\$($_.dirName)\$msysEnv" '&&' @checkVersionCmd '2>&1' | Select-String -Pattern $versionRegEx).Matches.Value
+  Write-Host $version
+
+  "- $($_.name): $version" | Out-File -FilePath "build\VERSIONS.txt" -Append
+
+  if ($buildTargets.HasFlag([BuildTargets]::Archive)) {
+    $zipfile = "bin\$($_.installDirName)-$version-$suffix.zip"
+    exec { python .\packages\common\mkzip.py -f "$zipfile" "build\$($_.dirName)\$msysEnv\" }
+    Write-Host "Archive saved to $zipfile"
+  }
+}
+
 if ($buildTargets.HasFlag([BuildTargets]::Installer)) {
   exec { .\build\NSIS\makensis ".\$basename.nsi" }
   Write-Host "Installer saved to $exefile"
@@ -452,19 +480,6 @@ if ($buildTargets.HasFlag([BuildTargets]::Installer)) {
 }
 
 if ($buildTargets.HasFlag([BuildTargets]::Archive)) {
-  $suffix = $compileOpts.architecture
-
-  $compileOpts.builds | ForEach-Object {
-    Write-Host "Checking version for $($_.name): " -NoNewline
-    $checkVersionCmd = $_.checkVersion
-    $version = (cmd /c cd "build\$($_.dirName)\$msysEnv" '&&' @checkVersionCmd '2>&1' | Select-String -Pattern $versionRegEx).Matches.Value
-    Write-Host $version
-
-    $zipfile = "bin\$($_.installDirName)-$version-$suffix.zip"
-    exec { python .\packages\common\mkzip.py -f "$zipfile" "build\$($_.dirName)\$msysEnv\" }
-    Write-Host "Archive saved to $zipfile"
-  }
-
   $archiveContents -join "`n" | Out-File -FilePath "build\archive-contents.txt"
   $zipfile = "bin\$basename-$suffix.zip"
   exec { python .\packages\common\mkzip.py -f "$zipfile" "@build\archive-contents.txt" }

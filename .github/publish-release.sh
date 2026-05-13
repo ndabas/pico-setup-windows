@@ -25,5 +25,9 @@ if [ ! -e "${ARTIFACTS[0]}" ]; then
     exit 1
 fi
 
+echo "Updating notes for ${TAG}..."
+unzip -q bin/pico-setup-windows-*.zip VERSIONS.txt -d build/
+gh release edit "${TAG}" --notes-file build/VERSIONS.txt
+
 echo "Uploading ${#ARTIFACTS[@]} artifact(s)..."
 gh release upload "${TAG}" "${ARTIFACTS[@]}" --clobber
