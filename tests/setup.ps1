@@ -42,7 +42,7 @@ if ($installer.EndsWith('.exe')) {
 }
 
 Write-Output "::group::Running pico-setup.cmd"
-cmd /c call "$installPath\pico-setup.cmd" "$installPath"
+cmd /c call "$installPath\pico-setup.cmd" -noninteractive
 Write-Output "::endgroup::"
 if ($LASTEXITCODE -ne 0) {
   exit $LASTEXITCODE

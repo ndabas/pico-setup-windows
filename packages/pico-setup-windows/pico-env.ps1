@@ -8,4 +8,4 @@ cmd.exe /s /c "`"$PSScriptRoot\pico-env.cmd`" && set" | ForEach-Object {
   Set-Content env:\"$name" $value
 }
 
-Get-ChildItem env:PICO_*, env:OPENOCD_* | ForEach-Object { '{0}={1}' -f $_.Name, $_.Value }
+Get-ChildItem env:PICO_* | ForEach-Object { '{0}={1}' -f $_.Name, $_.Value }
