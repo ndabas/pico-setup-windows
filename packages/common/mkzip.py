@@ -26,6 +26,8 @@ def main(args=None):
     parser.add_argument('-f', '--file', nargs='+',
                         metavar=('<name>', '<file>'),
                         help='Create zipfile from sources')
+    parser.add_argument('--best', dest='compresslevel', action='store_const', const=9,
+                        help='Use best compression (slowest)')
     parser.add_argument('-v', '--verbose', action='store_true',
                         help='Print verbose output')
     args = parser.parse_args(args)
@@ -38,7 +40,7 @@ def main(args=None):
             if os.path.isfile(path):
                 if args.verbose:
                     print(f'Adding {path} as {zippath}')
-                zf.write(path, zippath, ZIP_DEFLATED)
+                zf.write(path, zippath, compress_type=ZIP_DEFLATED, compresslevel=args.compresslevel)
             elif os.path.isdir(path):
                 if zippath:
                     if args.verbose:
@@ -151,6 +153,11 @@ class TestMkzip(unittest.TestCase):
         # source path on Windows contains a drive colon but no space after it
         main(['-f', self.out, f'deep/file.txt: {self.lone}'])
         self.assertIn('deep/file.txt', self._names(self.out))
+
+    def test_best_compression(self):
+        """--best flag should not raise."""
+        main(['-f', self.out, self.lone, '--best'])
+        self.assertEqual(self._names(self.out), ['lone.txt'])
 
     def test_no_file_argument_is_noop(self):
         """Calling without -f should not raise."""
