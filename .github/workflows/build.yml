@@ -139,7 +139,7 @@ jobs:
           subst P: .
           P:
 
-          .\build.ps1 -CompileConfig .\config\x64-compile.json -InstallerConfig .\config\${{ matrix.config }}.json -Compression zlib -BuildType ${{ matrix.build-type }} -Target Download,${{ matrix.target }}
+          .\build.ps1 -CompileConfig .\config\x64-compile.json -InstallerConfig .\config\${{ matrix.config }}.json -Compression Best -BuildType ${{ matrix.build-type }} -Target Download,${{ matrix.target }}
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v7
@@ -185,7 +185,7 @@ jobs:
 
   Publish-Release:
     runs-on: windows-latest
-    needs: Build-Installer
+    needs: Test-Installer
     if: github.event_name == 'push'
     steps:
 

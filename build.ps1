@@ -17,9 +17,9 @@ param (
   [ValidateSet('Download', 'Compile', 'Sign', 'Installer', 'Archive')]
   [string[]]$Target,
 
-  [ValidateSet('zlib', 'bzip2', 'lzma')]
+  [ValidateSet('Default', 'Best')]
   [string]
-  $Compression = 'lzma',
+  $Compression = 'Default',
 
   [ValidateSet('system', 'user')]
   [string]
@@ -420,7 +420,7 @@ $downloads + $additionalDirs + $builds | ForEach-Object {
 
 $($componentSelection ? '!define ALLOW_COMPONENT_SELECTION' : '')
 
-SetCompressor $Compression
+SetCompressor $($Compression -eq 'Best' ? 'lzma' : 'zlib')
 RequestExecutionLevel $($BuildType -eq 'system' ? 'admin' : 'user')
 
 VIAddVersionKey "FileDescription" "`${TITLE}"
@@ -452,6 +452,12 @@ sign "build\uninstall.exe",
 
 $suffix = $compileOpts.architecture
 
+$mkzipArgs = @()
+if ($Compression -eq 'Best') {
+  $mkzipArgs += '--best'
+}
+$mkzipArgs += '-f'
+
 $downloads | ForEach-Object {
   "- $($_.name): $(guessVersion $_)"
 } | Out-File -FilePath "build\VERSIONS.txt" -Append
@@ -466,7 +472,7 @@ $compileOpts.builds | ForEach-Object {
 
   if ($buildTargets.HasFlag([BuildTargets]::Archive)) {
     $zipfile = "bin\$($_.installDirName)-$version-$suffix.zip"
-    exec { python .\packages\common\mkzip.py -f "$zipfile" "build\$($_.dirName)\$msysEnv\" }
+    exec { python .\packages\common\mkzip.py @mkzipArgs "$zipfile" "build\$($_.dirName)\$msysEnv\" }
     Write-Host "Archive saved to $zipfile"
   }
 }
@@ -482,6 +488,6 @@ if ($buildTargets.HasFlag([BuildTargets]::Installer)) {
 if ($buildTargets.HasFlag([BuildTargets]::Archive)) {
   $archiveContents -join "`n" | Out-File -FilePath "build\archive-contents.txt"
   $zipfile = "bin\$basename-$suffix.zip"
-  exec { python .\packages\common\mkzip.py -f "$zipfile" "@build\archive-contents.txt" }
+  exec { python .\packages\common\mkzip.py @mkzipArgs "$zipfile" "@build\archive-contents.txt" }
   Write-Host "Archive saved to $zipfile"
 }
