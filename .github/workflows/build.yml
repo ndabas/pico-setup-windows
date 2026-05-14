@@ -108,10 +108,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        config: [x64, x64-standalone]
-        build-type: [system]
-        target: [Installer]
         include:
+          - { config: x64, build-type: system, target: Installer }
           - { config: x64-standalone, build-type: user, target: Installer }
           - { config: x64-standalone, build-type: user, target: Archive }
     steps:
@@ -148,18 +146,19 @@ jobs:
           path: bin/
 
   Test-Installer:
-    runs-on: windows-latest
+    runs-on: ${{ matrix.winver.host }}
     needs: Build-Installer
     strategy:
       fail-fast: false
       matrix:
-        winver: ['2025']
-        config: [x64, x64-standalone]
-        build-type: [system]
-        target: [Installer]
-        include:
-          - { winver: '2025', config: x64-standalone, build-type: user, target: Installer }
-          - { winver: '2025', config: x64-standalone, build-type: user, target: Archive }
+        winver:
+          - { host: windows-latest, image: ltsc2025 }
+          - { host: windows-latest, image: ltsc2022 }
+          - { host: windows-11-arm, image: ltsc2025-arm64 }
+        installer:
+          - { config: x64, build-type: system, target: Installer }
+          - { config: x64-standalone, build-type: user, target: Installer }
+          - { config: x64-standalone, build-type: user, target: Archive }
     steps:
 
       - name: Checkout
@@ -168,19 +167,19 @@ jobs:
       - name: Download installer artifact
         uses: actions/download-artifact@v8
         with:
-          name: Package-${{ matrix.config }}-${{ matrix.build-type }}-${{ matrix.target }}
+          name: Package-${{ matrix.installer.config }}-${{ matrix.installer.build-type }}-${{ matrix.installer.target }}
           path: bin
 
-      - name: Test ${{ matrix.config }} (${{ matrix.build-type }})
+      - name: Test ${{ matrix.installer.config }} (${{ matrix.installer.build-type }})
         shell: pwsh
         run: docker run --rm -v "$(Get-Location):C:\repo" -w C:\repo
-          mcr.microsoft.com/windows/servercore:ltsc${{ matrix.winver }}
+          mcr.microsoft.com/windows/servercore:${{ matrix.winver.image }}
           powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File .\tests\setup.ps1
 
       - name: Upload installer logs
         uses: actions/upload-artifact@v7
         with:
-          name: Installer-Logs-Windows-${{ matrix.winver }}-${{ matrix.config }}-${{ matrix.build-type }}
+          name: Installer-Logs-Windows-${{ matrix.winver.image }}-${{ matrix.installer.config }}-${{ matrix.installer.build-type }}
           path: logs/
 
   Publish-Release:
