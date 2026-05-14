@@ -154,7 +154,8 @@ jobs:
         winver:
           - { host: windows-latest, image: ltsc2025 }
           - { host: windows-latest, image: ltsc2022 }
-          - { host: windows-11-arm, image: ltsc2025-arm64 }
+          # Windows 11 ARM64 does not have Docker installed
+          # - { host: windows-11-arm, image: ltsc2025-arm64 }
         installer:
           - { config: x64, build-type: system, target: Installer }
           - { config: x64-standalone, build-type: user, target: Installer }
