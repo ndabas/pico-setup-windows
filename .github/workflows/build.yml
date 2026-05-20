@@ -155,6 +155,7 @@ jobs:
           - { host: windows-latest, image: ltsc2025 }
           - { host: windows-latest, image: ltsc2022 }
           # Windows 11 ARM64 does not have Docker installed
+          # (and Docker CE on Windows 11 ARM does not support Windows containers currently anyway)
           # - { host: windows-11-arm, image: ltsc2025-arm64 }
         installer:
           - { config: x64, build-type: system, target: Installer }
