@@ -16,35 +16,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Test PowerShell scripts
-        shell: pwsh
-        run: |
-          $pesterConfig = @{
-            Run = @{
-              Path = ".\tests\common.Tests.ps1"
-              Exit = $true
-            }
-            TestResult = @{
-              Enabled = $true
-              OutputPath = "testResults.xml"
-              OutputFormat = "NUnitXML"
-            }
-            Output = @{
-              Verbosity = "Detailed"
-            }
-          }
-          Invoke-Pester -Configuration $pesterConfig
-
       - name: Test Python scripts
         shell: pwsh
         working-directory: packages\common
         run: python -m unittest mkzip
-
-      - name: Upload test results
-        uses: actions/upload-artifact@v7
-        with:
-          name: Pester-Test-Results
-          path: testResults.xml
 
   Build-Prerequisites:
     runs-on: windows-latest

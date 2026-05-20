@@ -1,9 +1,29 @@
-#Requires -Version 7.0
+#Requires -Version 7.4
+
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
-. "$PSScriptRoot\common.ps1"
+function crawl {
+  param ([string]$url)
+
+  # developer.arm.com doesn't like PowerShell or a spoofed Chrome user agent, but oddly allows curl
+  (Invoke-WebRequest $url -UseBasicParsing -UserAgent 'curl/8.18.0').Links |
+    Where-Object {
+      ($_ | Get-Member href) -and
+      [uri]::IsWellFormedUriString($_.href, [System.UriKind]::RelativeOrAbsolute)
+    } |
+    ForEach-Object {
+      $href = [System.Net.WebUtility]::HtmlDecode($_.href)
+
+      try {
+        (New-Object System.Uri([uri]$url, $href)).AbsoluteUri
+      }
+      catch {
+        $href
+      }
+    }
+}
 
 function getGitHubReleaseAssetUrl {
   param (

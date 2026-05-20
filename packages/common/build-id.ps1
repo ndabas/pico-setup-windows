@@ -15,10 +15,11 @@ param (
   $ConfigFile
 )
 
-#Requires -Version 7.2
+#Requires -Version 7.4
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+$PSNativeCommandUseErrorActionPreference = $true
 
 $remoteCommit = ((Get-Content .\config\repositories.json | ConvertFrom-Json).repositories |
   Where-Object { $_.href -like "*${Repo}.git" } |

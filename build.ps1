@@ -26,13 +26,12 @@ param (
   $BuildType = 'system'
 )
 
-#Requires -Version 7.2
+#Requires -Version 7.4
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+$PSNativeCommandUseErrorActionPreference = $true
 $ProgressPreference = 'SilentlyContinue'
-
-. "$PSScriptRoot\common.ps1"
 
 $basename = "pico-setup-windows"
 $version = (Get-Content "$PSScriptRoot\version.txt").Trim()
@@ -91,6 +90,16 @@ if ($InstallerConfig) {
 $env:MSYSTEM = $msysEnv
 $msysEnv = $msysEnv.ToLowerInvariant()
 
+function mkdirp {
+  param ([string] $dir, [switch] $clean)
+
+  New-Item -Path $dir -Type Directory -Force | Out-Null
+
+  if ($clean) {
+    Remove-Item -Path "$dir\*" -Recurse -Force
+  }
+}
+
 mkdirp "build"
 mkdirp "bin"
 
@@ -131,7 +140,7 @@ function guessVersion {
   }
   else {
     Write-Host "Downloading $($_.name): " -NoNewline
-    exec { curl.exe --fail --silent --show-error --url "$($_.href)" --location --output "$outfile" --create-dirs --remote-time --time-cond "downloads/$($_.file)" }
+    curl.exe --fail --silent --show-error --url "$($_.href)" --location --output "$outfile" --create-dirs --remote-time --time-cond "downloads/$($_.file)"
   }
 
   guessVersion $_ | Write-Host
@@ -141,7 +150,7 @@ function guessVersion {
     if ($_ | Get-Member extractStrip) { $strip = $_.extractStrip }
 
     mkdirp "build\$($_.dirName)" -clean
-    exec { tar -xf $outfile -C "build\$($_.dirName)" --strip-components $strip }
+    tar -xf $outfile -C "build\$($_.dirName)" --strip-components $strip
   }
 }
 
@@ -174,11 +183,11 @@ $repositories | ForEach-Object {
       Remove-Item $repodir -Recurse -Force
     }
 
-    exec { git clone -b "$($_.tree)" --depth=1 -c advice.detachedHead=false "$($_.href)" "$repodir" }
+    git clone -b "$($_.tree)" --depth=1 -c advice.detachedHead=false "$($_.href)" "$repodir"
 
     if ($_ | Get-Member submodules) {
       Write-Output "::group::Cloning submodules for $reponame"
-      exec { git -C "$repodir" submodule update --init --depth=1 }
+      git -C "$repodir" submodule update --init --depth=1
       Write-Output "::endgroup::"
     }
   }
@@ -187,7 +196,7 @@ $repositories | ForEach-Object {
   if (-not (Test-Path $repodir)) {
     Write-Error "$repodir not found"
   }
-  $tree = exec { git -C "$repodir" describe --all }
+  $tree = git -C "$repodir" describe --all
   Write-Host $tree
 
   "- ${reponame}: $tree" | Out-File -FilePath "build\VERSIONS.txt" -Append
@@ -195,12 +204,12 @@ $repositories | ForEach-Object {
 
 # BTstack needs the PyCryptodome module
 if (Test-Path .\build\python\python.exe) {
-  exec { .\build\python\python.exe .\downloads\pip.pyz install pycryptodome }
+  .\build\python\python.exe .\downloads\pip.pyz install pycryptodome
   Add-Content -Path .\build\python\python*._pth -Value 'import site'
 }
 
 # Clone additional Pico-specific submodules in TinyUSB
-# exec { git -C .\build\pico-sdk\lib\tinyusb submodule update --init --depth=1 hw\mcu\raspberry_pi }
+# git -C .\build\pico-sdk\lib\tinyusb submodule update --init --depth=1 hw\mcu\raspberry_pi
 
 $sdkVersion = (cmake -P .\packages\pico-setup-windows\pico-sdk-version.cmake -N | Select-String -Pattern 'PICO_SDK_VERSION_STRING=(.*)$').Matches.Groups[1].Value
 if (-not ($sdkVersion -match $versionRegEx)) {
@@ -240,7 +249,7 @@ function sign {
 function msys {
   param ([string] $cmd)
 
-  exec { & "$MSYS2Path\usr\bin\bash" -leo pipefail -c "$cmd" }
+  & "$MSYS2Path\usr\bin\bash" -leo pipefail -c "$cmd"
 }
 
 # Preserve the current working directory
@@ -251,7 +260,7 @@ $env:MSYS = "winsymlinks:nativestrict"
 if ($buildTargets.HasFlag([BuildTargets]::Compile)) {
   if (-not (Test-Path $MSYS2Path)) {
     Write-Host 'Extracting MSYS2'
-    exec { & .\downloads\msys2.exe -y "-o$(Resolve-Path (Split-Path $MSYS2Path -Parent))" }
+    & .\downloads\msys2.exe -y "-o$(Resolve-Path (Split-Path $MSYS2Path -Parent))"
   }
 
   Write-Output "::group::Setting up MSYS2 environment"
@@ -435,11 +444,11 @@ VIProductVersion $sdkVersionClean.0
 "@ | Out-File -FilePath "build\installer-header.nsh"
 
 if ($buildTargets.HasFlag([BuildTargets]::Installer)) {
-  exec { .\build\NSIS\makensis /DBUILD_UNINSTALLER ".\$basename.nsi" }
+  .\build\NSIS\makensis /DBUILD_UNINSTALLER ".\$basename.nsi"
 
   # The 'installer' that just writes the uninstaller asks for admin access, which is not actually needed.
   $env:__COMPAT_LAYER = "RunAsInvoker"
-  exec { Start-Process -FilePath ".\build\build-uninstaller.exe" -ArgumentList "/S /D=$(Join-Path $PSScriptRoot 'build')" -Wait }
+  Start-Process -FilePath ".\build\build-uninstaller.exe" -ArgumentList "/S /D=$(Join-Path $PSScriptRoot 'build')" -Wait
   $env:__COMPAT_LAYER = ""
 }
 
@@ -472,13 +481,13 @@ $compileOpts.builds | ForEach-Object {
 
   if ($buildTargets.HasFlag([BuildTargets]::Archive)) {
     $zipfile = "bin\$($_.installDirName)-$version-$suffix.zip"
-    exec { python .\packages\common\mkzip.py @mkzipArgs "$zipfile" "build\$($_.dirName)\$msysEnv\" }
+    python .\packages\common\mkzip.py @mkzipArgs "$zipfile" "build\$($_.dirName)\$msysEnv\"
     Write-Host "Archive saved to $zipfile"
   }
 }
 
 if ($buildTargets.HasFlag([BuildTargets]::Installer)) {
-  exec { .\build\NSIS\makensis ".\$basename.nsi" }
+  .\build\NSIS\makensis ".\$basename.nsi"
   Write-Host "Installer saved to $exefile"
 
   # Sign the installer
@@ -488,6 +497,6 @@ if ($buildTargets.HasFlag([BuildTargets]::Installer)) {
 if ($buildTargets.HasFlag([BuildTargets]::Archive)) {
   $archiveContents -join "`n" | Out-File -FilePath "build\archive-contents.txt"
   $zipfile = "bin\$basename-$suffix.zip"
-  exec { python .\packages\common\mkzip.py @mkzipArgs "$zipfile" "@build\archive-contents.txt" }
+  python .\packages\common\mkzip.py @mkzipArgs "$zipfile" "@build\archive-contents.txt"
   Write-Host "Archive saved to $zipfile"
 }
