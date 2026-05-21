@@ -2,14 +2,17 @@
 
 set -euo pipefail
 
-BITNESS=$1
-ARCH=$2
+BUILDDIR="$PWD"
+INSTALLDIR="openocd-install"
+
+. "$BUILDDIR/../packages/common/num-jobs.sh"
 
 cd openocd
 ./bootstrap
-./configure
-make clean
-make -j4
-DESTDIR="$PWD/../openocd-install" make install
-cp "/mingw$BITNESS/bin/libhidapi-0.dll" "$PWD/../openocd-install/mingw$BITNESS/bin"
-cp "/mingw$BITNESS/bin/libusb-1.0.dll" "$PWD/../openocd-install/mingw$BITNESS/bin"
+./configure --disable-werror --enable-internal-jimtcl #CFLAGS="-Duint=uint32_t"
+make
+
+DESTDIR="$BUILDDIR/$INSTALLDIR" make install-strip
+
+cd "$BUILDDIR/$INSTALLDIR/${MSYSTEM,,}/bin"
+"$BUILDDIR/../packages/common/copy-deps.sh"

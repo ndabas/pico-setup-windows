@@ -1,5 +1,12 @@
 name: Build
-on: [push, pull_request]
+permissions:
+  contents: write
+on:
+  push:
+    branches:
+      - '**'
+    tags-ignore:
+      - 'v*'
 jobs:
 
   Test-Scripts:
@@ -7,110 +14,169 @@ jobs:
     steps:
 
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v6
 
-      - name: Test scripts
+      - name: Test Python scripts
         shell: pwsh
-        run: |
-          $pesterConfig = @{
-            Run = @{
-              Path = ".\tests\common.Tests.ps1"
-              Exit = $true
-            }
-            TestResult = @{
-              Enabled = $true
-              OutputPath = "testResults.xml"
-              OutputFormat = "NUnitXML"
-            }
-            Output = @{
-              Verbosity = "Detailed"
-            }
-          }
-          Invoke-Pester -Configuration $pesterConfig
+        working-directory: packages\common
+        run: python -m unittest mkzip
 
-      - name: Upload test results
-        uses: actions/upload-artifact@v2
-        if: ${{ always() }}
-        with:
-          name: Pester-Test-Results
-          path: testResults.xml
-
-  Build:
+  Build-Prerequisites:
     runs-on: windows-latest
     needs: Test-Scripts
-    strategy:
-      fail-fast: false
-      matrix:
-        config: [x86, x64, x64-standalone]
-        build-type: [system]
-        include:
-          - { config: x64-standalone, build-type: user }
     steps:
 
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v6
 
       - name: Setup MSYS2
         uses: msys2/setup-msys2@v2
 
+      - name: Turn off git autocrlf
+        shell: pwsh
+        run: git config --global core.autocrlf false
+
       - name: Check OpenOCD repository
         shell: pwsh
-        run: |
-          $OpenOCDCommit = ((Get-Content .\config\repositories.json | ConvertFrom-Json).repositories | Where-Object { $_.href -like '*openocd.git' } | ForEach-Object { git ls-remote $_.href $_.tree }).Split("`t")[0]
-          $Bitness = (Get-Content .\config\${{ matrix.config }}.json | ConvertFrom-Json).bitness
-          Add-Content -Path $env:GITHUB_ENV -Value "OPENOCD_BUILD_ID=openocd-$OpenOCDCommit-$Bitness"
+        run: .\packages\common\build-id.ps1 openocd .\config\x64-compile.json >> $env:GITHUB_ENV
 
       - name: Cache OpenOCD build
-        uses: actions/cache@v3
+        uses: actions/cache@v5
         with:
           path: build/openocd-install
           key: ${{ env.OPENOCD_BUILD_ID }}
 
-      - name: Build ${{ matrix.config }} (${{ matrix.build-type }})
+      - name: Check riscv-gnu-toolchain repository
+        shell: pwsh
+        run: .\packages\common\build-id.ps1 riscv-gnu-toolchain .\config\x64-compile.json >> $env:GITHUB_ENV
+
+      - name: Cache riscv-gnu-toolchain build
+        uses: actions/cache@v5
+        with:
+          path: build/riscv-gnu-toolchain-install
+          key: ${{ env.RISCV-GNU-TOOLCHAIN_BUILD_ID }}
+
+      - name: Compile
         shell: pwsh
         run: |
           Set-StrictMode -Version Latest
           $ErrorActionPreference = 'Stop'
           $ProgressPreference = 'SilentlyContinue'
 
-          .\build.ps1 .\config\${{ matrix.config }}.json -MSYS2Path (msys2 -c 'cygpath -m /').TrimEnd('\/') -SkipSigning -Compression zlib -BuildType ${{ matrix.build-type }}
+          subst P: .
+          P:
+
+          .\build.ps1 -CompileConfig .\config\x64-compile.json -MSYS2Path (msys2 -c 'cygpath -m /').TrimEnd('\/') -Target Download,Compile
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v7
         with:
-          name: Package-${{ matrix.config }}-${{ matrix.build-type }}
-          path: bin/
+          name: Build-x64
+          path: |
+            build/pico-sdk-tools
+            build/openocd-install
+            build/riscv-gnu-toolchain-install
 
-  Test-Installer:
-    runs-on: windows-${{ matrix.winver }}
-    needs: Build
+  Build-Installer:
+    runs-on: windows-latest
+    needs: Build-Prerequisites
     strategy:
       fail-fast: false
       matrix:
-        winver: ['2022']
-        config: [x64, x64-standalone]
-        build-type: [system]
         include:
-          - { winver: '2022', config: x64-standalone, build-type: user }
+          - { config: x64, build-type: system, target: Installer }
+          - { config: x64-standalone, build-type: user, target: Installer }
+          - { config: x64-standalone, build-type: user, target: Archive }
     steps:
 
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v6
+
+      - name: Turn off git autocrlf
+        shell: pwsh
+        run: git config --global core.autocrlf false
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: Build-x64
+          path: build
+
+      - name: Build ${{ matrix.config }} ${{ matrix.target }} (${{ matrix.build-type }})
+        shell: pwsh
+        run: |
+          Set-StrictMode -Version Latest
+          $ErrorActionPreference = 'Stop'
+          $ProgressPreference = 'SilentlyContinue'
+
+          subst P: .
+          P:
+
+          .\build.ps1 -CompileConfig .\config\x64-compile.json -InstallerConfig .\config\${{ matrix.config }}.json -Compression Best -BuildType ${{ matrix.build-type }} -Target Download,${{ matrix.target }}
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: Package-${{ matrix.config }}-${{ matrix.build-type }}-${{ matrix.target }}
+          path: bin/
+
+  Test-Installer:
+    runs-on: ${{ matrix.winver.host }}
+    needs: Build-Installer
+    strategy:
+      fail-fast: false
+      matrix:
+        winver:
+          - { host: windows-latest, image: ltsc2025 }
+          - { host: windows-latest, image: ltsc2022 }
+          # Windows 11 ARM64 does not have Docker installed
+          # (and Docker CE on Windows 11 ARM does not support Windows containers currently anyway)
+          # - { host: windows-11-arm, image: ltsc2025-arm64 }
+        installer:
+          - { config: x64, build-type: system, target: Installer }
+          - { config: x64-standalone, build-type: user, target: Installer }
+          - { config: x64-standalone, build-type: user, target: Archive }
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v6
 
       - name: Download installer artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v8
         with:
-          name: Package-${{ matrix.config }}-${{ matrix.build-type }}
+          name: Package-${{ matrix.installer.config }}-${{ matrix.installer.build-type }}-${{ matrix.installer.target }}
           path: bin
 
-      - name: Test ${{ matrix.config }} (${{ matrix.build-type }})
+      - name: Test ${{ matrix.installer.config }} (${{ matrix.installer.build-type }})
         shell: pwsh
-        run: docker run --rm -v "$(Get-Location):C:\repo" mcr.microsoft.com/windows/servercore:ltsc${{ matrix.winver }}
-          powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "cd C:\repo; .\tests\setup.ps1"
+        run: docker run --rm -v "$(Get-Location):C:\repo" -w C:\repo
+          mcr.microsoft.com/windows/servercore:${{ matrix.winver.image }}
+          powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File .\tests\setup.ps1
 
       - name: Upload installer logs
-        uses: actions/upload-artifact@v2
-        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
         with:
-          name: Installer-Logs-Windows-${{ matrix.winver }}-${{ matrix.config }}-${{ matrix.build-type }}
+          name: Installer-Logs-Windows-${{ matrix.winver.image }}-${{ matrix.installer.config }}-${{ matrix.installer.build-type }}
           path: logs/
+
+  Publish-Release:
+    runs-on: windows-latest
+    needs: Test-Installer
+    if: github.event_name == 'push'
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Download installer artifact
+        uses: actions/download-artifact@v8
+        with:
+          pattern: Package-*
+          merge-multiple: true
+          path: bin
+
+      - name: Publish release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: .github/publish-release.sh

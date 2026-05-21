@@ -1,74 +1,114 @@
 [CmdletBinding()]
 param (
-  [Parameter(Mandatory = $true,
-    Position = 0,
-    HelpMessage = "Path to a JSON installer configuration file.")]
-  [Alias("PSPath")]
-  [ValidateNotNullOrEmpty()]
+  [Parameter(HelpMessage = "Path to a compile configuration file.")]
   [string]
-  $ConfigFile,
+  $CompileConfig,
+
+  [Parameter(HelpMessage = "Path to an installer configuration file.")]
+  [string]
+  $InstallerConfig,
 
   [Parameter(HelpMessage = "Path to MSYS2 installation. MSYS2 will be downloaded and installed to this path if it doesn't exist.")]
   [ValidatePattern('[\\\/]msys64$')]
   [string]
   $MSYS2Path = '.\build\msys64',
 
-  [switch]
-  $SkipDownload,
+  [Parameter(Mandatory = $True)]
+  [ValidateSet('Download', 'Compile', 'Sign', 'Installer', 'Archive')]
+  [string[]]$Target,
 
-  [switch]
-  $SkipSigning,
-
-  [ValidateSet('zlib', 'bzip2', 'lzma')]
+  [ValidateSet('Default', 'Best')]
   [string]
-  $Compression = 'lzma',
+  $Compression = 'Default',
 
   [ValidateSet('system', 'user')]
   [string]
   $BuildType = 'system'
 )
 
-#Requires -Version 7.2
+#Requires -Version 7.4
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+$PSNativeCommandUseErrorActionPreference = $true
 $ProgressPreference = 'SilentlyContinue'
-
-. "$PSScriptRoot\common.ps1"
-
-Write-Host "Building from $ConfigFile"
 
 $basename = "pico-setup-windows"
 $version = (Get-Content "$PSScriptRoot\version.txt").Trim()
 $build = (Get-Date -Format FileDateTimeUniversal)
-$suffix = [io.path]::GetFileNameWithoutExtension($ConfigFile) + ($BuildType -eq 'user' ? '-user' : '' )
-$binfile = "bin\$basename-$suffix.exe"
 
 $tools = (Get-Content '.\config\tools.json' | ConvertFrom-Json).tools
 $repositories = (Get-Content '.\config\repositories.json' | ConvertFrom-Json).repositories
-$config = Get-Content $ConfigFile | ConvertFrom-Json
-$bitness = $config.bitness
-$mingw_arch = $config.mingwArch
-$downloads = $config.downloads
-$componentSelection = ($config | Get-Member componentSelection) ? $config.componentSelection : $false
+
+[Flags()] enum BuildTargets {
+  Download = 1
+  Compile = 2
+  Sign = 4
+  Installer = 8
+  Archive = 16
+}
+$buildTargets = [BuildTargets] $Target
+
+$compileOpts = $null
+$installerOpts = $null
+$bitness = $null
+$msysEnv = $null
+$downloads = @()
+$builds = @()
+$componentSelection = $false
+
+$additionalDirs = @()
+$additionalFiles = @(
+  "packages\pico-setup-windows\pico-env.ps1"
+  "packages\pico-setup-windows\pico-env.cmd"
+  "packages\pico-setup-windows\pico-setup.cmd"
+  "docs\README.txt"
+  "build\VERSIONS.txt"
+)
+
+if ($CompileConfig) {
+  Write-Host "Loading compile configuration from $CompileConfig"
+  $compileOpts = Get-Content $CompileConfig | ConvertFrom-Json
+  $builds = $compileOpts.builds
+  $bitness = $compileOpts.bitness
+  $msysEnv = $compileOpts.msysEnv
+}
+
+if ($InstallerConfig) {
+  Write-Host "Loading installer configuration from $InstallerConfig"
+  $installerOpts = Get-Content $InstallerConfig | ConvertFrom-Json
+  $bitness = $installerOpts.bitness
+  $msysEnv = $installerOpts.msysEnv
+  $downloads = $installerOpts.downloads
+  $componentSelection = ($installerOpts | Get-Member componentSelection) ? $installerOpts.componentSelection : $false
+}
+
+($downloads + $tools + $builds) | ForEach-Object {
+  $_ | Add-Member -NotePropertyName 'shortName' -NotePropertyValue ($_.name -replace '[^a-zA-Z0-9]', '')
+}
+
+$env:MSYSTEM = $msysEnv
+$msysEnv = $msysEnv.ToLowerInvariant()
+
+function mkdirp {
+  param ([string] $dir, [switch] $clean)
+
+  New-Item -Path $dir -Type Directory -Force | Out-Null
+
+  if ($clean) {
+    Remove-Item -Path "$dir\*" -Recurse -Force
+  }
+}
 
 mkdirp "build"
 mkdirp "bin"
 
-($downloads + $tools) | ForEach-Object {
-  $_ | Add-Member -NotePropertyName 'shortName' -NotePropertyValue ($_.name -replace '[^a-zA-Z0-9]', '')
-  $outfile = "downloads/$($_.file)"
+"Included in this release:" | Out-File -FilePath "build\VERSIONS.txt"
 
-  if ($SkipDownload) {
-    Write-Host "Checking $($_.name): " -NoNewline
-    if (-not (Test-Path $outfile)) {
-      Write-Error "$outfile not found"
-    }
-  }
-  else {
-    Write-Host "Downloading $($_.name): " -NoNewline
-    exec { curl.exe --fail --silent --show-error --url "$($_.href)" --location --output "$outfile" --create-dirs --remote-time --time-cond "downloads/$($_.file)" }
-  }
+$versionRegEx = '([0-9]+\.)+[0-9]+'
+
+function guessVersion {
+  param ($downloadInfo)
 
   # Display versions of packaged installers, for information only. We try to
   # extract it from:
@@ -79,25 +119,38 @@ mkdirp "bin"
   # This fails for MSYS2, because there is no version number (only a timestamp)
   # and the version that gets reported is 7-zip SFX version.
   $fileVersion = ''
-  $versionRegEx = '([0-9]+\.)+[0-9]+'
   if ($_.file -match $versionRegEx -or $_.href -match $versionRegEx) {
     $fileVersion = $Matches[0]
-  } else {
+  }
+  else {
     $fileVersion = (Get-ChildItem $outfile).VersionInfo.ProductVersion
   }
 
-  if ($fileVersion) {
-    Write-Host $fileVersion
-  } else {
-    Write-Host $_.file
+  $fileVersion ? $fileVersion : $_.file
+}
+
+($downloads + $tools) | ForEach-Object {
+  $outfile = "downloads/$($_.file)"
+
+  if (-not $buildTargets.HasFlag([BuildTargets]::Download)) {
+    Write-Host "Checking $($_.name): " -NoNewline
+    if (-not (Test-Path $outfile)) {
+      Write-Error "$outfile not found"
+    }
   }
+  else {
+    Write-Host "Downloading $($_.name): " -NoNewline
+    curl.exe --fail --silent --show-error --url "$($_.href)" --location --output "$outfile" --create-dirs --remote-time --time-cond "downloads/$($_.file)"
+  }
+
+  guessVersion $_ | Write-Host
 
   if ($_ | Get-Member dirName) {
     $strip = 0;
     if ($_ | Get-Member extractStrip) { $strip = $_.extractStrip }
 
     mkdirp "build\$($_.dirName)" -clean
-    exec { tar -xf $outfile -C "build\$($_.dirName)" --strip-components $strip }
+    tar -xf $outfile -C "build\$($_.dirName)" --strip-components $strip
   }
 }
 
@@ -109,62 +162,79 @@ if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
   $env:PATH = $env:PATH + ';' + (Resolve-Path .\build\git\cmd).Path
 }
 
-$repositories | ForEach-Object {
-  $repodir = Join-Path 'build' ([IO.Path]::GetFileNameWithoutExtension($_.href))
+if (-not (Get-Command python -ErrorAction SilentlyContinue)) {
+  $env:PATH = $env:PATH + ';' + (Resolve-Path .\build\python).Path
+}
 
-  if ($SkipDownload) {
-    Write-Host "Checking ${repodir}: " -NoNewline
-    if (-not (Test-Path $repodir)) {
-      Write-Error "$repodir not found"
+"## Build sources" | Out-File -FilePath "build\VERSIONS.txt" -Append
+
+$repositories | ForEach-Object {
+  $reponame = [IO.Path]::GetFileNameWithoutExtension($_.href)
+  $repodir = Join-Path 'build' $reponame
+
+  if ($_.installLevel -ge 1) {
+    $additionalDirs += [PSCustomObject]@{
+      'dirName'      = $reponame
+      'name'         = $reponame
+      'shortName'    = ($reponame -replace '[^a-zA-Z0-9]', '')
+      'installLevel' = $_.installLevel
     }
-    exec { git -C "$repodir" describe --all }
   }
-  else {
+
+  if ($buildTargets.HasFlag([BuildTargets]::Download)) {
     if (Test-Path $repodir) {
       Remove-Item $repodir -Recurse -Force
     }
 
-    exec { git clone -b "$($_.tree)" --depth=1 -c advice.detachedHead=false "$($_.href)" "$repodir" }
+    git clone -b "$($_.tree)" --depth=1 -c advice.detachedHead=false "$($_.href)" "$repodir"
 
     if ($_ | Get-Member submodules) {
-      exec { git -C "$repodir" submodule update --init --depth=1 }
+      Write-Output "::group::Cloning submodules for $reponame"
+      git -C "$repodir" submodule update --init --depth=1
+      Write-Output "::endgroup::"
     }
   }
+
+  Write-Host "Checking ${repodir}: " -NoNewline
+  if (-not (Test-Path $repodir)) {
+    Write-Error "$repodir not found"
+  }
+  $tree = git -C "$repodir" describe --all
+  Write-Host $tree
+
+  "- ${reponame}: $tree" | Out-File -FilePath "build\VERSIONS.txt" -Append
 }
 
 # BTstack needs the PyCryptodome module
 if (Test-Path .\build\python\python.exe) {
-  exec { .\build\python\python.exe .\downloads\pip.pyz install pycryptodome }
+  .\build\python\python.exe .\downloads\pip.pyz install pycryptodome
   Add-Content -Path .\build\python\python*._pth -Value 'import site'
 }
 
 # Clone additional Pico-specific submodules in TinyUSB
-exec { git -C .\build\pico-sdk\lib\tinyusb submodule update --init --depth=1 hw\mcu\raspberry_pi }
+# git -C .\build\pico-sdk\lib\tinyusb submodule update --init --depth=1 hw\mcu\raspberry_pi
 
 $sdkVersion = (cmake -P .\packages\pico-setup-windows\pico-sdk-version.cmake -N | Select-String -Pattern 'PICO_SDK_VERSION_STRING=(.*)$').Matches.Groups[1].Value
 if (-not ($sdkVersion -match $versionRegEx)) {
   Write-Error 'Could not determine Pico SDK version.'
 }
 $sdkVersionClean = $Matches[0]
+$env:PICO_SDK_VERSION = $sdkVersionClean
 $sdkVersionCommit = (git -C .\build\pico-sdk rev-parse --short HEAD)
-$product = "Raspberry Pi Pico SDK v$sdkVersion"
-$productDir = "Raspberry Pi\Pico SDK v$sdkVersion"
-$company = "Raspberry Pi Ltd"
+$product = "Pico SDK v$sdkVersion"
+$productDir = "Pico SDK v$sdkVersion"
+$company = "Nikhil Dabas"
 
 Write-Host "SDK version: $sdkVersion ($sdkVersionCommit)"
 Write-Host "Installer version: $version"
 
-if (-not (Test-Path $MSYS2Path)) {
-  Write-Host 'Extracting MSYS2'
-  exec { & .\downloads\msys2.exe -y "-o$(Resolve-Path (Split-Path $MSYS2Path -Parent))" }
-}
-
 function sign {
   param ([string[]] $filesToSign)
 
-  if ($SkipSigning) {
+  if (-not $buildTargets.HasFlag([BuildTargets]::Sign)) {
     Write-Warning "Skipping code signing."
-  } else {
+  }
+  else {
     $cert = Get-ChildItem -Path Cert:\CurrentUser\My -CodeSigningCert | Where-Object { $_.Subject -like "CN=Raspberry Pi*" }
     if (-not $cert) {
       Write-Error "No suitable code signing certificates found."
@@ -182,15 +252,21 @@ function sign {
 function msys {
   param ([string] $cmd)
 
-  exec { & "$MSYS2Path\usr\bin\bash" -leo pipefail -c "$cmd" }
+  & "$MSYS2Path\usr\bin\bash" -leo pipefail -c "$cmd"
 }
 
 # Preserve the current working directory
 $env:CHERE_INVOKING = 'yes'
-# Start MINGW32/64 environment
-$env:MSYSTEM = "MINGW$bitness"
+# Use real symlinks
+$env:MSYS = "winsymlinks:nativestrict"
 
-if (-not $SkipDownload) {
+if ($buildTargets.HasFlag([BuildTargets]::Compile)) {
+  if (-not (Test-Path $MSYS2Path)) {
+    Write-Host 'Extracting MSYS2'
+    & .\downloads\msys2.exe -y "-o$(Resolve-Path (Split-Path $MSYS2Path -Parent))"
+  }
+
+  Write-Output "::group::Setting up MSYS2 environment"
   # First run setup
   msys 'uname -a'
   # Core update
@@ -198,76 +274,197 @@ if (-not $SkipDownload) {
   # Normal update
   msys 'pacman --noconfirm -Suu'
 
-  msys "pacman -S --noconfirm --needed autoconf automake git libtool make pactoys pkg-config wget"
+  msys "pacman -S --noconfirm --needed autoconf automake base-devel expat git libtool pactoys patchutils pkg-config"
+
   # pacboy adds MINGW_PACKAGE_PREFIX to package names suffixed with :p
-  msys "pacboy -S --noconfirm --needed cmake:p ninja:p toolchain:p libusb:p hidapi:p"
-}
+  msys "pacboy -S --noconfirm --needed cmake:p ninja:p toolchain:p libusb:p hidapi:p libslirp:p"
+  Write-Output "::endgroup::"
 
-if (-not (Test-Path ".\build\openocd-install\mingw$bitness")) {
-  msys "cd build && ../packages/openocd/build-openocd.sh $bitness $mingw_arch"
-}
-
-if (-not (Test-Path ".\build\picotool-install\mingw$bitness")) {
-  msys "cd build && ../packages/picotool/build-picotool.sh $bitness $mingw_arch"
-}
-
-$template = Get-Content ".\packages\pico-sdk-tools\pico-sdk-tools-config-version.cmake" -Raw
-$ExecutionContext.InvokeCommand.ExpandString($template) | Set-Content ".\build\pico-sdk-tools\mingw$bitness\pico-sdk-tools-config-version.cmake"
-
-exec { .\build\pandoc\pandoc.exe --from gfm --to gfm --output .\build\ReadMe.txt .\docs\tutorial.md }
-
-mkdirp .\build\pico-examples\.vscode
-Copy-Item .\packages\pico-examples\ide\vscode\*.json .\build\pico-examples\.vscode\ -Force
-exec {  tar -a -cf "build\pico-examples.zip" -C "build" "pico-examples" "pico-extras" "pico-playground" }
-
-$endl = '$\r$\n'
-
-function writeFile {
-  param ([string] $filename)
-
-  begin {
-    "FileOpen `$9 '$filename' w`r`n"
-  }
-  process {
-    $_  -split "[\r\n]+" | ForEach-Object {
-      "FileWrite `$9 ``${_}${endl}```r`n"
+  $compileOpts.builds | ForEach-Object {
+    if (-not (Test-Path ".\build\$($_.dirName)\$msysEnv")) {
+      Write-Output "::group::Building $($_.name)"
+      msys "cd build && ../$($_.buildScript)"
+      Write-Output "::endgroup::"
+    }
+    else {
+      Write-Output "Build output for $($_.name) already exists. Skipping build."
     }
   }
-  end {
-    "FileClose `$9`r`n"
-  }
 }
 
+function pascalCase {
+  param ([string] $s)
+
+  -join ($s -split '[-_ ]+' | ForEach-Object { $_.Substring(0, 1).ToUpper() + $_.Substring(1).ToLower() })
+}
+
+if ($null -eq $installerOpts) {
+  Write-Host "No installer configuration file provided. Skipping archive/installer build."
+  exit 0
+}
+
+$suffix = [io.path]::GetFileNameWithoutExtension($InstallerConfig) + ($BuildType -eq 'user' ? '-user' : '' )
+$exefile = "bin\$basename-$suffix.exe"
+
+$archiveContents = @() + $additionalFiles
+
+function declareInstallType {
+  param($installLevel)
+
+  # 1 = required, 2 = typical, 3 = full
+  # 0 indicates that the component should not be included in the installer
+
+  $instTypes = @('${IT_MIN} RO', '${IT_TYPICAL}', '${IT_FULL}')
+  "  SectionInstType $($instTypes[($installLevel - 1)..($instTypes.Length - 1)] -join ' ')"
+}
+
+& {
+  'SectionGroup /e "Tools"'
+  ''
+
+  $downloads | ForEach-Object {
+    "Section ``$($_.name)`` Sec$($_.shortName)"
+    declareInstallType $_.installLevel
+    '  ClearErrors'
+
+    if ($_ | Get-Member additionalFiles) {
+      $_.additionalFiles | ForEach-Object {
+        "  File /oname=`$PLUGINSDIR\$(Split-Path -Leaf $_) $_"
+      }
+    }
+
+    if (($_ | Get-Member exec) -or ($_ | Get-Member execToLog)) {
+
+      '  SetOutPath "$TEMP"'
+      "  File ``downloads\$($_.file)``"
+      "  StrCpy `$0 ```$TEMP\$($_.file)``"
+
+      if ($_ | Get-Member exec) {
+        "  ExecWait ``$($_.exec)`` `$1"
+      }
+
+      if ($_ | Get-Member execToLog) {
+        "  nsExec::ExecToLog ``$($_.execToLog)``"
+        "  Pop `$1"
+      }
+
+      "  DetailPrint ``$($_.name) returned `$1``"
+      "  Delete /REBOOTOK ```$0``"
+
+      '  ${If} ${Errors}'
+      "    Abort ``Installation of $($_.name) failed``"
+
+      if ($_ | Get-Member rebootExitCodes) {
+        $_.rebootExitCodes | ForEach-Object {
+          "  `${ElseIf} `$1 = $_"
+          '    SetRebootFlag true'
+        }
+      }
+
+      '  ${ElseIf} $1 <> 0'
+      "    Abort ``Installation of $($_.name) failed``"
+      '  ${EndIf}'
+    }
+
+    if ($_ | Get-Member dirName) {
+      "  SetOutPath '`$INSTDIR\$($_.dirName)'"
+      "  File /r build\$($_.dirName)\*.*"
+
+      $script:archiveContents += "build\$($_.dirName)"
+    }
+
+    'SectionEnd'
+    "LangString DESC_Sec$($_.shortName) `${LANG_ENGLISH} ``$($_.name)``"
+    ''
+  }
+
+  $builds | ForEach-Object {
+    "Section ``$($_.name)`` Sec$($_.shortName)"
+    declareInstallType $_.installLevel
+
+    if ($_ | Get-Member dirName) {
+      "  SetOutPath '`$INSTDIR\$($_.installDirName)'"
+      "  File /r build\$($_.dirName)\$msysEnv\*.*"
+
+      $script:archiveContents += "$($_.installDirName): build\$($_.dirName)\$msysEnv"
+    }
+
+    'SectionEnd'
+    "LangString DESC_Sec$($_.shortName) `${LANG_ENGLISH} ``$($_.name)``"
+    ''
+  }
+
+  'SectionGroupEnd'
+  ''
+
+  'SectionGroup /e "Source code repositories"'
+  ''
+  $additionalDirs | ForEach-Object {
+    "Section ``$($_.name)`` Sec$($_.shortName)"
+    declareInstallType $_.installLevel
+    "  SetOutPath '`$INSTDIR\$($_.dirName)'"
+    "  File /r build\$($_.dirName)\*.*"
+
+    $script:archiveContents += "build\$($_.dirName)"
+
+    'SectionEnd'
+    "LangString DESC_Sec$($_.shortName) `${LANG_ENGLISH} ``$($_.name)``"
+    ''
+  }
+  'SectionGroupEnd'
+  ''
+
+  if ($componentSelection) {
+    '!insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN'
+
+    $($downloads + $additionalDirs + $builds | ForEach-Object {
+        "  !insertmacro MUI_DESCRIPTION_TEXT `${Sec$($_.shortName)} `$(DESC_Sec$($_.shortName))"
+      })
+
+    '!insertmacro MUI_FUNCTION_DESCRIPTION_END'
+    ''
+  }
+
+  'Section "-PicoSetup"'
+  '  SetOutPath $INSTDIR'
+  $additionalFiles | ForEach-Object {
+    "  File ``$_``"
+  }
+  'SectionEnd'
+} | Out-File -FilePath "build\installer-sections.nsh"
+
+& {
+  'Section un.PicoSetup'
+
+  $downloads + $additionalDirs + $builds | ForEach-Object {
+    if ($_ | Get-Member dirName) {
+      "  RMDir /r /REBOOTOK ```$INSTDIR\$($_.dirName)``"
+    }
+  }
+  $additionalFiles | ForEach-Object {
+    "  Delete ```$INSTDIR\$(Split-Path -Leaf $_)``"
+  }
+
+  'SectionEnd'
+} | Out-File -FilePath "build\uninstaller-sections.nsh"
+
 @"
-!include "FileFunc.nsh"
-!include "LogicLib.nsh"
-!include "MUI2.nsh"
-!include "WinCore.nsh"
-!include "WordFunc.nsh"
-!include "x64.nsh"
-!include "packages\pico-setup-windows\aumi.nsh"
-
+!define COMPANY "$company"
+!define PRODUCT "$product"
+!define PRODUCT_DIR "$productDir"
 !define TITLE "$product"
-!define PICO_INSTALL_DIR "$productDir"
-; The repos need to be cloned into a dir with a fairly short name, because CMake generates build
-; defs with long hashes in the paths. Both CMake and Ninja currently have problems working with
-; long paths on Windows.
-; We use "%USERPROFILE%" here so that it resolves at runtime to the actual user's profile, rather
-; than the admin user which is used to elevate the installer.
-!define PICO_REPOS_DIR "`%USERPROFILE%\Documents\Pico-v$sdkVersion"
-!define PICO_SHORTCUTS_DIR "`$SMPROGRAMS\$product"
-!define PICO_WINTERM_DIR "`$LOCALAPPDATA\Microsoft\Windows Terminal\Fragments\$product"
-!define PICO_REG_ROOT SHELL_CONTEXT
-!define PICO_REG_KEY "Software\$productDir"
-!define UNINSTALL_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\$product"
-!define PICO_AppUserModel_ID "RaspberryPi.PicoSDK.$sdkVersion"
+!define VERSION "$version"
+!define BITNESS $bitness
+!define OUTPUT_FILE "$exefile"
+!define PICO_SDK_VERSION "$sdkVersion"
+!define AUMID "$(pascalCase $company).$(pascalCase $basename).$sdkVersion"
+!define ARP_DISPLAY_NAME "$($BuildType -eq 'system' ? $product : "$product (User)")"
+!define SHELL_VAR_CONTEXT $($BuildType -eq 'system' ? 'all' : 'current')
+!define UNINSTALL_KEY_OLD "Software\Microsoft\Windows\CurrentVersion\Uninstall\$basename-$sdkVersion"
 
-Name "`${TITLE}"
-Caption "`${TITLE}"
-XPStyle on
-ManifestDPIAware true
-Unicode true
-SetCompressor $Compression
+$($componentSelection ? '!define ALLOW_COMPONENT_SELECTION' : '')
+
+SetCompressor $($Compression -eq 'Best' ? 'lzma' : 'zlib')
 RequestExecutionLevel $($BuildType -eq 'system' ? 'admin' : 'user')
 
 VIAddVersionKey "FileDescription" "`${TITLE}"
@@ -279,402 +476,66 @@ VIAddVersionKey "LegalCopyright" "$company"
 VIAddVersionKey "CompanyName" "$company"
 VIFileVersion $version.0
 VIProductVersion $sdkVersionClean.0
-
-; Since we're packaging up a bunch of installers, the "Space required" shown is inaccurate
-SpaceTexts "none"
-
-; We set the default INSTDIR ourselves in .onInit
-InstallDir ""
-
-Var ReposDir
-
-!ifdef BUILD_UNINSTALLER
-
-OutFile "build\build-uninstaller-$suffix.exe"
-
-!define MUI_UNICON "resources\raspberrypi.ico"
-
-!insertmacro MUI_PAGE_INSTFILES
-!insertmacro MUI_PAGE_FINISH
-
-!insertmacro MUI_UNPAGE_CONFIRM
-!insertmacro MUI_UNPAGE_INSTFILES
-!insertmacro MUI_UNPAGE_FINISH
-
-!insertmacro MUI_LANGUAGE "English"
-
-Function un.onInit
-
-  SetShellVarContext $($BuildType -eq 'system' ? 'all' : 'current')
-  SetRegView $bitness
-
-  ReadRegStr `$ReposDir HKCU "`${PICO_REG_KEY}" "ReposPath"
-
-FunctionEnd
-
-Section "Uninstall"
-
-  RMDir /r /REBOOTOK "`${PICO_SHORTCUTS_DIR}"
-  RMDir /r /REBOOTOK "`${PICO_WINTERM_DIR}"
-
-  RMDir /r /REBOOTOK "`$INSTDIR\cmake"
-  RMDir /r /REBOOTOK "`$INSTDIR\gcc-arm-none-eabi"
-  RMDir /r /REBOOTOK "`$INSTDIR\git"
-  RMDir /r /REBOOTOK "`$INSTDIR\ninja"
-  RMDir /r /REBOOTOK "`$INSTDIR\openocd"
-  RMDir /r /REBOOTOK "`$INSTDIR\python"
-
-  RMDir /r /REBOOTOK "`$INSTDIR\pico-sdk-tools"
-  RMDir /r /REBOOTOK "`$INSTDIR\picotool"
-  RMDir /r /REBOOTOK "`$INSTDIR\resources"
-
-  Delete /REBOOTOK "`$INSTDIR\install.log"
-  Delete /REBOOTOK "`$INSTDIR\pico-code.ps1"
-  Delete /REBOOTOK "`$INSTDIR\pico-env.cmd"
-  Delete /REBOOTOK "`$INSTDIR\pico-env.ps1"
-  Delete /REBOOTOK "`$INSTDIR\pico-setup.cmd"
-  Delete /REBOOTOK "`$INSTDIR\pico-setup.lnk"
-  Delete /REBOOTOK "`$INSTDIR\ReadMe.txt"
-  Delete /REBOOTOK "`$INSTDIR\version.ini"
-
-  Delete /REBOOTOK "`$INSTDIR\uninstall.exe"
-
-  RMDir /REBOOTOK "`$INSTDIR"
-  ; Remove the C:\Program Files\Raspberry Pi directory if it is empty
-  `${GetParent} "`$INSTDIR" `$R0
-  RMDir `$R0
-
-  `${If} `$ReposDir != ""
-    RMDir /r /REBOOTOK "`$ReposDir\pico-examples"
-    RMDir /r /REBOOTOK "`$ReposDir\pico-extras"
-    RMDir /r /REBOOTOK "`$ReposDir\pico-playground"
-    RMDir "`$ReposDir"
-  `${EndIf}
-
-  DeleteRegValue `${PICO_REG_ROOT} "Software\Kitware\CMake\Packages\pico-sdk-tools" "v$sdkVersion"
-  DeleteRegKey /ifempty `${PICO_REG_ROOT} "Software\Kitware\CMake\Packages\pico-sdk-tools"
-
-  DeleteRegKey `${PICO_REG_ROOT} "`${UNINSTALL_KEY}"
-
-  DeleteRegKey `${PICO_REG_ROOT} "`${PICO_REG_KEY}"
-  DeleteRegKey HKCU "`${PICO_REG_KEY}"
-
-SectionEnd
-
-Section
-
-  WriteUninstaller `$INSTDIR\uninstall-$suffix.exe
-
-SectionEnd
-
-!else
-
-OutFile "$binfile"
-
-!define MUI_ICON "resources\raspberrypi.ico"
-!define MUI_ABORTWARNING
-!define MUI_WELCOMEPAGE_TITLE "`${TITLE}"
-
-!insertmacro MUI_PAGE_WELCOME
-$($componentSelection ? '!insertmacro MUI_PAGE_COMPONENTS' : '')
-!insertmacro MUI_PAGE_DIRECTORY
-!define MUI_PAGE_CUSTOMFUNCTION_LEAVE DumpLog
-!insertmacro MUI_PAGE_INSTFILES
-
-!define FINISHPAGE_RUN_FUNCTION RunBuild
-!define MUI_FINISHPAGE_SHOWREADME "`$INSTDIR\ReadMe.txt"
-!define MUI_FINISHPAGE_SHOWREADME_TEXT "Show ReadMe"
-!include "packages\pico-setup-windows\FinishPage.nsh"
-!insertmacro MUI_PAGE_FINISH
-
-!insertmacro MUI_LANGUAGE "English"
-
-!include "packages\pico-setup-windows\DumpLog.nsh"
-
-Function .onInit
-
-  SetShellVarContext $($BuildType -eq 'system' ? 'all' : 'current')
-  SetRegView $bitness
-
-  ; No /D= on the command line
-  `${If} `$INSTDIR == ""
-    ReadRegStr `$INSTDIR `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "InstallPath"
-  `${EndIf}
-
-  ; Nothing in the registry either; use the defaults
-  `${If} `$INSTDIR == ""
-    $(if ($BuildType -eq 'system') {
-    "StrCpy `$INSTDIR `"`$PROGRAMFILES$bitness`""
-    } else {
-    'GetKnownFolderPath $INSTDIR ${FOLDERID_UserProgramFiles}
-    ${If} $INSTDIR == ""
-      StrCpy $INSTDIR "$LOCALAPPDATA\Programs"
-    ${EndIf}'
-    })
-
-    StrCpy `$INSTDIR "`$INSTDIR\`${PICO_INSTALL_DIR}"
-  `${EndIf}
-
-  StrCpy `$ReposDir "`${PICO_REPOS_DIR}"
-
-  ReadRegStr `$R0 HKCU "`${PICO_REG_KEY}" "ReposPath"
-  `${If} `$R0 != ""
-    StrCpy `$ReposDir "`$R0"
-  `${EndIf}
-
-  ClearErrors
-  `${GetParameters} `$R1
-  `${GetOptions} "`$R1" "/REPOSDIR=" `$R0
-  `${IfNot} `${Errors}
-    StrCpy `$ReposDir "`$R0"
-  `${EndIf}
-
-FunctionEnd
-
-Section
-
-  SetOutPath `$INSTDIR
-
-  $(if ($bitness -eq '64') {
-  '${IfNot} ${IsNativeAMD64}
-    Abort "This installer only supports x86-64 versions of Windows."
-  ${EndIf}'
-  })
-
-  ; Uninstall previous version
-  ReadRegStr `$R0 HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\$basename-$sdkVersion" "UninstallString"
-  `${If} `$R0 == ""
-    ReadRegStr `$R0 `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "UninstallString"
-  `${EndIf}
-  `${If} `$R0 != ""
-    `${GetParent} "`$R0" `$R1
-    DetailPrint "Uninstalling previous version..."
-    ExecWait '"`$R0" /S _?=`$R1' `$1
-    DetailPrint "Uninstaller returned `$1"
-  `${EndIf}
-
-  InitPluginsDir
-
-  CreateDirectory "`${PICO_SHORTCUTS_DIR}"
-
-  SetOutPath `$INSTDIR\resources
-  File /r resources\*.*
-
-  SetOutPath `$INSTDIR
-
-SectionEnd
-
-$($downloads | ForEach-Object {
-@"
-
-Section "$($_.name)" Sec$($_.shortName)
-
-  ClearErrors
-
-  $(if ($_ | Get-Member additionalFiles) {
-    $_.additionalFiles | ForEach-Object {
-      "File /oname=`$PLUGINSDIR\$(Split-Path -Leaf $_) $_`r`n"
-    }
-  })
-
-  $(if (($_ | Get-Member exec) -or ($_ | Get-Member execToLog)) {
-@"
-    SetOutPath "`$TEMP"
-    File "downloads\$($_.file)"
-    StrCpy `$0 "`$TEMP\$($_.file)"
-
-    $(if ($_ | Get-Member exec) {
-      "ExecWait ``$($_.exec)`` `$1"
-    })
-
-    $(if ($_ | Get-Member execToLog) {
-      "nsExec::ExecToLog ``$($_.execToLog)```r`n"
-      "Pop `$1"
-    })
-
-    DetailPrint "$($_.name) returned `$1"
-    Delete /REBOOTOK "`$0"
-
-    `${If} `${Errors}
-      Abort "Installation of $($_.name) failed"
-    $(if ($_ | Get-Member rebootExitCodes) {
-      $_.rebootExitCodes | ForEach-Object {
-        "`${ElseIf} `$1 = $_`r`n    SetRebootFlag true"
-      }
-    })
-    `${ElseIf} `$1 <> 0
-      Abort "Installation of $($_.name) failed"
-    `${EndIf}
-"@
-  })
-
-  $(if ($_ | Get-Member dirName) {
-    "SetOutPath '`$INSTDIR\$($_.dirName)'`r`n"
-    "File /r build\$($_.dirName)\*.*"
-  })
-
-SectionEnd
-
-LangString DESC_Sec$($_.shortName) `${LANG_ENGLISH} "$($_.name)"
-
-"@
-})
-
-Section "-OpenOCD" SecOpenOCD
-
-  SetOutPath "`$INSTDIR\openocd"
-  File "build\openocd-install\mingw$bitness\bin\*.*"
-  SetOutPath "`$INSTDIR\openocd\scripts"
-  File /r "build\openocd-install\mingw$bitness\share\openocd\scripts\*.*"
-
-SectionEnd
-
-!include "packages\pico-setup-windows\VSCodeUtils.nsh"
-
-Section VSCode
-
-  `${FindVSCode}
-
-  `${If} `$VSCodeExePath != ""
-    DetailPrint "Found VS Code: `$VSCodeExePath"
-  `${Else}
-    DetailPrint "Could not find VS Code. Installing..."
-    `${InstallVSCode}
-  `${EndIf}
-
-  $((Get-Content 'packages\pico-examples\ide\vscode\extensions.json' | ConvertFrom-Json).recommendations | ForEach-Object {
-    "`${VSCodeCmd} '--install-extension $_'`r`n"
-    "Pop `$0`r`n"
-  })
-
-SectionEnd
-
-Section "-Pico environment" SecPico
-
-  SetOutPath "`$INSTDIR\pico-sdk"
-  File /r "build\pico-sdk\*.*"
-
-  SetOutPath "`$INSTDIR\pico-sdk-tools"
-  File "build\pico-sdk-tools\mingw$bitness\*.*"
-  WriteRegStr `${PICO_REG_ROOT} "Software\Kitware\CMake\Packages\pico-sdk-tools" "v$sdkVersion" "`$INSTDIR\pico-sdk-tools"
-
-  SetOutPath "`$INSTDIR\picotool"
-  File "build\picotool-install\mingw$bitness\*.*"
-
-  SetOutPath "`$INSTDIR"
-  File "build\pico-examples.zip"
-  WriteINIStr "`$INSTDIR\version.ini" "pico-setup-windows" "PICO_SDK_VERSION" "$sdkVersion"
-  WriteINIStr "`$INSTDIR\version.ini" "pico-setup-windows" "PICO_INSTALL_PATH" "`$INSTDIR"
-  WriteINIStr "`$INSTDIR\version.ini" "pico-setup-windows" "PICO_REG_KEY" "`${PICO_REG_KEY}"
-  File "packages\pico-setup-windows\pico-code.ps1"
-  File "packages\pico-setup-windows\pico-env.ps1"
-  File "packages\pico-setup-windows\pico-env.cmd"
-  File "packages\pico-setup-windows\pico-setup.cmd"
-  File "build\ReadMe.txt"
-
-  File /oname=uninstall.exe "build\uninstall-$suffix.exe"
-  WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "DisplayName" "$($BuildType -eq 'system' ? $product : "$product (User)")"
-  WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "UninstallString" "`$INSTDIR\uninstall.exe"
-  WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "InstallPath" "`$INSTDIR"
-  WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "DisplayIcon" "`$INSTDIR\resources\raspberrypi.ico"
-  WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "DisplayVersion" "$version"
-  WriteRegStr `${PICO_REG_ROOT} "`${UNINSTALL_KEY}" "Publisher" "$company"
-
-  `${IfNot} `${FileExists} "`$VSCodeExePath"
-    # Just use the default (user) install location for the icon, in case the user installs VS Code later
-    StrCpy `$VSCodeExePath "%LOCALAPPDATA%\Programs\Microsoft VS Code\Code.exe"
-    DetailPrint "Could not find Visual Studio Code."
-    MessageBox MB_OK|MB_ICONEXCLAMATION "Installation of Visual Studio Code failed. Please install it manually by downloading the installer from:${endl}${endl}https://code.visualstudio.com/" /SD IDOK
-  `${EndIf}
-
-  `${CreateShortcutEx} "`${PICO_SHORTCUTS_DIR}\Pico - Developer Command Prompt.lnk" "`${PICO_AppUserModel_ID}!cmd" ``"cmd.exe" '/k "`$INSTDIR\pico-env.cmd"'``
-  `${CreateShortcutEx} "`${PICO_SHORTCUTS_DIR}\Pico - Developer PowerShell.lnk" "`${PICO_AppUserModel_ID}!powershell" ``"powershell.exe" '-NoExit -ExecutionPolicy Bypass -File "`$INSTDIR\pico-env.ps1"'``
-  `${CreateShortcutEx} "`${PICO_SHORTCUTS_DIR}\Pico - Visual Studio Code.lnk" "`${PICO_AppUserModel_ID}!code" ``"powershell.exe" '-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "`$INSTDIR\pico-code.ps1"' "`$VSCodeExePath" "" SW_SHOWMINIMIZED``
-
-  SetOutPath "`${PICO_WINTERM_DIR}"
-  `${WordReplace} "`$INSTDIR" "\" "\\" "+" `$7
-  $( @"
-{
-  "profiles": [
-    {
-      "name": "Pico - Developer Command Prompt (SDK v$sdkVersion)",
-      "commandline": "cmd.exe /k \"`$7\\pico-env.cmd\"",
-      "icon": "`$7\\resources\\raspberrypi.ico",
-      "startingDirectory": "`$7"
-    },
-    {
-      "name": "Pico - Developer PowerShell (SDK v$sdkVersion)",
-      "commandline": "powershell.exe -NoExit -ExecutionPolicy Bypass -File \"`$7\\pico-env.ps1\"",
-      "icon": "`$7\\resources\\raspberrypi.ico",
-      "startingDirectory": "`$7"
-    }
-  ]
-}
-"@ | writeFile "pico-terminals.json")
-
-  CreateDirectory "`${PICO_SHORTCUTS_DIR}\Pico - Documentation"
-  WriteINIStr "`${PICO_SHORTCUTS_DIR}\Pico - Documentation\Pico Datasheet.url" "InternetShortcut" "URL" "https://datasheets.raspberrypi.com/pico/pico-datasheet.pdf"
-  WriteINIStr "`${PICO_SHORTCUTS_DIR}\Pico - Documentation\Pico W Datasheet.url" "InternetShortcut" "URL" "https://datasheets.raspberrypi.com/picow/pico-w-datasheet.pdf"
-  WriteINIStr "`${PICO_SHORTCUTS_DIR}\Pico - Documentation\Pico C C++ SDK.url" "InternetShortcut" "URL" "https://datasheets.raspberrypi.com/pico/raspberry-pi-pico-c-sdk.pdf"
-  WriteINIStr "`${PICO_SHORTCUTS_DIR}\Pico - Documentation\Pico Python SDK.url" "InternetShortcut" "URL" "https://datasheets.raspberrypi.com/pico/raspberry-pi-pico-python-sdk.pdf"
-
-  ; Reset working dir for pico-setup launched from the finish page
-  SetOutPath "`$INSTDIR"
-
-SectionEnd
-
-Function RunBuild
-
-  ; We need to run pico-setup.cmd un-elevated, to avoid problems with builds later on.
-  ; So we create a shortcut with the command line to use, and have explorer.exe launch it.
-  ; http://mdb-blog.blogspot.com/2013/01/nsis-lunch-program-as-user-from-uac.html
-  CreateShortcut "`$INSTDIR\pico-setup.lnk" "cmd.exe" '/k call "`$INSTDIR\pico-setup.cmd" "`$ReposDir" 1'
-  Exec '"`$WINDIR\explorer.exe" "`$INSTDIR\pico-setup.lnk"'
-
-FunctionEnd
-
-!if $($componentSelection ? 1 : 0)
-!insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
-$($downloads | ForEach-Object {
-  "  !insertmacro MUI_DESCRIPTION_TEXT `${Sec$($_.shortName)} `$(DESC_Sec$($_.shortName))`n"
-})
-!insertmacro MUI_FUNCTION_DESCRIPTION_END
-!endif
-
-!endif # BUILD_UNINSTALLER
-"@ | Set-Content ".\$basename-$suffix.nsi"
-
-exec { .\build\NSIS\makensis /DBUILD_UNINSTALLER ".\$basename-$suffix.nsi" }
-
-# The 'installer' that just writes the uninstaller asks for admin access, which is not actually needed.
-$env:__COMPAT_LAYER = "RunAsInvoker"
-exec { Start-Process -FilePath ".\build\build-uninstaller-$suffix.exe" -ArgumentList "/S /D=$PSScriptRoot\build" -Wait }
-$env:__COMPAT_LAYER = ""
-
-# Sign files before packaging up the installer
-sign "build\uninstall-$suffix.exe",
-"build\openocd-install\mingw$bitness\bin\openocd.exe",
-"build\pico-sdk-tools\mingw$bitness\elf2uf2.exe",
-"build\pico-sdk-tools\mingw$bitness\pioasm.exe",
-"build\picotool-install\mingw$bitness\picotool.exe"
-
-exec { .\build\NSIS\makensis ".\$basename-$suffix.nsi" }
-Write-Host "Installer saved to $binfile"
-
-# Sign the installer
-sign $binfile
-
-# Package OpenOCD separately as well
-
-$version = (cmd /c ".\build\openocd-install\mingw$bitness\bin\openocd.exe" --version '2>&1')[0]
-if (-not ($version -match 'Open On-Chip Debugger (?<version>[a-zA-Z0-9\.\-+]+) \((?<timestamp>[0-9\-:]+)\)')) {
-  Write-Error 'Could not determine openocd version'
+"@ | Out-File -FilePath "build\installer-header.nsh"
+
+if ($buildTargets.HasFlag([BuildTargets]::Installer)) {
+  .\build\NSIS\makensis /DBUILD_UNINSTALLER ".\$basename.nsi"
+
+  # The 'installer' that just writes the uninstaller asks for admin access, which is not actually needed.
+  $env:__COMPAT_LAYER = "RunAsInvoker"
+  Start-Process -FilePath ".\build\build-uninstaller.exe" -ArgumentList "/S /D=$(Join-Path $PSScriptRoot 'build')" -Wait
+  $env:__COMPAT_LAYER = ""
 }
 
-$filename = 'openocd-{0}-{1}-{2}.zip' -f
-  ($Matches.version -replace '-dirty$', ''),
-  ($Matches.timestamp -replace '[:-]', ''),
-  $suffix
+# Sign files before packaging
+sign "build\uninstall.exe",
+"build\openocd-install\$msysEnv\bin\openocd.exe",
+"build\pico-sdk-tools\$msysEnv\elf2uf2\elf2uf2.exe",
+"build\pico-sdk-tools\$msysEnv\pioasm\pioasm.exe",
+"build\pico-sdk-tools\$msysEnv\picotool\picotool.exe"
 
-Write-Host "Saving OpenOCD package to $filename"
-exec { tar -a -cf "bin\$filename" -C "build\openocd-install\mingw$bitness\bin" * -C "..\share\openocd" "scripts" }
+$suffix = $compileOpts.architecture
+
+$mkzipArgs = @()
+if ($Compression -eq 'Best') {
+  $mkzipArgs += '--best'
+}
+$mkzipArgs += '-f'
+
+"## Compiled binaries" | Out-File -FilePath "build\VERSIONS.txt" -Append
+
+$compileOpts.builds | ForEach-Object {
+  Write-Host "Checking version for $($_.name): " -NoNewline
+  $checkVersionCmd = $_.checkVersion
+  $version = (cmd /c cd "build\$($_.dirName)\$msysEnv" '&&' @checkVersionCmd '2>&1' | Select-String -Pattern $versionRegEx).Matches.Value
+  Write-Host $version
+
+  "- $($_.name): $version" | Out-File -FilePath "build\VERSIONS.txt" -Append
+
+  if ($buildTargets.HasFlag([BuildTargets]::Archive)) {
+    $zipfile = "bin\$($_.installDirName)-$version-$suffix.zip"
+    python .\packages\common\mkzip.py @mkzipArgs "$zipfile" "build\$($_.dirName)\$msysEnv\"
+    Write-Host "Archive saved to $zipfile"
+  }
+}
+
+"## Tools" | Out-File -FilePath "build\VERSIONS.txt" -Append
+
+$downloads | ForEach-Object {
+  "- $($_.name): $(guessVersion $_)"
+} | Out-File -FilePath "build\VERSIONS.txt" -Append
+
+if ($buildTargets.HasFlag([BuildTargets]::Installer)) {
+  .\build\NSIS\makensis ".\$basename.nsi"
+  Write-Host "Installer saved to $exefile"
+
+  # Sign the installer
+  sign $exefile
+}
+
+if ($buildTargets.HasFlag([BuildTargets]::Archive)) {
+  $archiveContents -join "`n" | Out-File -FilePath "build\archive-contents.txt"
+  $zipfile = "bin\$basename-$suffix.zip"
+  python .\packages\common\mkzip.py @mkzipArgs "$zipfile" "@build\archive-contents.txt"
+  Write-Host "Archive saved to $zipfile"
+}
