@@ -370,7 +370,7 @@ function declareInstallType {
       "  SetOutPath '`$INSTDIR\$($_.dirName)'"
       "  File /r build\$($_.dirName)\*.*"
 
-      $archiveContents += "build\$($_.dirName)"
+      $script:archiveContents += "build\$($_.dirName)"
     }
 
     'SectionEnd'
@@ -386,7 +386,7 @@ function declareInstallType {
       "  SetOutPath '`$INSTDIR\$($_.installDirName)'"
       "  File /r build\$($_.dirName)\$msysEnv\*.*"
 
-      $archiveContents += "$($_.installDirName): build\$($_.dirName)\$msysEnv"
+      $script:archiveContents += "$($_.installDirName): build\$($_.dirName)\$msysEnv"
     }
 
     'SectionEnd'
@@ -405,7 +405,7 @@ function declareInstallType {
     "  SetOutPath '`$INSTDIR\$($_.dirName)'"
     "  File /r build\$($_.dirName)\*.*"
 
-    $archiveContents += "build\$($_.dirName)"
+    $script:archiveContents += "build\$($_.dirName)"
 
     'SectionEnd'
     "LangString DESC_Sec$($_.shortName) `${LANG_ENGLISH} ``$($_.name)``"
