@@ -2,37 +2,43 @@
   "architecture": "x64",
   "bitness": 64,
   "msysEnv": "UCRT64",
+  "componentSelection": true,
   "downloads": [
     {
       "name": "Arm GNU Toolchain",
       "file": "arm-gnu-toolchain-14.3.rel1-mingw-w64-x86_64-arm-none-eabi.zip",
       "href": "https://developer.arm.com/-/media/Files/downloads/gnu/14.3.rel1/binrel/arm-gnu-toolchain-14.3.rel1-mingw-w64-x86_64-arm-none-eabi.zip",
-      "dirName": "arm-gnu-toolchain"
+      "dirName": "arm-gnu-toolchain",
+      "installLevel": 2
     },
     {
       "name": "CMake",
       "file": "cmake-4.3.2-windows-x86_64.zip",
       "href": "https://github.com/Kitware/CMake/releases/download/v4.3.2/cmake-4.3.2-windows-x86_64.zip",
       "dirName": "cmake",
-      "extractStrip": 1
+      "extractStrip": 1,
+      "installLevel": 2
     },
     {
       "name": "Ninja",
       "file": "ninja-win.zip",
       "href": "https://github.com/ninja-build/ninja/releases/download/v1.13.2/ninja-win.zip",
-      "dirName": "ninja"
+      "dirName": "ninja",
+      "installLevel": 2
     },
     {
       "name": "Python 3.12",
       "file": "python-3.12.10-embed-amd64.zip",
       "href": "https://www.python.org/ftp/python/3.12.10/python-3.12.10-embed-amd64.zip",
-      "dirName": "python"
+      "dirName": "python",
+      "installLevel": 3
     },
     {
       "name": "Git for Windows",
       "file": "MinGit-2.54.0-64-bit.zip",
       "href": "https://github.com/git-for-windows/git/releases/download/v2.54.0.windows.1/MinGit-2.54.0-64-bit.zip",
-      "dirName": "git"
+      "dirName": "git",
+      "installLevel": 3
     }
   ]
 }
