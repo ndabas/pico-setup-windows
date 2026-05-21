@@ -166,15 +166,18 @@ if (-not (Get-Command python -ErrorAction SilentlyContinue)) {
   $env:PATH = $env:PATH + ';' + (Resolve-Path .\build\python).Path
 }
 
+"## Build sources" | Out-File -FilePath "build\VERSIONS.txt" -Append
+
 $repositories | ForEach-Object {
   $reponame = [IO.Path]::GetFileNameWithoutExtension($_.href)
   $repodir = Join-Path 'build' $reponame
 
-  if ($reponame.StartsWith('pico-')) {
+  if ($_.installLevel -ge 1) {
     $additionalDirs += [PSCustomObject]@{
-      'dirName'   = $reponame
-      'name'      = $reponame
-      'shortName' = ($reponame -replace '[^a-zA-Z0-9]', '')
+      'dirName'      = $reponame
+      'name'         = $reponame
+      'shortName'    = ($reponame -replace '[^a-zA-Z0-9]', '')
+      'installLevel' = $_.installLevel
     }
   }
 
@@ -305,78 +308,113 @@ $exefile = "bin\$basename-$suffix.exe"
 
 $archiveContents = @() + $additionalFiles
 
-$downloads + $additionalDirs | ForEach-Object {
-  "Section ``$($_.name)`` Sec$($_.shortName)"
-  '  ClearErrors'
+function declareInstallType {
+  param($installLevel)
 
-  if ($_ | Get-Member additionalFiles) {
-    $_.additionalFiles | ForEach-Object {
-      "  File /oname=`$PLUGINSDIR\$(Split-Path -Leaf $_) $_"
-    }
-  }
+  # 1 = required, 2 = typical, 3 = full
+  # 0 indicates that the component should not be included in the installer
 
-  if (($_ | Get-Member exec) -or ($_ | Get-Member execToLog)) {
+  $instTypes = @('${IT_MIN} RO', '${IT_TYPICAL}', '${IT_FULL}')
+  "  SectionInstType $($instTypes[($installLevel - 1)..($instTypes.Length - 1)] -join ' ')"
+}
 
-    '  SetOutPath "$TEMP"'
-    "  File ``downloads\$($_.file)``"
-    "  StrCpy `$0 ```$TEMP\$($_.file)``"
+& {
+  'SectionGroup /e "Tools"'
+  ''
 
-    if ($_ | Get-Member exec) {
-      "  ExecWait ``$($_.exec)`` `$1"
-    }
+  $downloads | ForEach-Object {
+    "Section ``$($_.name)`` Sec$($_.shortName)"
+    declareInstallType $_.installLevel
+    '  ClearErrors'
 
-    if ($_ | Get-Member execToLog) {
-      "  nsExec::ExecToLog ``$($_.execToLog)``"
-      "  Pop `$1"
-    }
-
-    "  DetailPrint ``$($_.name) returned `$1``"
-    "  Delete /REBOOTOK ```$0``"
-
-    '  ${If} ${Errors}'
-    "    Abort ``Installation of $($_.name) failed``"
-
-    if ($_ | Get-Member rebootExitCodes) {
-      $_.rebootExitCodes | ForEach-Object {
-        "  `${ElseIf} `$1 = $_"
-        '    SetRebootFlag true'
+    if ($_ | Get-Member additionalFiles) {
+      $_.additionalFiles | ForEach-Object {
+        "  File /oname=`$PLUGINSDIR\$(Split-Path -Leaf $_) $_"
       }
     }
 
-    '  ${ElseIf} $1 <> 0'
-    "    Abort ``Installation of $($_.name) failed``"
-    '  ${EndIf}'
+    if (($_ | Get-Member exec) -or ($_ | Get-Member execToLog)) {
+
+      '  SetOutPath "$TEMP"'
+      "  File ``downloads\$($_.file)``"
+      "  StrCpy `$0 ```$TEMP\$($_.file)``"
+
+      if ($_ | Get-Member exec) {
+        "  ExecWait ``$($_.exec)`` `$1"
+      }
+
+      if ($_ | Get-Member execToLog) {
+        "  nsExec::ExecToLog ``$($_.execToLog)``"
+        "  Pop `$1"
+      }
+
+      "  DetailPrint ``$($_.name) returned `$1``"
+      "  Delete /REBOOTOK ```$0``"
+
+      '  ${If} ${Errors}'
+      "    Abort ``Installation of $($_.name) failed``"
+
+      if ($_ | Get-Member rebootExitCodes) {
+        $_.rebootExitCodes | ForEach-Object {
+          "  `${ElseIf} `$1 = $_"
+          '    SetRebootFlag true'
+        }
+      }
+
+      '  ${ElseIf} $1 <> 0'
+      "    Abort ``Installation of $($_.name) failed``"
+      '  ${EndIf}'
+    }
+
+    if ($_ | Get-Member dirName) {
+      "  SetOutPath '`$INSTDIR\$($_.dirName)'"
+      "  File /r build\$($_.dirName)\*.*"
+
+      $archiveContents += "build\$($_.dirName)"
+    }
+
+    'SectionEnd'
+    "LangString DESC_Sec$($_.shortName) `${LANG_ENGLISH} ``$($_.name)``"
+    ''
   }
 
-  if ($_ | Get-Member dirName) {
+  $builds | ForEach-Object {
+    "Section ``$($_.name)`` Sec$($_.shortName)"
+    declareInstallType $_.installLevel
+
+    if ($_ | Get-Member dirName) {
+      "  SetOutPath '`$INSTDIR\$($_.installDirName)'"
+      "  File /r build\$($_.dirName)\$msysEnv\*.*"
+
+      $archiveContents += "$($_.installDirName): build\$($_.dirName)\$msysEnv"
+    }
+
+    'SectionEnd'
+    "LangString DESC_Sec$($_.shortName) `${LANG_ENGLISH} ``$($_.name)``"
+    ''
+  }
+
+  'SectionGroupEnd'
+  ''
+
+  'SectionGroup /e "Source code repositories"'
+  ''
+  $additionalDirs | ForEach-Object {
+    "Section ``$($_.name)`` Sec$($_.shortName)"
+    declareInstallType $_.installLevel
     "  SetOutPath '`$INSTDIR\$($_.dirName)'"
     "  File /r build\$($_.dirName)\*.*"
 
     $archiveContents += "build\$($_.dirName)"
+
+    'SectionEnd'
+    "LangString DESC_Sec$($_.shortName) `${LANG_ENGLISH} ``$($_.name)``"
+    ''
   }
-
-  'SectionEnd'
-  "LangString DESC_Sec$($_.shortName) `${LANG_ENGLISH} ``$($_.name)``"
+  'SectionGroupEnd'
   ''
-} | Out-File -FilePath "build\installer-sections.nsh"
 
-$builds | ForEach-Object {
-  "Section ``$($_.name)`` Sec$($_.shortName)"
-
-  if ($_ | Get-Member dirName) {
-    "  SetOutPath '`$INSTDIR\$($_.installDirName)'"
-    "  File /r build\$($_.dirName)\$msysEnv\*.*"
-
-    $archiveContents += "$($_.installDirName): build\$($_.dirName)\$msysEnv"
-  }
-
-  'SectionEnd'
-  "LangString DESC_Sec$($_.shortName) `${LANG_ENGLISH} ``$($_.name)``"
-  ''
-} | Out-File -FilePath "build\installer-sections.nsh" -Append
-
-if ($componentSelection) {
-  & {
+  if ($componentSelection) {
     '!insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN'
 
     $($downloads + $additionalDirs + $builds | ForEach-Object {
@@ -384,34 +422,31 @@ if ($componentSelection) {
       })
 
     '!insertmacro MUI_FUNCTION_DESCRIPTION_END'
-  } | Out-File -FilePath "build\installer-sections.nsh" -Append
-}
+    ''
+  }
 
-& {
   'Section "-PicoSetup"'
   '  SetOutPath $INSTDIR'
   $additionalFiles | ForEach-Object {
     "  File ``$_``"
   }
   'SectionEnd'
-} | Out-File -FilePath "build\installer-sections.nsh" -Append
-
-$downloads + $additionalDirs + $builds | ForEach-Object {
-  if ($_ | Get-Member dirName) {
-    "Section un.$($_.shortName)"
-    "  RMDir /r /REBOOTOK ```$INSTDIR\$($_.dirName)``"
-    'SectionEnd'
-    ''
-  }
-} | Out-File -FilePath "build\uninstaller-sections.nsh"
+} | Out-File -FilePath "build\installer-sections.nsh"
 
 & {
   'Section un.PicoSetup'
+
+  $downloads + $additionalDirs + $builds | ForEach-Object {
+    if ($_ | Get-Member dirName) {
+      "  RMDir /r /REBOOTOK ```$INSTDIR\$($_.dirName)``"
+    }
+  }
   $additionalFiles | ForEach-Object {
     "  Delete ```$INSTDIR\$(Split-Path -Leaf $_)``"
   }
+
   'SectionEnd'
-} | Out-File -FilePath "build\uninstaller-sections.nsh" -Append
+} | Out-File -FilePath "build\uninstaller-sections.nsh"
 
 @"
 !define COMPANY "$company"
@@ -467,9 +502,7 @@ if ($Compression -eq 'Best') {
 }
 $mkzipArgs += '-f'
 
-$downloads | ForEach-Object {
-  "- $($_.name): $(guessVersion $_)"
-} | Out-File -FilePath "build\VERSIONS.txt" -Append
+"## Compiled binaries" | Out-File -FilePath "build\VERSIONS.txt" -Append
 
 $compileOpts.builds | ForEach-Object {
   Write-Host "Checking version for $($_.name): " -NoNewline
@@ -485,6 +518,12 @@ $compileOpts.builds | ForEach-Object {
     Write-Host "Archive saved to $zipfile"
   }
 }
+
+"## Tools" | Out-File -FilePath "build\VERSIONS.txt" -Append
+
+$downloads | ForEach-Object {
+  "- $($_.name): $(guessVersion $_)"
+} | Out-File -FilePath "build\VERSIONS.txt" -Append
 
 if ($buildTargets.HasFlag([BuildTargets]::Installer)) {
   .\build\NSIS\makensis ".\$basename.nsi"

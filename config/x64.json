@@ -8,25 +8,29 @@
       "name": "Arm GNU Toolchain",
       "file": "arm-gnu-toolchain-14.3.rel1-mingw-w64-x86_64-arm-none-eabi.exe",
       "exec": "\"$0\" /S /P /R",
-      "href": "https://developer.arm.com/-/media/Files/downloads/gnu/14.3.rel1/binrel/arm-gnu-toolchain-14.3.rel1-mingw-w64-x86_64-arm-none-eabi.exe"
+      "href": "https://developer.arm.com/-/media/Files/downloads/gnu/14.3.rel1/binrel/arm-gnu-toolchain-14.3.rel1-mingw-w64-x86_64-arm-none-eabi.exe",
+      "installLevel": 2
     },
     {
       "name": "CMake",
       "file": "cmake-4.3.2-windows-x86_64.msi",
       "exec": "msiexec /i \"$0\" /qn /norestart ADD_CMAKE_TO_PATH=System",
-      "href": "https://github.com/Kitware/CMake/releases/download/v4.3.2/cmake-4.3.2-windows-x86_64.msi"
+      "href": "https://github.com/Kitware/CMake/releases/download/v4.3.2/cmake-4.3.2-windows-x86_64.msi",
+      "installLevel": 2
     },
     {
       "name": "Ninja",
       "file": "ninja-win.zip",
       "href": "https://github.com/ninja-build/ninja/releases/download/v1.13.2/ninja-win.zip",
-      "dirName": "ninja"
+      "dirName": "ninja",
+      "installLevel": 2
     },
     {
       "name": "Python 3.12",
       "file": "python-3.12.10-amd64.exe",
       "exec": "\"$0\" /quiet InstallAllUsers=1 PrependPath=1",
-      "href": "https://www.python.org/ftp/python/3.12.10/python-3.12.10-amd64.exe"
+      "href": "https://www.python.org/ftp/python/3.12.10/python-3.12.10-amd64.exe",
+      "installLevel": 3
     },
     {
       "name": "Git for Windows",
@@ -35,7 +39,8 @@
       "href": "https://github.com/git-for-windows/git/releases/download/v2.54.0.windows.1/Git-2.54.0-64-bit.exe",
       "additionalFiles": [
         "packages\\pico-setup-windows\\git.inf"
-      ]
+      ],
+      "installLevel": 3
     }
   ]
 }

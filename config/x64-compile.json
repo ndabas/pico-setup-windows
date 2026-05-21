@@ -8,21 +8,24 @@
       "buildScript": "packages/picotool/build-picotool.sh",
       "dirName": "pico-sdk-tools",
       "installDirName": "pico-sdk-tools",
-      "checkVersion": ["pioasm\\pioasm.exe", "--version"]
+      "checkVersion": ["pioasm\\pioasm.exe", "--version"],
+      "installLevel": 1
     },
     {
       "name": "OpenOCD",
       "buildScript": "packages/openocd/build-openocd.sh",
       "dirName": "openocd-install",
       "installDirName": "openocd",
-      "checkVersion": ["bin\\openocd.exe", "--version"]
+      "checkVersion": ["bin\\openocd.exe", "--version"],
+      "installLevel": 2
     },
     {
       "name": "RISC-V GNU Toolchain",
       "buildScript": "packages/riscv/build-riscv-gcc.sh",
       "dirName": "riscv-gnu-toolchain-install",
       "installDirName": "riscv-gnu-toolchain",
-      "checkVersion": ["bin\\riscv32-unknown-elf-gcc.exe", "-dumpversion"]
+      "checkVersion": ["bin\\riscv32-unknown-elf-gcc.exe", "-dumpversion"],
+      "installLevel": 2
     }
   ]
 }

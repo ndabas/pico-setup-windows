@@ -5,6 +5,8 @@ Download the latest release:
 - [System installer](https://github.com/ndabas/pico-setup-windows/releases/latest/download/pico-setup-windows-x64.exe) - installs included software system-wide. Needs administrative privileges.
 - [Zip archive](https://github.com/ndabas/pico-setup-windows/releases/latest/download/pico-setup-windows-x64.zip) - no installation needed.
 
+Plese see the [README included with the installer](docs/README.txt) for further information on installing and using this software.
+
 All installers are built for x64 (x86-64) platforms only, and support arm64 versions of Windows as well via emulation.
 
 This project aims to create an easy-to-use installer to get started on Windows (using the C/C++ SDK) with [Raspberry Pi Pico-series](https://www.raspberrypi.com/products/raspberry-pi-pico/) and other Raspberry Pi microcontroller-based boards. It is inspired by, and is roughly equivalent to, the [pico-setup](https://github.com/raspberrypi/pico-setup) project for Raspberry Pi OS systems.

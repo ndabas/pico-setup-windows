@@ -3,32 +3,39 @@
     {
       "href": "https://github.com/raspberrypi/pico-sdk.git",
       "tree": "2.2.0",
-      "submodules": true
+      "submodules": true,
+      "installLevel": 1
     },
     {
       "href": "https://github.com/raspberrypi/pico-examples.git",
-      "tree": "sdk-2.2.0"
+      "tree": "sdk-2.2.0",
+      "installLevel": 2
     },
     {
       "href": "https://github.com/raspberrypi/pico-extras.git",
-      "tree": "sdk-2.2.0"
+      "tree": "sdk-2.2.0",
+      "installLevel": 3
     },
     {
       "href": "https://github.com/raspberrypi/pico-playground.git",
-      "tree": "sdk-2.2.0"
+      "tree": "sdk-2.2.0",
+      "installLevel": 3
     },
     {
       "href": "https://github.com/raspberrypi/picotool.git",
-      "tree": "2.2.0-a4"
+      "tree": "2.2.0-a4",
+      "installLevel": 0
     },
     {
       "href": "https://github.com/raspberrypi/openocd.git",
       "tree": "sdk-2.2.0",
-      "submodules": true
+      "submodules": true,
+      "installLevel": 0
     },
     {
       "href": "https://github.com/riscv-collab/riscv-gnu-toolchain.git",
-      "tree": "2026.04.26"
+      "tree": "2026.04.26",
+      "installLevel": 0
     }
   ]
 }

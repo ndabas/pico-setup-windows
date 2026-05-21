@@ -78,6 +78,10 @@ SectionEnd
 
 !else
 
+InstType "Full" IT_FULL
+InstType "Typical" IT_TYPICAL
+InstType "Minimal" IT_MIN
+
 OutFile "${OUTPUT_FILE}"
 
 ; !define MUI_ICON "resources\raspberrypi.ico"
@@ -86,6 +90,7 @@ OutFile "${OUTPUT_FILE}"
 
 !insertmacro MUI_PAGE_WELCOME
 !ifdef ALLOW_COMPONENT_SELECTION
+  !define MUI_COMPONENTSPAGE_SMALLDESC
   !insertmacro MUI_PAGE_COMPONENTS
 !endif
 !insertmacro MUI_PAGE_DIRECTORY
@@ -157,7 +162,7 @@ SectionEnd
 Section "-Pico environment" SecPico
 
   SetOutPath "$INSTDIR"
-  
+
   File "build\uninstall.exe"
   WriteRegStr ${PICO_REG_ROOT} "${UNINSTALL_KEY}" "DisplayName" "${ARP_DISPLAY_NAME}"
   WriteRegStr ${PICO_REG_ROOT} "${UNINSTALL_KEY}" "UninstallString" "$INSTDIR\uninstall.exe"
