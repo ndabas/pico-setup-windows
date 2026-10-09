@@ -235,17 +235,7 @@ function sign {
     Write-Warning "Skipping code signing."
   }
   else {
-    $cert = Get-ChildItem -Path Cert:\CurrentUser\My -CodeSigningCert | Where-Object { $_.Subject -like "CN=Raspberry Pi*" }
-    if (-not $cert) {
-      Write-Error "No suitable code signing certificates found."
-    }
-
-    $filesToSign | Set-AuthenticodeSignature -Certificate $cert -TimestampServer "http://timestamp.digicert.com" -HashAlgorithm SHA256 | Tee-Object -Variable signatures
-    $signatures | ForEach-Object {
-      if ($_.Status -ne 0) {
-        Write-Error "Error signing $($_.Path)"
-      }
-    }
+    .\packages\common\sign.ps1 $filesToSign
   }
 }
 
@@ -308,145 +298,76 @@ $exefile = "bin\$basename-$suffix.exe"
 
 $archiveContents = @() + $additionalFiles
 
-function declareInstallType {
-  param($installLevel)
+function componentBegin {
+  param($component)
 
-  # 1 = required, 2 = typical, 3 = full
-  # 0 indicates that the component should not be included in the installer
-
-  $instTypes = @('${IT_MIN} RO', '${IT_TYPICAL}', '${IT_FULL}')
-  "  SectionInstType $($instTypes[($installLevel - 1)..($instTypes.Length - 1)] -join ' ')"
+  "!insertmacro PICO_COMPONENT_BEGIN ``$($component.name)`` $($component.shortName) $($component.installLevel)"
 }
 
 & {
-  'SectionGroup /e "Tools"'
-  ''
+  '!insertmacro PICO_GROUP_BEGIN "Tools"'
 
   $downloads | ForEach-Object {
-    "Section ``$($_.name)`` Sec$($_.shortName)"
-    declareInstallType $_.installLevel
-    '  ClearErrors'
+    componentBegin $_
 
     if ($_ | Get-Member additionalFiles) {
       $_.additionalFiles | ForEach-Object {
-        "  File /oname=`$PLUGINSDIR\$(Split-Path -Leaf $_) $_"
+        "!insertmacro PICO_PLUGIN_FILE ``$_`` ``$(Split-Path -Leaf $_)``"
       }
-    }
-
-    if (($_ | Get-Member exec) -or ($_ | Get-Member execToLog)) {
-
-      '  SetOutPath "$TEMP"'
-      "  File ``downloads\$($_.file)``"
-      "  StrCpy `$0 ```$TEMP\$($_.file)``"
-
-      if ($_ | Get-Member exec) {
-        "  ExecWait ``$($_.exec)`` `$1"
-      }
-
-      if ($_ | Get-Member execToLog) {
-        "  nsExec::ExecToLog ``$($_.execToLog)``"
-        "  Pop `$1"
-      }
-
-      "  DetailPrint ``$($_.name) returned `$1``"
-      "  Delete /REBOOTOK ```$0``"
-
-      '  ${If} ${Errors}'
-      "    Abort ``Installation of $($_.name) failed``"
-
-      if ($_ | Get-Member rebootExitCodes) {
-        $_.rebootExitCodes | ForEach-Object {
-          "  `${ElseIf} `$1 = $_"
-          '    SetRebootFlag true'
-        }
-      }
-
-      '  ${ElseIf} $1 <> 0'
-      "    Abort ``Installation of $($_.name) failed``"
-      '  ${EndIf}'
     }
 
     if ($_ | Get-Member dirName) {
-      "  SetOutPath '`$INSTDIR\$($_.dirName)'"
-      "  File /r build\$($_.dirName)\*.*"
+      "!insertmacro PICO_DIR ``build\$($_.dirName)`` ``$($_.dirName)``"
 
       $script:archiveContents += "build\$($_.dirName)"
     }
 
-    'SectionEnd'
-    "LangString DESC_Sec$($_.shortName) `${LANG_ENGLISH} ``$($_.name)``"
-    ''
+    if (($_ | Get-Member exec) -or ($_ | Get-Member execToLog)) {
+      if ($_ | Get-Member exec) {
+        "!insertmacro PICO_EXEC ``$($_.file)`` ``$($_.exec)``"
+      }
+      else {
+        "!insertmacro PICO_EXEC_TO_LOG ``$($_.file)`` ``$($_.execToLog)``"
+      }
+
+      if ($_ | Get-Member rebootExitCodes) {
+        $_.rebootExitCodes | ForEach-Object {
+          "!insertmacro PICO_REBOOT_ON $_"
+        }
+      }
+    }
+
+    '!insertmacro PICO_COMPONENT_END'
   }
 
   $builds | ForEach-Object {
-    "Section ``$($_.name)`` Sec$($_.shortName)"
-    declareInstallType $_.installLevel
+    componentBegin $_
+    "!insertmacro PICO_DIR ``build\$($_.dirName)\$msysEnv`` ``$($_.installDirName)``"
+    '!insertmacro PICO_COMPONENT_END'
 
-    if ($_ | Get-Member dirName) {
-      "  SetOutPath '`$INSTDIR\$($_.installDirName)'"
-      "  File /r build\$($_.dirName)\$msysEnv\*.*"
-
-      $script:archiveContents += "$($_.installDirName): build\$($_.dirName)\$msysEnv"
-    }
-
-    'SectionEnd'
-    "LangString DESC_Sec$($_.shortName) `${LANG_ENGLISH} ``$($_.name)``"
-    ''
+    $script:archiveContents += "$($_.installDirName): build\$($_.dirName)\$msysEnv"
   }
 
-  'SectionGroupEnd'
-  ''
+  '!insertmacro PICO_GROUP_END'
 
-  'SectionGroup /e "Source code repositories"'
-  ''
+  '!insertmacro PICO_GROUP_BEGIN "Source code repositories"'
+
   $additionalDirs | ForEach-Object {
-    "Section ``$($_.name)`` Sec$($_.shortName)"
-    declareInstallType $_.installLevel
-    "  SetOutPath '`$INSTDIR\$($_.dirName)'"
-    "  File /r build\$($_.dirName)\*.*"
+    componentBegin $_
+    "!insertmacro PICO_DIR ``build\$($_.dirName)`` ``$($_.dirName)``"
+    '!insertmacro PICO_COMPONENT_END'
 
     $script:archiveContents += "build\$($_.dirName)"
-
-    'SectionEnd'
-    "LangString DESC_Sec$($_.shortName) `${LANG_ENGLISH} ``$($_.name)``"
-    ''
-  }
-  'SectionGroupEnd'
-  ''
-
-  if ($componentSelection) {
-    '!insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN'
-
-    $($downloads + $additionalDirs + $builds | ForEach-Object {
-        "  !insertmacro MUI_DESCRIPTION_TEXT `${Sec$($_.shortName)} `$(DESC_Sec$($_.shortName))"
-      })
-
-    '!insertmacro MUI_FUNCTION_DESCRIPTION_END'
-    ''
   }
 
-  'Section "-PicoSetup"'
-  '  SetOutPath $INSTDIR'
+  '!insertmacro PICO_GROUP_END'
+
+  '!insertmacro PICO_COMPONENT_BEGIN PicoSetup PicoSetup 0'
   $additionalFiles | ForEach-Object {
-    "  File ``$_``"
+    "!insertmacro PICO_FILE ``$_`` ``$(Split-Path -Leaf $_)``"
   }
-  'SectionEnd'
-} | Out-File -FilePath "build\installer-sections.nsh"
-
-& {
-  'Section un.PicoSetup'
-
-  $downloads + $additionalDirs + $builds | ForEach-Object {
-    if ($_ | Get-Member dirName) {
-      "  RMDir /r /REBOOTOK ```$INSTDIR\$($_.dirName)``"
-    }
-  }
-  $additionalFiles | ForEach-Object {
-    "  Delete ```$INSTDIR\$(Split-Path -Leaf $_)``"
-  }
-
-  'SectionEnd'
-} | Out-File -FilePath "build\uninstaller-sections.nsh"
+  '!insertmacro PICO_COMPONENT_END'
+} | Out-File -FilePath "build\components.nsh"
 
 @"
 !define COMPANY "$company"
@@ -463,6 +384,7 @@ function declareInstallType {
 !define UNINSTALL_KEY_OLD "Software\Microsoft\Windows\CurrentVersion\Uninstall\$basename-$sdkVersion"
 
 $($componentSelection ? '!define ALLOW_COMPONENT_SELECTION' : '')
+$($buildTargets.HasFlag([BuildTargets]::Sign) ? '!define SIGN' : '')
 
 SetCompressor $($Compression -eq 'Best' ? 'lzma' : 'zlib')
 RequestExecutionLevel $($BuildType -eq 'system' ? 'admin' : 'user')
@@ -478,18 +400,8 @@ VIFileVersion $version.0
 VIProductVersion $sdkVersionClean.0
 "@ | Out-File -FilePath "build\installer-header.nsh"
 
-if ($buildTargets.HasFlag([BuildTargets]::Installer)) {
-  .\build\NSIS\makensis /DBUILD_UNINSTALLER ".\$basename.nsi"
-
-  # The 'installer' that just writes the uninstaller asks for admin access, which is not actually needed.
-  $env:__COMPAT_LAYER = "RunAsInvoker"
-  Start-Process -FilePath ".\build\build-uninstaller.exe" -ArgumentList "/S /D=$(Join-Path $PSScriptRoot 'build')" -Wait
-  $env:__COMPAT_LAYER = ""
-}
-
 # Sign files before packaging
-sign "build\uninstall.exe",
-"build\openocd-install\$msysEnv\bin\openocd.exe",
+sign "build\openocd-install\$msysEnv\bin\openocd.exe",
 "build\pico-sdk-tools\$msysEnv\elf2uf2\elf2uf2.exe",
 "build\pico-sdk-tools\$msysEnv\pioasm\pioasm.exe",
 "build\pico-sdk-tools\$msysEnv\picotool\picotool.exe"
@@ -528,9 +440,6 @@ $downloads | ForEach-Object {
 if ($buildTargets.HasFlag([BuildTargets]::Installer)) {
   .\build\NSIS\makensis ".\$basename.nsi"
   Write-Host "Installer saved to $exefile"
-
-  # Sign the installer
-  sign $exefile
 }
 
 if ($buildTargets.HasFlag([BuildTargets]::Archive)) {
