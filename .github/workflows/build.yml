@@ -54,7 +54,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: build/riscv-gnu-toolchain-install
-          key: ${{ env.RISCV-GNU-TOOLCHAIN_BUILD_ID }}
+          key: ${{ env.RISCV-GNU-TOOLCHAIN_BUILD_ID }}-${{ hashFiles('packages/riscv/**') }}
 
       - name: Compile
         shell: pwsh
