@@ -6,6 +6,7 @@
 !include "x64.nsh"
 
 !include "packages\pico-setup-windows\aumi.nsh"
+!include "packages\pico-setup-windows\components.nsh"
 !include "packages\pico-setup-windows\WindowsTerminal.nsh"
 
 !include "build\installer-header.nsh"
@@ -29,20 +30,17 @@ SpaceTexts "none"
 ; We set the default INSTDIR ourselves in .onInit
 InstallDir ""
 
-!ifdef BUILD_UNINSTALLER
-
-OutFile "build\build-uninstaller.exe"
+!ifdef SIGN
+  !define SIGN_COMMAND 'pwsh -NoProfile -NonInteractive -File "packages\common\sign.ps1" "%1"'
+  !finalize '${SIGN_COMMAND}' = 0
+  !uninstfinalize '${SIGN_COMMAND}' = 0
+!endif
 
 ; !define MUI_UNICON "resources\raspberrypi.ico"
-
-!insertmacro MUI_PAGE_INSTFILES
-!insertmacro MUI_PAGE_FINISH
 
 !insertmacro MUI_UNPAGE_CONFIRM
 !insertmacro MUI_UNPAGE_INSTFILES
 !insertmacro MUI_UNPAGE_FINISH
-
-!insertmacro MUI_LANGUAGE "English"
 
 Function un.onInit
 
@@ -51,7 +49,11 @@ Function un.onInit
 
 FunctionEnd
 
-!include "build\uninstaller-sections.nsh"
+Section un.PicoSetup
+
+  !insertmacro PICO_COMPONENTS uninstall
+
+SectionEnd
 
 Section "Uninstall"
 
@@ -69,14 +71,6 @@ Section "Uninstall"
   DeleteRegKey ${PICO_REG_ROOT} "${UNINSTALL_KEY}"
 
 SectionEnd
-
-Section
-
-  WriteUninstaller $INSTDIR\uninstall.exe
-
-SectionEnd
-
-!else
 
 InstType "Full" IT_FULL
 InstType "Typical" IT_TYPICAL
@@ -157,13 +151,13 @@ Section
 
 SectionEnd
 
-!include "build\installer-sections.nsh"
+!insertmacro PICO_COMPONENTS install
 
 Section "-Pico environment" SecPico
 
   SetOutPath "$INSTDIR"
 
-  File "build\uninstall.exe"
+  WriteUninstaller "$INSTDIR\uninstall.exe"
   WriteRegStr ${PICO_REG_ROOT} "${UNINSTALL_KEY}" "DisplayName" "${ARP_DISPLAY_NAME}"
   WriteRegStr ${PICO_REG_ROOT} "${UNINSTALL_KEY}" "UninstallString" "$INSTDIR\uninstall.exe"
   WriteRegStr ${PICO_REG_ROOT} "${UNINSTALL_KEY}" "InstallPath" "$INSTDIR"
@@ -185,4 +179,8 @@ Section "-Pico environment" SecPico
 
 SectionEnd
 
-!endif # BUILD_UNINSTALLER
+!ifdef ALLOW_COMPONENT_SELECTION
+  !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
+    !insertmacro PICO_COMPONENTS description
+  !insertmacro MUI_FUNCTION_DESCRIPTION_END
+!endif
