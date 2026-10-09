@@ -264,7 +264,7 @@ if ($buildTargets.HasFlag([BuildTargets]::Compile)) {
   # Normal update
   msys 'pacman --noconfirm -Suu'
 
-  msys "pacman -S --noconfirm --needed autoconf automake base-devel expat git libtool pactoys patchutils pkg-config"
+  msys "pacman -S --noconfirm --needed autoconf automake base-devel expat git libtool pactoys patchutils pkg-config texinfo"
 
   # pacboy adds MINGW_PACKAGE_PREFIX to package names suffixed with :p
   msys "pacboy -S --noconfirm --needed cmake:p ninja:p toolchain:p libusb:p hidapi:p libslirp:p"
