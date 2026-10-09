@@ -17,6 +17,8 @@ mkdir -p "$INSTALLDIR"
 # - GDB is not static at all
 export LDFLAGS="-static -static-libgcc -static-libstdc++"
 export CXXFLAGS="-fno-char8_t"
+# Hazard3 traps on misaligned access; without this newlib compiles out its alignment checks
+export CFLAGS_FOR_TARGET_EXTRA="-mstrict-align"
 
 cd riscv-gnu-toolchain
 ./configure \
@@ -26,6 +28,16 @@ cd riscv-gnu-toolchain
   --with-abi=ilp32 \
   --with-multilib-generator="rv32ima_zicsr_zifencei_zba_zbb_zbs_zbkb_zca_zcb_zcmp-ilp32--;rv32imac_zicsr_zifencei_zba_zbb_zbs_zbkb-ilp32--"
 make
+
+newlib_headers=$(find "$BUILDDIR/$INSTALLDIR" -path '*/include/*' -name newlib.h)
+if [ -z "$newlib_headers" ]; then
+  echo "No newlib.h found under $INSTALLDIR" >&2
+  exit 1
+fi
+if grep -l "define _HAVE_HW_MISALIGNED_ACCESS" $newlib_headers; then
+  echo "newlib was built assuming misaligned access is supported, which is unsafe on Hazard3" >&2
+  exit 1
+fi
 
 cd "$BUILDDIR/$INSTALLDIR"
 "$BUILDDIR/../packages/common/copy-deps.sh"
