@@ -21,6 +21,13 @@ export CXXFLAGS="-fno-char8_t"
 export CFLAGS_FOR_TARGET_EXTRA="-mstrict-align"
 
 cd riscv-gnu-toolchain
+
+# Backport binutils afa6db16e65: on Windows st_ino is always 0, so binutils 2.47's SAME_INODE treats
+# every file on a drive as identical and ld fails with "linker script file ... appears multiple times"
+git submodule update --init --depth 1 binutils
+sed -i 's/(!((a)\.st_ino == 0 && (a)\.st_dev == 0) \\/((a).st_ino != 0 \\/' binutils/include/same-inode.h
+grep -q '(a).st_ino != 0' binutils/include/same-inode.h
+
 ./configure \
   --prefix="$BUILDDIR/$INSTALLDIR" \
   --enable-strip \
