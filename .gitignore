@@ -1,11 +1,14 @@
 # Downloaded files
 downloads/
 
-# Generated NSIS scripts
-pico-setup-windows-*.nsi
-
 # Built installers
 bin/
 
 # Builds/staging
 build/
+build-*/
+
+# Python byte-compiled / optimized / DLL files
+__pycache__/
+*.py[codz]
+*$py.class

@@ -2,14 +2,21 @@
 
 set -euo pipefail
 
-BITNESS=$1
-ARCH=$2
+BUILDDIR="$PWD"
+INSTALLDIR="openocd-install"
+BINDIR="/${MSYSTEM,,}/bin"
+# Install scripts next to openocd.exe so they are found relative to the executable
+PKGDATADIR="$BINDIR"
+
+. "$BUILDDIR/../packages/common/num-jobs.sh"
 
 cd openocd
 ./bootstrap
-./configure
-make clean
-make -j4
-DESTDIR="$PWD/../openocd-install" make install
-cp "/mingw$BITNESS/bin/libhidapi-0.dll" "$PWD/../openocd-install/mingw$BITNESS/bin"
-cp "/mingw$BITNESS/bin/libusb-1.0.dll" "$PWD/../openocd-install/mingw$BITNESS/bin"
+./configure --disable-werror --enable-internal-jimtcl --bindir="$BINDIR" #CFLAGS="-Duint=uint32_t"
+make pkgdatadir="$PKGDATADIR"
+
+DESTDIR="$BUILDDIR/$INSTALLDIR" make install-strip pkgdatadir="$PKGDATADIR"
+
+cd "$BUILDDIR/$INSTALLDIR/$BINDIR"
+find . -maxdepth 1 ! -name . ! -name .. ! -name openocd.exe ! -name scripts -exec rm -r {} +
+"$BUILDDIR/../packages/common/copy-deps.sh"

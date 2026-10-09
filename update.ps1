@@ -1,9 +1,29 @@
-#Requires -Version 7.0
+#Requires -Version 7.4
+
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
-. "$PSScriptRoot\common.ps1"
+function crawl {
+  param ([string]$url)
+
+  # developer.arm.com doesn't like PowerShell or a spoofed Chrome user agent, but oddly allows curl
+  (Invoke-WebRequest $url -UseBasicParsing -UserAgent 'curl/8.18.0').Links |
+    Where-Object {
+      ($_ | Get-Member href) -and
+      [uri]::IsWellFormedUriString($_.href, [System.UriKind]::RelativeOrAbsolute)
+    } |
+    ForEach-Object {
+      $href = [System.Net.WebUtility]::HtmlDecode($_.href)
+
+      try {
+        (New-Object System.Uri([uri]$url, $href)).AbsoluteUri
+      }
+      catch {
+        $href
+      }
+    }
+}
 
 function getGitHubReleaseAssetUrl {
   param (
@@ -32,11 +52,11 @@ function updateDownloadUrl {
 
   [uri]$newUrl = switch ($Download.name) {
 
-    'GNU Arm Embedded Toolchain' {
-      $ext = $Download.file -match '\.exe$' ? 'exe' : 'zip'
+    'Arm GNU Toolchain' {
+      $ext = $Download.file -match '\.zip$' ? 'zip' : 'exe'
 
-      crawl 'https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm/downloads' |
-        Where-Object { $_ -match "-win32\.$ext" } | # There is no 64-bit build for Windows currently
+      crawl 'https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads' |
+        Where-Object { $_ -match "arm-gnu-toolchain-14.*-mingw-w64-x86_64-arm-none-eabi\.$ext" } |
         Select-Object -First 1
     }
 
@@ -53,7 +73,7 @@ function updateDownloadUrl {
       getGitHubReleaseAssetUrl 'ninja-build/ninja' { $_.name -eq 'ninja-win.zip' }
     }
 
-    'Python 3.9' {
+    'Python 3.12' {
       $suffix = ''
 
       if ($Download.file -match '\.exe$') {
@@ -63,7 +83,7 @@ function updateDownloadUrl {
       }
 
       crawl 'https://www.python.org/downloads/windows/' |
-        Where-Object { $_ -match "python-3\.9\.[0-9]+$suffix`$" } |
+        Where-Object { $_ -match "python-3\.12\.[0-9]+$suffix`$" } |
         Select-Object -First 1
     }
 
@@ -91,10 +111,6 @@ function updateDownloadUrl {
       $newName = 'msys2.exe'
       getGitHubReleaseAssetUrl 'msys2/msys2-installer' { $_.name -match "^msys2-base-x86_64-[0-9]+\.sfx\.exe`$" }
     }
-
-    'pandoc' {
-      getGitHubReleaseAssetUrl 'jgm/pandoc' { $_.name -match "^pandoc-([0-9]+\.)+[0-9]+-windows-x86_64\.zip`$" }
-    }
   }
 
   if ($newUrl) {
@@ -109,7 +125,7 @@ function updateDownloadUrl {
   }
 }
 
-foreach ($arch in @('x86.json', 'x64.json', 'x64-standalone.json')) {
+foreach ($arch in @('x64.json', 'x64-standalone.json')) {
   $config = Get-Content ".\config\$arch" | ConvertFrom-Json
 
   foreach ($i in $config.downloads) {

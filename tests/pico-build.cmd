@@ -1,24 +1,47 @@
 @if not defined _echo echo off
 
-call "%PICO_INSTALL_PATH%\pico-env.cmd" || exit /b 1
+goto main
 
+:test-build
+
+  echo ::group::Building in %BUILD_DIR%
+  mkdir "%BUILD_DIR%"
+  pushd "%BUILD_DIR%"
+  cmake "%SRC_DIR%" -G Ninja -DCMAKE_BUILD_TYPE=Debug --fresh %* || exit /b 1
+  ninja --quiet || exit /b 1
+  popd
+  echo ::endgroup::
+  goto :EOF
+
+:main
+
+echo ::group::Setting up Pico environment
+call "%PICO_INSTALL_PATH%\pico-env.cmd" || exit /b 1
+echo ::endgroup::
+
+set "PICO_REPOS_PATH=%PICO_INSTALL_PATH%"
 pushd "%PICO_REPOS_PATH%"
+echo ::group::Cloning FreeRTOS-Kernel
 if not exist "FreeRTOS-Kernel\.git" (
   git clone --depth=1 -b main "https://github.com/FreeRTOS/FreeRTOS-Kernel.git" || exit /b 1
 )
+echo ::endgroup::
 popd
 
-subst P: "%PICO_REPOS_PATH%" || exit /b 1
+set "SRC_DIR=%PICO_REPOS_PATH%\pico-examples"
 
-pushd "P:\pico-examples\build"
-cmake -G Ninja .. -DPICO_BOARD=pico_w -DWIFI_SSID=ssid -DWIFI_PASSWORD=pass "-DFREERTOS_KERNEL_PATH=P:\FreeRTOS-Kernel" -DTEST_TCP_SERVER_IP=10.10.10.10 -DCMAKE_BUILD_TYPE=Debug --fresh || exit /b 1
-ninja --quiet || exit /b 1
-popd
+set "BUILD_DIR=%PICO_REPOS_PATH%\pico-examples\build-pico"
+call :test-build -DPICO_BOARD=pico || exit /b 1
 
-mkdir "P:\pico-sdk-build"
-pushd "P:\pico-sdk-build"
-cmake "%PICO_SDK_PATH%" -G Ninja -DPICO_SDK_TESTS_ENABLED=1 -DCMAKE_BUILD_TYPE=Debug -DPICO_BOARD=pico_w --fresh || exit /b 1
-ninja --quiet || exit /b 1
-popd
+set "BUILD_DIR=%PICO_REPOS_PATH%\pico-examples\build-pico2"
+call :test-build -DPICO_BOARD=pico2 || exit /b 1
 
-subst P: /d
+set "BUILD_DIR=%PICO_REPOS_PATH%\pico-examples\build-pico2-riscv"
+call :test-build -DPICO_BOARD=pico2 -DPICO_PLATFORM=rp2350-riscv "-DPICO_RISCV_TOOLCHAIN_PATH=%PICO_RISCV_TOOLCHAIN_PATH%" "-DPICO_ARM_TOOLCHAIN_PATH=%PICO_ARM_TOOLCHAIN_PATH%" || exit /b 1
+
+set "BUILD_DIR=%PICO_REPOS_PATH%\pico-examples\build-pico_w"
+call :test-build -DPICO_BOARD=pico_w -DWIFI_SSID=ssid -DWIFI_PASSWORD=pass "-DFREERTOS_KERNEL_PATH=%PICO_REPOS_PATH%\FreeRTOS-Kernel" -DTEST_TCP_SERVER_IP=10.10.10.10 || exit /b 1
+
+set "SRC_DIR=%PICO_SDK_PATH%"
+set "BUILD_DIR=%PICO_REPOS_PATH%\pico-sdk-build"
+call :test-build -DPICO_SDK_TESTS_ENABLED=1 -DPICO_BOARD=pico_w || exit /b 1
