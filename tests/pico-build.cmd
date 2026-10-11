@@ -45,3 +45,6 @@ call :test-build -DPICO_BOARD=pico_w -DWIFI_SSID=ssid -DWIFI_PASSWORD=pass "-DFR
 set "SRC_DIR=%PICO_SDK_PATH%"
 set "BUILD_DIR=%PICO_REPOS_PATH%\pico-sdk-build"
 call :test-build -DPICO_SDK_TESTS_ENABLED=1 -DPICO_BOARD=pico_w || exit /b 1
+
+set "BUILD_DIR=%PICO_REPOS_PATH%\pico-sdk-build-pico2-riscv"
+call :test-build -DPICO_SDK_TESTS_ENABLED=1 -DPICO_BOARD=pico2 -DPICO_PLATFORM=rp2350-riscv "-DPICO_RISCV_TOOLCHAIN_PATH=%PICO_RISCV_TOOLCHAIN_PATH%" "-DPICO_ARM_TOOLCHAIN_PATH=%PICO_ARM_TOOLCHAIN_PATH%" || exit /b 1
