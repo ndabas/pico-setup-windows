@@ -4,11 +4,13 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
+$ArmGccMajorVersion = '15'
+$PythonVersion = '3.14'
+
 function crawl {
   param ([string]$url)
 
-  # developer.arm.com doesn't like PowerShell or a spoofed Chrome user agent, but oddly allows curl
-  (Invoke-WebRequest $url -UseBasicParsing -UserAgent 'curl/8.18.0').Links |
+  (Invoke-WebRequest $url -UseBasicParsing).Links |
     Where-Object {
       ($_ | Get-Member href) -and
       [uri]::IsWellFormedUriString($_.href, [System.UriKind]::RelativeOrAbsolute)
@@ -40,6 +42,42 @@ function getGitHubReleaseAssetUrl {
   $asset.browser_download_url
 }
 
+function getGitLabGenericPackageUrl {
+  param (
+    [string] $Server,
+    [string] $Project,
+    [string] $PackageName,
+    [scriptblock] $VersionFilter,
+    [scriptblock] $FileFilter
+  )
+
+  $projectApi = "$Server/api/v4/projects/$([uri]::EscapeDataString($Project))"
+
+  # gitlab.arm.com blocks the default PowerShell user agent, but allows curl
+  $params = @{ UserAgent = 'curl/8.18.0'; FollowRelLink = $true }
+
+  # With -FollowRelLink, each page is emitted as an array, so flatten them
+  $pkg = Invoke-RestMethod "$projectApi/packages?package_type=generic&package_name=$PackageName&per_page=100" @params |
+    ForEach-Object { $_ } |
+    Where-Object { $_.name -eq $PackageName -and $_.status -eq 'default' } |
+    Where-Object $VersionFilter |
+    Sort-Object { [version](($_.version -replace '[^0-9]+', '.').Trim('.')) } -Descending |
+    Select-Object -First 1
+
+  if (-not $pkg) {
+    return
+  }
+
+  $file = Invoke-RestMethod "$projectApi/packages/$($pkg.id)/package_files?per_page=100" @params |
+    ForEach-Object { $_ } |
+    Where-Object $FileFilter |
+    Select-Object -First 1
+
+  if ($file) {
+    "$projectApi/packages/generic/$PackageName/$($pkg.version)/$($file.file_name)"
+  }
+}
+
 function updateDownloadUrl {
   param (
     $Download,
@@ -55,9 +93,11 @@ function updateDownloadUrl {
     'Arm GNU Toolchain' {
       $ext = $Download.file -match '\.zip$' ? 'zip' : 'exe'
 
-      crawl 'https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads' |
-        Where-Object { $_ -match "arm-gnu-toolchain-14.*-mingw-w64-x86_64-arm-none-eabi\.$ext" } |
-        Select-Object -First 1
+      $armGcc = [regex]::Escape($ArmGccMajorVersion)
+
+      getGitLabGenericPackageUrl 'https://gitlab.arm.com' 'tooling/gnu-toolchains-for-arm' 'gnu-toolchain' `
+        { $_.version -match "^$armGcc\.[0-9]+\.rel[0-9]+`$" } `
+        { $_.file_name -match "^arm-gnu-toolchain-$armGcc\..*-mingw-w64-x86_64-arm-none-eabi\.$ext`$" }
     }
 
     'CMake' {
@@ -73,7 +113,7 @@ function updateDownloadUrl {
       getGitHubReleaseAssetUrl 'ninja-build/ninja' { $_.name -eq 'ninja-win.zip' }
     }
 
-    'Python 3.12' {
+    { $_ -like 'Python *' } {
       $suffix = ''
 
       if ($Download.file -match '\.exe$') {
@@ -82,9 +122,15 @@ function updateDownloadUrl {
         $suffix = $Config.bitness -eq 64 ? '-embed-amd64\.zip' : '-embed-win32\.zip'
       }
 
-      crawl 'https://www.python.org/downloads/windows/' |
-        Where-Object { $_ -match "python-3\.12\.[0-9]+$suffix`$" } |
+      $url = crawl 'https://www.python.org/downloads/windows/' |
+        Where-Object { $_ -match "python-$([regex]::Escape($PythonVersion))\.[0-9]+$suffix`$" } |
         Select-Object -First 1
+
+      if ($url) {
+        $Download.name = "Python $PythonVersion"
+      }
+
+      $url
     }
 
     'Git for Windows' {

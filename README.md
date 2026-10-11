@@ -17,7 +17,7 @@ The rest of this README document is about developing the installer itself. If yo
 
 ## Included software
 
-- [Arm GNU Toolchain](https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads)
+- [Arm GNU Toolchain](https://gitlab.arm.com/tooling/gnu-toolchains-for-arm)
 - [RISC-V GNU Toolchain](https://github.com/riscv-collab/riscv-gnu-toolchain)
 - [CMake](https://cmake.org/download/)
 - [Ninja](https://github.com/ninja-build/ninja/releases)
@@ -41,13 +41,13 @@ To build:
 
 ```powershell
 # Standalone installer
-.\build.ps1 -CompileConfig .\config\x64-compile.json -InstallerConfig .\config\x64-standalone.json -BuildType user -MSYS2Path C:\Users\Nikhil\Downloads\msys64 -Target Download,Compile,Installer
+.\build.ps1 -CompileConfig .\config\x64-compile.json -InstallerConfig .\config\x64-standalone.json -BuildType user -Target Download,Compile,Installer
 
 # Zip archive
-.\build.ps1 -CompileConfig .\config\x64-compile.json -InstallerConfig .\config\x64-standalone.json -BuildType user -MSYS2Path C:\Users\Nikhil\Downloads\msys64 -Target Download,Compile,Archive
+.\build.ps1 -CompileConfig .\config\x64-compile.json -InstallerConfig .\config\x64-standalone.json -BuildType user -Target Download,Compile,Archive
 
 # System installer
-.\build.ps1 -CompileConfig .\config\x64-compile.json -InstallerConfig .\config\x64.json -BuildType system -MSYS2Path C:\Users\Nikhil\Downloads\msys64 -Target Download,Compile,Installer
+.\build.ps1 -CompileConfig .\config\x64-compile.json -InstallerConfig .\config\x64.json -BuildType system -Target Download,Compile,Installer
 ```
 
 The built installers will be saved to the `bin` directory.
