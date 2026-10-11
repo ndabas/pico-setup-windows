@@ -25,6 +25,10 @@ $remoteCommit = ((Get-Content .\config\repositories.json | ConvertFrom-Json).rep
   Where-Object { $_.href -like "*${Repo}.git" } |
   ForEach-Object { git ls-remote $_.href $_.tree }).Split("`t")[0]
 
+if ($remoteCommit -notmatch '^[0-9a-f]{40}$') {
+  Write-Error "Could not resolve remote commit for $Repo (got '$remoteCommit')"
+}
+
 $msystem = (Get-Content $ConfigFile | ConvertFrom-Json).msysEnv
 
-"$($Repo.ToUpperInvariant())_BUILD_ID=$Repo-$remoteCommit-$msystem"
+"$($Repo.ToUpperInvariant() -replace '[^A-Z0-9]', '_')_BUILD_ID=$Repo-$remoteCommit-$msystem"
