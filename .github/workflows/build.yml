@@ -147,6 +147,17 @@ jobs:
           name: Package-${{ matrix.installer.config }}-${{ matrix.installer.build-type }}-${{ matrix.installer.target }}
           path: bin
 
+      - name: Wait for Docker daemon
+        shell: pwsh
+        run: |
+          Start-Service docker
+          for ($i = 0; $i -lt 30; $i++) {
+            docker version *> $null
+            if ($LASTEXITCODE -eq 0) { exit 0 }
+            Start-Sleep -Seconds 5
+          }
+          throw 'Docker daemon did not become available'
+
       - name: Test ${{ matrix.installer.config }} (${{ matrix.installer.build-type }})
         shell: pwsh
         run: docker run --rm -v "$(Get-Location):C:\repo" -w C:\repo
