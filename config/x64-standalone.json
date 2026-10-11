@@ -6,15 +6,15 @@
   "downloads": [
     {
       "name": "Arm GNU Toolchain",
-      "file": "arm-gnu-toolchain-14.3.rel1-mingw-w64-x86_64-arm-none-eabi.zip",
-      "href": "https://developer.arm.com/-/media/Files/downloads/gnu/14.3.rel1/binrel/arm-gnu-toolchain-14.3.rel1-mingw-w64-x86_64-arm-none-eabi.zip",
+      "file": "arm-gnu-toolchain-15.3.rel2-mingw-w64-x86_64-arm-none-eabi.zip",
+      "href": "https://gitlab.arm.com/api/v4/projects/tooling%2Fgnu-toolchains-for-arm/packages/generic/gnu-toolchain/15.3.rel2/arm-gnu-toolchain-15.3.rel2-mingw-w64-x86_64-arm-none-eabi.zip",
       "dirName": "arm-gnu-toolchain",
       "installLevel": 2
     },
     {
       "name": "CMake",
-      "file": "cmake-4.3.2-windows-x86_64.zip",
-      "href": "https://github.com/Kitware/CMake/releases/download/v4.3.2/cmake-4.3.2-windows-x86_64.zip",
+      "file": "cmake-4.4.4-windows-x86_64.zip",
+      "href": "https://github.com/Kitware/CMake/releases/download/v4.4.4/cmake-4.4.4-windows-x86_64.zip",
       "dirName": "cmake",
       "extractStrip": 1,
       "installLevel": 2
@@ -27,16 +27,16 @@
       "installLevel": 2
     },
     {
-      "name": "Python 3.12",
-      "file": "python-3.12.10-embed-amd64.zip",
-      "href": "https://www.python.org/ftp/python/3.12.10/python-3.12.10-embed-amd64.zip",
+      "name": "Python 3.14",
+      "file": "python-3.14.8-embed-amd64.zip",
+      "href": "https://www.python.org/ftp/python/3.14.8/python-3.14.8-embed-amd64.zip",
       "dirName": "python",
       "installLevel": 3
     },
     {
       "name": "Git for Windows",
-      "file": "MinGit-2.54.0-64-bit.zip",
-      "href": "https://github.com/git-for-windows/git/releases/download/v2.54.0.windows.1/MinGit-2.54.0-64-bit.zip",
+      "file": "MinGit-2.56.0.2-64-bit.zip",
+      "href": "https://github.com/git-for-windows/git/releases/download/v2.56.0.windows.2/MinGit-2.56.0.2-64-bit.zip",
       "dirName": "git",
       "installLevel": 3
     }
