@@ -10,21 +10,21 @@
       "file": "arm-gnu-toolchain-15.3.rel2-mingw-w64-x86_64-arm-none-eabi.zip",
       "href": "https://gitlab.arm.com/api/v4/projects/tooling%2Fgnu-toolchains-for-arm/packages/generic/gnu-toolchain/15.3.rel2/arm-gnu-toolchain-15.3.rel2-mingw-w64-x86_64-arm-none-eabi.zip",
       "dirName": "arm-gnu-toolchain",
-      "installLevel": 2
+      "installLevel": 1
     },
     {
       "name": "CMake",
       "file": "cmake-4.4.4-windows-x86_64.msi",
       "exec": "msiexec /i \"$0\" /qn /norestart ADD_CMAKE_TO_PATH=System",
       "href": "https://github.com/Kitware/CMake/releases/download/v4.4.4/cmake-4.4.4-windows-x86_64.msi",
-      "installLevel": 2
+      "installLevel": 1
     },
     {
       "name": "Ninja",
       "file": "ninja-win.zip",
       "href": "https://github.com/ninja-build/ninja/releases/download/v1.13.2/ninja-win.zip",
       "dirName": "ninja",
-      "installLevel": 2
+      "installLevel": 1
     },
     {
       "name": "Python 3.14",
