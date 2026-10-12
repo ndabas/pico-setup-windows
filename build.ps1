@@ -172,7 +172,7 @@ $repositories | ForEach-Object {
   $reponame = [IO.Path]::GetFileNameWithoutExtension($_.href)
   $repodir = Join-Path 'build' $reponame
 
-  if ($_.installLevel -ge 1) {
+  if ($_.installLevel -ge 0) {
     $additionalDirs += [PSCustomObject]@{
       'dirName'      = $reponame
       'name'         = $reponame
@@ -307,7 +307,8 @@ function componentBegin {
 & {
   '!insertmacro PICO_GROUP_BEGIN "Tools"'
 
-  $downloads | ForEach-Object {
+  # installLevel -1 means "don't install"
+  $downloads | Where-Object { $_.installLevel -ge 0 } | ForEach-Object {
     componentBegin $_
 
     if ($_ | Get-Member additionalFiles) {
@@ -340,7 +341,7 @@ function componentBegin {
     '!insertmacro PICO_COMPONENT_END'
   }
 
-  $builds | ForEach-Object {
+  $builds | Where-Object { $_.installLevel -ge 0 } | ForEach-Object {
     componentBegin $_
     "!insertmacro PICO_DIR ``build\$($_.dirName)\$msysEnv`` ``$($_.installDirName)``"
     '!insertmacro PICO_COMPONENT_END'

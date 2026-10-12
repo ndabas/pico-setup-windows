@@ -19,6 +19,7 @@
 !macroend
 
 ; LEVEL: 1 = required, 2 = typical, 3 = full, 0 = hidden (always installed)
+; Components with installLevel -1 in config/*.json are excluded by build.ps1 and never reach here.
 !macro PICO_COMPONENT_BEGIN NAME ID LEVEL
   !define _PICO_NAME "${NAME}"
   !if "${PICO_PASS}" == "install"

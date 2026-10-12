@@ -1,4 +1,5 @@
 {
+  "$schema": "./config.schema.json",
   "repositories": [
     {
       "href": "https://github.com/raspberrypi/pico-sdk.git",
@@ -24,18 +25,18 @@
     {
       "href": "https://github.com/raspberrypi/picotool.git",
       "tree": "2.2.0-a4",
-      "installLevel": 0
+      "installLevel": -1
     },
     {
       "href": "https://github.com/raspberrypi/openocd.git",
       "tree": "sdk-2.2.0",
       "submodules": true,
-      "installLevel": 0
+      "installLevel": -1
     },
     {
       "href": "https://github.com/riscv-collab/riscv-gnu-toolchain.git",
       "tree": "2026.08.27",
-      "installLevel": 0
+      "installLevel": -1
     }
   ]
 }

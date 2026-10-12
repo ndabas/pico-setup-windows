@@ -1,0 +1,196 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/ndabas/pico-setup-windows/config/config.schema.json",
+  "title": "pico-setup-windows build configuration",
+  "description": "Configuration consumed by build.ps1: repositories.json, tools.json, compile configurations (*-compile.json) and installer configurations.",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "architecture": {
+      "description": "Target architecture, used in output file names.",
+      "type": "string",
+      "enum": ["x64"]
+    },
+    "bitness": {
+      "description": "Target bitness, passed to the installer as BITNESS.",
+      "type": "integer",
+      "enum": [32, 64]
+    },
+    "msysEnv": {
+      "description": "MSYS2 environment (MSYSTEM) used to build and locate compiled binaries.",
+      "type": "string",
+      "enum": ["UCRT64", "MINGW64", "MINGW32", "CLANG64", "CLANGARM64"]
+    },
+    "componentSelection": {
+      "description": "Installer configurations only: show the components page so users can choose what to install.",
+      "type": "boolean",
+      "default": false
+    },
+    "repositories": {
+      "description": "Source repositories to clone (repositories.json).",
+      "type": "array",
+      "items": { "$ref": "#/$defs/repository" }
+    },
+    "tools": {
+      "description": "Build-time tools to download (tools.json). These are never installed.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/tool" }
+    },
+    "builds": {
+      "description": "Compile configurations only: components built from source in MSYS2.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/build" }
+    },
+    "downloads": {
+      "description": "Installer configurations only: prebuilt components to download and package.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/download" }
+    }
+  },
+  "additionalProperties": false,
+  "anyOf": [
+    { "required": ["repositories"] },
+    { "required": ["tools"] },
+    { "required": ["architecture", "bitness", "msysEnv", "builds"] },
+    { "required": ["architecture", "bitness", "msysEnv", "downloads"] }
+  ],
+  "$defs": {
+    "installLevel": {
+      "description": "Installer component level: -1 = don't install (download/build only), 0 = hidden (always installed), 1 = required (Minimal), 2 = Typical, 3 = Full.",
+      "type": "integer",
+      "minimum": -1,
+      "maximum": 3
+    },
+    "name": {
+      "description": "Display name. Also used (with non-alphanumeric characters removed) as the installer section ID, so it must be unique.",
+      "type": "string",
+      "minLength": 1
+    },
+    "dirName": {
+      "description": "Directory under build\\ to extract into (or read from). For downloads, also the directory name under the install location.",
+      "type": "string",
+      "minLength": 1
+    },
+    "file": {
+      "description": "File name to save the download as, under downloads\\.",
+      "type": "string",
+      "minLength": 1
+    },
+    "href": {
+      "description": "Download URL.",
+      "type": "string",
+      "format": "uri"
+    },
+    "extractStrip": {
+      "description": "Number of leading path components to strip when extracting the archive (tar --strip-components).",
+      "type": "integer",
+      "minimum": 0,
+      "default": 0
+    },
+    "repository": {
+      "type": "object",
+      "properties": {
+        "href": {
+          "description": "Git clone URL. The repository directory name is derived from it.",
+          "type": "string",
+          "format": "uri"
+        },
+        "tree": {
+          "description": "Branch or tag to clone.",
+          "type": "string",
+          "minLength": 1
+        },
+        "submodules": {
+          "description": "Initialize submodules after cloning.",
+          "type": "boolean",
+          "default": false
+        },
+        "installLevel": { "$ref": "#/$defs/installLevel" }
+      },
+      "required": ["href", "tree", "installLevel"],
+      "additionalProperties": false
+    },
+    "tool": {
+      "type": "object",
+      "properties": {
+        "name": { "$ref": "#/$defs/name" },
+        "file": { "$ref": "#/$defs/file" },
+        "href": { "$ref": "#/$defs/href" },
+        "dirName": { "$ref": "#/$defs/dirName" },
+        "extractStrip": { "$ref": "#/$defs/extractStrip" }
+      },
+      "required": ["name", "file", "href"],
+      "additionalProperties": false
+    },
+    "build": {
+      "type": "object",
+      "properties": {
+        "name": { "$ref": "#/$defs/name" },
+        "buildScript": {
+          "description": "Script run in MSYS2 from the build directory, relative to the repository root.",
+          "type": "string",
+          "minLength": 1
+        },
+        "dirName": {
+          "description": "Build output directory under build\\; binaries are expected in its <msysEnv> subdirectory.",
+          "type": "string",
+          "minLength": 1
+        },
+        "installDirName": {
+          "description": "Directory name under the install location.",
+          "type": "string",
+          "minLength": 1
+        },
+        "checkVersion": {
+          "description": "Command (and arguments) run in the build output directory to report the version.",
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1
+        },
+        "installLevel": { "$ref": "#/$defs/installLevel" }
+      },
+      "required": ["name", "buildScript", "dirName", "installDirName", "checkVersion", "installLevel"],
+      "additionalProperties": false
+    },
+    "download": {
+      "type": "object",
+      "properties": {
+        "name": { "$ref": "#/$defs/name" },
+        "file": { "$ref": "#/$defs/file" },
+        "href": { "$ref": "#/$defs/href" },
+        "dirName": { "$ref": "#/$defs/dirName" },
+        "extractStrip": { "$ref": "#/$defs/extractStrip" },
+        "exec": {
+          "description": "Installer command line run with ExecWait. $0 is the path to the extracted file.",
+          "type": "string",
+          "minLength": 1
+        },
+        "execToLog": {
+          "description": "Installer command line run with nsExec::ExecToLog. $0 is the path to the extracted file.",
+          "type": "string",
+          "minLength": 1
+        },
+        "rebootExitCodes": {
+          "description": "Exit codes from exec/execToLog that indicate success with a reboot required.",
+          "type": "array",
+          "items": { "type": "integer" }
+        },
+        "additionalFiles": {
+          "description": "Extra files (e.g. answer files) extracted to $PLUGINSDIR before running exec/execToLog.",
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "installLevel": { "$ref": "#/$defs/installLevel" }
+      },
+      "required": ["name", "file", "href", "installLevel"],
+      "additionalProperties": false,
+      "not": { "required": ["exec", "execToLog"] },
+      "dependentSchemas": {
+        "rebootExitCodes": { "anyOf": [{ "required": ["exec"] }, { "required": ["execToLog"] }] },
+        "additionalFiles": { "anyOf": [{ "required": ["exec"] }, { "required": ["execToLog"] }] }
+      }
+    }
+  }
+}
