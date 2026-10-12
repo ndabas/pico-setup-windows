@@ -19,6 +19,13 @@ echo ::group::Setting up Pico environment
 call "%PICO_INSTALL_PATH%\pico-env.cmd" || exit /b 1
 echo ::endgroup::
 
+echo ::group::Checking picotool USB support
+rem These commands are only available when picotool is built with USB support
+for %%c in (load save erase) do (
+  picotool help %%c || exit /b 1
+)
+echo ::endgroup::
+
 set "PICO_REPOS_PATH=%PICO_INSTALL_PATH%"
 pushd "%PICO_REPOS_PATH%"
 echo ::group::Cloning FreeRTOS-Kernel
