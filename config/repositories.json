@@ -2,8 +2,8 @@
   "$schema": "./config.schema.json",
   "repositories": [
     {
-      "href": "https://github.com/raspberrypi/pico-sdk.git",
-      "tree": "2.3.1",
+      "href": "https://github.com/ndabas/pico-sdk.git",
+      "tree": "2.3.1-pico-setup-windows",
       "submodules": true,
       "installLevel": 1
     },
