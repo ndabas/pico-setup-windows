@@ -1,4 +1,5 @@
 {
+  "$schema": "./config.schema.json",
   "tools": [
     {
       "name": "NSIS",
