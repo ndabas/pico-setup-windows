@@ -245,6 +245,8 @@ function msys {
   & "$MSYS2Path\usr\bin\bash" -leo pipefail -c "$cmd"
 }
 
+# Used by build scripts to identify the project in version banners
+$env:PICO_SETUP_PROJECT = $basename
 # Preserve the current working directory
 $env:CHERE_INVOKING = 'yes'
 # Use real symlinks
