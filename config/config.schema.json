@@ -97,6 +97,11 @@
           "type": "string",
           "format": "uri"
         },
+        "upstream": {
+          "description": "Git URL to set as the origin remote after cloning. Use when href points to a fork, so the installed repository fetches from the upstream project.",
+          "type": "string",
+          "format": "uri"
+        },
         "tree": {
           "description": "Branch or tag to clone.",
           "type": "string",

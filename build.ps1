@@ -193,6 +193,11 @@ $repositories | ForEach-Object {
       git -C "$repodir" submodule update --init --depth=1
       Write-Output "::endgroup::"
     }
+
+    if ($_ | Get-Member upstream) {
+      git -C "$repodir" remote set-url origin "$($_.upstream)"
+      git -C "$repodir" config remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'
+    }
   }
 
   Write-Host "Checking ${repodir}: " -NoNewline

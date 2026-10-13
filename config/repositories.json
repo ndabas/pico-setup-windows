@@ -3,6 +3,7 @@
   "repositories": [
     {
       "href": "https://github.com/ndabas/pico-sdk.git",
+      "upstream": "https://github.com/raspberrypi/pico-sdk.git",
       "tree": "2.3.1-pico-setup-windows",
       "submodules": true,
       "installLevel": 1
