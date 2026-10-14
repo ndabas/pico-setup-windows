@@ -35,7 +35,12 @@ if ($installer.EndsWith('.exe')) {
   $installPath = Join-Path $env:SystemDrive "Pico"
   
   Write-Host "Extracting $installer to $installPath"
-  $elapsed = Measure-Command { Expand-Archive -Path $installer -DestinationPath $installPath -Force }
+  New-Item -ItemType Directory -Path $installPath -Force | Out-Null
+  # tar.exe (libarchive) honours the UTC timestamps in the zip; Expand-Archive only reads local DOS times
+  $elapsed = Measure-Command { tar -xf $installer -C $installPath }
+  if ($LASTEXITCODE -ne 0) {
+    throw "tar failed with exit code $LASTEXITCODE"
+  }
   Write-Host ("Finished in {0:hh':'mm':'ss}" -f $elapsed)
 } else {
   throw "Unknown installer format: $installer"
