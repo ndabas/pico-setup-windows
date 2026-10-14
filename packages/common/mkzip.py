@@ -13,10 +13,24 @@ Loosely based on https://github.com/python/cpython/blob/5ec845a0444bc97d8a684dc9
 import argparse
 import io
 import os
+import shutil
+import struct
 import sys
 import tempfile
 import unittest
-from zipfile import ZipFile, ZIP_DEFLATED
+from zipfile import ZipFile, ZipInfo, ZIP_DEFLATED
+
+EXTENDED_TIMESTAMP_ID = 0x5455
+EXTENDED_TIMESTAMP_MTIME = 0x01
+
+
+def add_utc_mtime(zinfo, path):
+    """
+    Add an extended timestamp ("UT") extra field with the UTC modification time.
+    The standard DOS timestamp has no time zone, so extractors interpret it as their local time.
+    """
+    mtime = int(os.stat(path).st_mtime)
+    zinfo.extra += struct.pack('<HHBl', EXTENDED_TIMESTAMP_ID, 5, EXTENDED_TIMESTAMP_MTIME, mtime)
 
 
 def main(args=None):
@@ -40,12 +54,26 @@ def main(args=None):
             if os.path.isfile(path):
                 if args.verbose:
                     print(f'Adding {path} as {zippath}')
-                zf.write(path, zippath, compress_type=ZIP_DEFLATED, compresslevel=args.compresslevel)
+                zinfo = ZipInfo.from_file(path, zippath)
+                add_utc_mtime(zinfo, path)
+                zinfo.compress_type = ZIP_DEFLATED
+                if args.compresslevel is not None:
+                    # compress_level is public from Python 3.13; _compresslevel is the older name
+                    if hasattr(ZipInfo, 'compress_level'):
+                        zinfo.compress_level = args.compresslevel
+                    else:
+                        zinfo._compresslevel = args.compresslevel
+                with open(path, 'rb') as src, zf.open(zinfo, 'w') as dest:
+                    shutil.copyfileobj(src, dest, 1024 * 1024)
             elif os.path.isdir(path):
                 if zippath:
                     if args.verbose:
                         print(f'Adding directory {path} as {zippath}')
-                    zf.write(path, zippath)
+                    zinfo = ZipInfo.from_file(path, zippath)
+                    add_utc_mtime(zinfo, path)
+                    zinfo.compress_size = 0
+                    zinfo.CRC = 0
+                    zf.mkdir(zinfo)
                 for nm in sorted(os.listdir(path)):
                     addToZip(zf,
                              os.path.join(path, nm), os.path.join(zippath, nm))
@@ -92,6 +120,39 @@ class TestMkzip(unittest.TestCase):
     def _read(self, zip_path, name):
         with ZipFile(zip_path) as zf:
             return zf.read(name)
+
+    def _extra_fields(self, extra):
+        fields = {}
+        offset = 0
+        while offset + 4 <= len(extra):
+            tag, size = struct.unpack_from('<HH', extra, offset)
+            fields[tag] = extra[offset + 4:offset + 4 + size]
+            offset += 4 + size
+        return fields
+
+    def _utc_mtime(self, zip_path, name):
+        with ZipFile(zip_path) as zf:
+            ut = self._extra_fields(zf.getinfo(name).extra)[EXTENDED_TIMESTAMP_ID]
+        flags, mtime = struct.unpack('<Bl', ut)
+        self.assertTrue(flags & EXTENDED_TIMESTAMP_MTIME)
+        return mtime
+
+    def test_utc_mtime_extra_field(self):
+        mtime = 1_700_000_000
+        os.utime(self.lone, (mtime, mtime))
+        main(['-f', self.out, self.lone])
+        self.assertEqual(self._utc_mtime(self.out, 'lone.txt'), mtime)
+
+    def test_utc_mtime_extra_field_directory(self):
+        mtime = 1_600_000_000
+        os.utime(os.path.join(self.tree, 'sub'), (mtime, mtime))
+        main(['-f', self.out, self.tree])
+        self.assertEqual(self._utc_mtime(self.out, 'tree/sub/'), mtime)
+
+    def test_files_are_deflated(self):
+        main(['-f', self.out, self.lone, '--best'])
+        with ZipFile(self.out) as zf:
+            self.assertEqual(zf.getinfo('lone.txt').compress_type, ZIP_DEFLATED)
 
     def test_single_file(self):
         main(['-f', self.out, self.lone])
