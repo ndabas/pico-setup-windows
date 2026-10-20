@@ -2,30 +2,29 @@
   "$schema": "./config.schema.json",
   "repositories": [
     {
-      "href": "https://github.com/ndabas/pico-sdk.git",
-      "upstream": "https://github.com/raspberrypi/pico-sdk.git",
-      "tree": "2.3.1-pico-setup-windows",
+      "href": "https://github.com/raspberrypi/pico-sdk.git",
+      "tree": "develop",
       "submodules": true,
       "installLevel": 1
     },
     {
       "href": "https://github.com/raspberrypi/pico-examples.git",
-      "tree": "sdk-2.3.1",
+      "tree": "develop",
       "installLevel": 2
     },
     {
       "href": "https://github.com/raspberrypi/pico-extras.git",
-      "tree": "sdk-2.3.1",
+      "tree": "develop",
       "installLevel": 3
     },
     {
       "href": "https://github.com/raspberrypi/pico-playground.git",
-      "tree": "sdk-2.3.1",
+      "tree": "develop",
       "installLevel": 3
     },
     {
       "href": "https://github.com/raspberrypi/picotool.git",
-      "tree": "2.3.1",
+      "tree": "develop",
       "installLevel": -1
     },
     {
