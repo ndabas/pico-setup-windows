@@ -11,25 +11,36 @@ Loosely based on https://github.com/python/cpython/blob/5ec845a0444bc97d8a684dc9
 """
 
 import argparse
+import calendar
 import io
 import os
 import shutil
 import struct
 import sys
 import tempfile
+import time
 import unittest
 from zipfile import ZipFile, ZipInfo, ZIP_DEFLATED
 
 EXTENDED_TIMESTAMP_ID = 0x5455
 EXTENDED_TIMESTAMP_MTIME = 0x01
 
+# The westernmost time zone is UTC-12
+MAX_UTC_OFFSET_BEHIND = 12 * 60 * 60
+DOS_EPOCH = (1980, 1, 1, 0, 0, 0)
 
-def add_utc_mtime(zinfo, path):
+
+def set_mtime(zinfo, path):
     """
-    Add an extended timestamp ("UT") extra field with the UTC modification time.
-    The standard DOS timestamp has no time zone, so extractors interpret it as their local time.
+    Set the modification time of an entry so that it is never in the future after extraction.
+
+    The standard DOS timestamp has no time zone, so most extractors (Explorer, Expand-Archive) interpret
+    it as their local time. Storing it as UTC-12 means it can only ever appear older than the actual time,
+    which avoids build tools (e.g. Ninja re-running CMake indefinitely) seeing source files from the future.
+    An extended timestamp ("UT") extra field with the exact UTC time is also added, for extractors that support it.
     """
     mtime = int(os.stat(path).st_mtime)
+    zinfo.date_time = max(time.gmtime(mtime - MAX_UTC_OFFSET_BEHIND)[0:6], DOS_EPOCH)
     zinfo.extra += struct.pack('<HHBl', EXTENDED_TIMESTAMP_ID, 5, EXTENDED_TIMESTAMP_MTIME, mtime)
 
 
@@ -55,7 +66,7 @@ def main(args=None):
                 if args.verbose:
                     print(f'Adding {path} as {zippath}')
                 zinfo = ZipInfo.from_file(path, zippath)
-                add_utc_mtime(zinfo, path)
+                set_mtime(zinfo, path)
                 zinfo.compress_type = ZIP_DEFLATED
                 if args.compresslevel is not None:
                     # compress_level is public from Python 3.13; _compresslevel is the older name
@@ -70,7 +81,7 @@ def main(args=None):
                     if args.verbose:
                         print(f'Adding directory {path} as {zippath}')
                     zinfo = ZipInfo.from_file(path, zippath)
-                    add_utc_mtime(zinfo, path)
+                    set_mtime(zinfo, path)
                     zinfo.compress_size = 0
                     zinfo.CRC = 0
                     zf.mkdir(zinfo)
@@ -148,6 +159,39 @@ class TestMkzip(unittest.TestCase):
         os.utime(os.path.join(self.tree, 'sub'), (mtime, mtime))
         main(['-f', self.out, self.tree])
         self.assertEqual(self._utc_mtime(self.out, 'tree/sub/'), mtime)
+
+    def _dos_time_as_utc(self, zip_path, name):
+        with ZipFile(zip_path) as zf:
+            return calendar.timegm(zf.getinfo(name).date_time + (0, 0, 0))
+
+    def test_dos_time_is_utc_minus_12h(self):
+        mtime = 1_700_000_000  # even, as DOS times have 2-second resolution
+        os.utime(self.lone, (mtime, mtime))
+        main(['-f', self.out, self.lone])
+        self.assertEqual(self._dos_time_as_utc(self.out, 'lone.txt'), mtime - MAX_UTC_OFFSET_BEHIND)
+
+    def test_dos_time_never_in_future(self):
+        """Interpreted as local time in any time zone (UTC-12 to UTC+14), the DOS time is not after the actual time."""
+        mtime = 1_700_000_001
+        os.utime(self.lone, (mtime, mtime))
+        main(['-f', self.out, self.lone])
+        dos_utc = self._dos_time_as_utc(self.out, 'lone.txt')
+        for offset_hours in range(-12, 15):
+            self.assertLessEqual(dos_utc - offset_hours * 3600, mtime)
+
+    def test_dos_time_directory(self):
+        mtime = 1_600_000_000
+        os.utime(os.path.join(self.tree, 'sub'), (mtime, mtime))
+        main(['-f', self.out, self.tree])
+        self.assertEqual(self._dos_time_as_utc(self.out, 'tree/sub/'), mtime - MAX_UTC_OFFSET_BEHIND)
+
+    def test_dos_time_clamped_to_1980(self):
+        mtime = 315_532_800  # 1980-01-01T00:00:00Z
+        os.utime(self.lone, (mtime, mtime))
+        main(['-f', self.out, self.lone])
+        with ZipFile(self.out) as zf:
+            self.assertEqual(zf.getinfo('lone.txt').date_time, DOS_EPOCH)
+        self.assertEqual(self._utc_mtime(self.out, 'lone.txt'), mtime)
 
     def test_files_are_deflated(self):
         main(['-f', self.out, self.lone, '--best'])
