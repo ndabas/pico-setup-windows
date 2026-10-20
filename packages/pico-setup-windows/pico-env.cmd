@@ -1,6 +1,8 @@
 @if not defined _echo echo off
 
 set errors=0
+set werror=0
+if /I "%~1" equ "-werror" set werror=1
 goto main
 
 :AddToPath
@@ -15,14 +17,16 @@ goto main
 
   echo Checking %1...
   cmd /c %2 >NUL 2>NUL
-  if %ERRORLEVEL% neq 0 (
-    if "%~3" equ "warning" (
-      echo WARNING: %1 was not found.
-    ) else (
-      echo ERROR: %1 is required but was not found.
-      set /a errors += 1
-    )
+  if %ERRORLEVEL% equ 0 goto :EOF
+
+  rem Missing optional tools are warnings, unless -werror was specified
+  if "%~3" equ "warning" if "%werror%" neq "1" (
+    echo WARNING: %1 was not found.
+    goto :EOF
   )
+
+  echo ERROR: %1 is required but was not found.
+  set /a errors += 1
 
   goto :EOF
 
@@ -41,7 +45,7 @@ goto main
     set "%2=%%~dp$PATH:f"
   )
 
-  call :RemoveTrailingBackslash %2
+  if defined %2 call :RemoveTrailingBackslash %2
 
   goto :EOF
 

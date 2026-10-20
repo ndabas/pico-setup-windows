@@ -1,9 +1,19 @@
 @if not defined _echo echo off
 
 set interactive=1
-if /I [%1] equ [-noninteractive] set interactive=0
+set werror=0
 
-call "%~dp0pico-env.cmd" || exit /b 1
+:ParseArgs
+if "%~1" equ "" goto ParsedArgs
+if /I "%~1" equ "-noninteractive" set interactive=0
+if /I "%~1" equ "-werror" set werror=1
+shift /1
+goto ParseArgs
+:ParsedArgs
+
+set "PICO_ENV_ARGS="
+if "%werror%" equ "1" set "PICO_ENV_ARGS=-werror"
+call "%~dp0pico-env.cmd" %PICO_ENV_ARGS% || exit /b 1
 setlocal enabledelayedexpansion
 
 rem This is mostly a port of pico-setup
@@ -36,17 +46,17 @@ for %%i in (examples extras playground) do (
 )
 
 rem Build a couple of examples
-for %%j in (pico pico2) do (
-  mkdir "%PICO_REPOS_PATH%\pico-examples\build-%%j"
-  pushd "%PICO_REPOS_PATH%\pico-examples\build-%%j"
-  cmake -G Ninja .. -DPICO_BOARD=%%j -DCMAKE_BUILD_TYPE=Debug --fresh || exit /b 1
+set "BUILD_NAME=pico"
+call :Build -DPICO_BOARD=pico || exit /b 1
 
-  for %%i in (blink "hello_world/all") do (
-    echo Building %%i for %%j
-    ninja "%%i" || exit /b 1
-  )
+set "BUILD_NAME=pico2"
+call :Build -DPICO_BOARD=pico2 || exit /b 1
 
-  popd
+if defined PICO_RISCV_TOOLCHAIN_PATH (
+  set "BUILD_NAME=pico2-riscv"
+  call :Build -DPICO_BOARD=pico2 -DPICO_PLATFORM=rp2350-riscv "-DPICO_RISCV_TOOLCHAIN_PATH=%PICO_RISCV_TOOLCHAIN_PATH%" "-DPICO_ARM_TOOLCHAIN_PATH=%PICO_ARM_TOOLCHAIN_PATH%" || exit /b 1
+) else (
+  echo RISC-V GNU Toolchain not found, skipping RISC-V build
 )
 
 if "%interactive%" equ "1" (
@@ -55,3 +65,18 @@ if "%interactive%" equ "1" (
 )
 
 popd
+exit /b 0
+
+:Build
+
+  mkdir "%PICO_REPOS_PATH%\pico-examples\build-%BUILD_NAME%"
+  pushd "%PICO_REPOS_PATH%\pico-examples\build-%BUILD_NAME%"
+  cmake -G Ninja .. -DCMAKE_BUILD_TYPE=Debug --fresh %* || exit /b 1
+
+  for %%i in (blink "hello_world/all") do (
+    echo Building %%~i for %BUILD_NAME%
+    ninja "%%~i" || exit /b 1
+  )
+
+  popd
+  goto :EOF
