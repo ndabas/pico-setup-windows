@@ -1,3 +1,7 @@
+param(
+  [switch]$Quick
+)
+
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
@@ -47,10 +51,15 @@ if ($installer.EndsWith('.exe')) {
 }
 
 Write-Output "::group::Running pico-setup.cmd"
-cmd /c call "$installPath\pico-setup.cmd" -noninteractive
+cmd /c call "$installPath\pico-setup.cmd" -noninteractive -werror
 Write-Output "::endgroup::"
 if ($LASTEXITCODE -ne 0) {
   exit $LASTEXITCODE
+}
+
+if ($Quick) {
+  Write-Host "Quick mode: skipping pico-build.cmd"
+  exit 0
 }
 
 $env:PICO_INSTALL_PATH = $installPath
