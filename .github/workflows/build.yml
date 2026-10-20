@@ -118,7 +118,9 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: Package-${{ matrix.config }}-${{ matrix.build-type }}-${{ matrix.target }}
-          path: bin/
+          path: |
+            bin/
+            build/version.txt
 
   Test-Installer:
     runs-on: ${{ matrix.winver.host }}
@@ -143,7 +145,6 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: Package-${{ matrix.installer.config }}-${{ matrix.installer.build-type }}-${{ matrix.installer.target }}
-          path: bin
 
       # Windows 11 ARM64 runners do not have Docker installed
       - name: Setup Docker (Windows ARM64)
@@ -187,10 +188,11 @@ jobs:
         with:
           pattern: Package-*
           merge-multiple: true
-          path: bin
 
       - name: Publish release
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: ${{ github.ref_name }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: .github/publish-release.sh

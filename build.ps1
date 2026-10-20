@@ -34,7 +34,6 @@ $PSNativeCommandUseErrorActionPreference = $true
 $ProgressPreference = 'SilentlyContinue'
 
 $basename = "pico-setup-windows"
-$version = (Get-Content "$PSScriptRoot\version.txt").Trim()
 $build = (Get-Date -Format FileDateTimeUniversal)
 
 $tools = (Get-Content '.\config\tools.json' | ConvertFrom-Json).tools
@@ -226,12 +225,12 @@ if (-not ($sdkVersion -match $versionRegEx)) {
 $sdkVersionClean = $Matches[0]
 $env:PICO_SDK_VERSION = $sdkVersionClean
 $sdkVersionCommit = (git -C .\build\pico-sdk rev-parse --short HEAD)
+$sdkVersionClean | Out-File -FilePath "build\version.txt" -NoNewline
 $product = "Pico SDK v$sdkVersion"
 $productDir = "Pico SDK v$sdkVersion"
 $company = "Nikhil Dabas"
 
 Write-Host "SDK version: $sdkVersion ($sdkVersionCommit)"
-Write-Host "Installer version: $version"
 
 function sign {
   param ([string[]] $filesToSign)
@@ -382,7 +381,7 @@ function componentBegin {
 !define PRODUCT "$product"
 !define PRODUCT_DIR "$productDir"
 !define TITLE "$product"
-!define VERSION "$version"
+!define VERSION "$sdkVersionClean"
 !define BITNESS $bitness
 !define OUTPUT_FILE "$exefile"
 !define PICO_SDK_VERSION "$sdkVersion"
@@ -400,11 +399,11 @@ RequestExecutionLevel $($BuildType -eq 'system' ? 'admin' : 'user')
 VIAddVersionKey "FileDescription" "`${TITLE}"
 VIAddVersionKey "InternalName" "$basename"
 VIAddVersionKey "ProductName" "`${TITLE}"
-VIAddVersionKey "FileVersion" "$version-$build"
+VIAddVersionKey "FileVersion" "$sdkVersionClean-$build"
 VIAddVersionKey "ProductVersion" "$sdkVersion-$sdkVersionCommit"
 VIAddVersionKey "LegalCopyright" "$company"
 VIAddVersionKey "CompanyName" "$company"
-VIFileVersion $version.0
+VIFileVersion $sdkVersionClean.0
 VIProductVersion $sdkVersionClean.0
 "@ | Out-File -FilePath "build\installer-header.nsh"
 
