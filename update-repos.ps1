@@ -171,7 +171,7 @@ if ($SdkVersion) {
   $SdkVersion = ($sdkReleases | sortVersionRefs | Select-Object -Last 1).Version.ToString()
 }
 
-Write-Host "Pico SDK $($Develop ? 'development' : 'release') version: $SdkVersion"
+Write-Host "Pico SDK $($Develop ? 'latest release' : 'version'): $SdkVersion"
 
 foreach ($repo in $config.repositories) {
   if ($repo.href -match '/riscv-gnu-toolchain(\.git)?$') {
