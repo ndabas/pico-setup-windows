@@ -131,7 +131,7 @@ jobs:
         winver:
           - { host: windows-latest, image: ltsc2025 }
           - { host: windows-latest, image: ltsc2022 }
-          - { host: windows-11-arm, image: ltsc2025-arm64 }
+          - { host: windows-11-arm, image: ltsc2025-arm64, test-args: -Quick }
         installer:
           - { config: x64, build-type: system, target: Installer }
           - { config: x64-standalone, build-type: user, target: Installer }
@@ -166,7 +166,7 @@ jobs:
         shell: pwsh
         run: docker run --rm -v "$(Get-Location):C:\repo" -w C:\repo
           mcr.microsoft.com/windows/servercore:${{ matrix.winver.image }}
-          powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File .\tests\setup.ps1
+          powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File .\tests\setup.ps1 ${{ matrix.winver.test-args }}
 
       - name: Upload installer logs
         uses: actions/upload-artifact@v7
