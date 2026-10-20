@@ -146,6 +146,13 @@ jobs:
         with:
           name: Package-${{ matrix.installer.config }}-${{ matrix.installer.build-type }}-${{ matrix.installer.target }}
 
+      # Windows 11 ARM64 runners are on Pacific timezone by default.
+      # Extracted zips then get files in the future as the timestamps are based on the local timezone,
+      # which causes CMake to fail.
+      - name: Set timezone
+        shell: pwsh
+        run: Set-TimeZone -Id UTC
+
       # Windows 11 ARM64 runners do not have Docker installed
       - name: Setup Docker (Windows ARM64)
         if: matrix.winver.host == 'windows-11-arm'
