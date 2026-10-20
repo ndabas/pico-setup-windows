@@ -2,23 +2,30 @@
 
 <#
 .SYNOPSIS
-Updates the repository trees in config\repositories.json and version.txt for a Pico SDK release.
+Updates the repository trees in config\repositories.json for a Pico SDK release.
 
 .PARAMETER SdkVersion
 The Pico SDK version to update to, e.g. 2.3.1. Defaults to the latest released version.
+
+.PARAMETER Develop
+Update to the development versions instead of a release. Repositories with a develop branch (in href, or in
+upstream if href does not have one) are set to it, and other repositories are updated for the latest SDK release.
 #>
 
-[CmdletBinding()]
+[CmdletBinding(DefaultParameterSetName = 'Release')]
 param (
+  [Parameter(ParameterSetName = 'Release')]
   [ValidatePattern('^[0-9]+\.[0-9]+\.[0-9]+$')]
-  [string] $SdkVersion
+  [string] $SdkVersion,
+
+  [Parameter(ParameterSetName = 'Develop', Mandatory)]
+  [switch] $Develop
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $repositoriesPath = "$PSScriptRoot\config\repositories.json"
-$versionPath = "$PSScriptRoot\version.txt"
 
 # Matches e.g. 2.2.0, sdk-2.2.0, 2.2.0-a4, 2.1.0-correct-picotool
 $versionRefPattern = '^(?<prefix>.*?)(?<version>[0-9]+\.[0-9]+\.[0-9]+)(?<suffix>-.+)?$'
@@ -110,6 +117,43 @@ function updateRepoTree {
   $Repo.tree = $best.Name
 }
 
+function hasBranch {
+  param (
+    [string] $Href,
+    [string] $Branch
+  )
+
+  git ls-remote --exit-code --heads $Href "refs/heads/$Branch" | Out-Null
+  switch ($LASTEXITCODE) {
+    0 { $true }
+    2 { $false }
+    default { throw "git ls-remote failed for $Href" }
+  }
+}
+
+function updateRepoToDevelop {
+  param ($Repo)
+
+  $upstream = $Repo.PSObject.Properties['upstream']
+
+  if (hasBranch $Repo.href $developBranch) {
+    $href = $Repo.href
+  } elseif ($upstream -and (hasBranch $upstream.Value $developBranch)) {
+    # Forks only carry release fixes, so take develop from upstream directly
+    $href = $upstream.Value
+    $Repo.PSObject.Properties.Remove('upstream')
+  } else {
+    return $false
+  }
+
+  Write-Host "$($Repo.href): $($Repo.tree) -> $href $developBranch"
+  $Repo.href = $href
+  $Repo.tree = $developBranch
+  return $true
+}
+
+$developBranch = 'develop'
+
 $config = Get-Content $repositoriesPath | ConvertFrom-Json
 
 $sdkRepo = $config.repositories | Where-Object href -match '/pico-sdk(\.git)?$'
@@ -127,7 +171,7 @@ if ($SdkVersion) {
   $SdkVersion = ($sdkReleases | sortVersionRefs | Select-Object -Last 1).Version.ToString()
 }
 
-Write-Host "Pico SDK version: $SdkVersion"
+Write-Host "Pico SDK $($Develop ? 'development' : 'release') version: $SdkVersion"
 
 foreach ($repo in $config.repositories) {
   if ($repo.href -match '/riscv-gnu-toolchain(\.git)?$') {
@@ -146,9 +190,20 @@ foreach ($repo in $config.repositories) {
     continue
   }
 
+  if ($Develop) {
+    if (updateRepoToDevelop $repo) {
+      continue
+    }
+
+    if ($repo -eq $sdkRepo) {
+      throw "$($repo.href): no $developBranch branch found"
+    }
+
+    Write-Host "$($repo.href): no $developBranch branch, using SDK $SdkVersion tree"
+  }
+
   $refs = $repo -eq $sdkRepo ? $sdkRefs : (getRemoteRefs $repo.href)
   updateRepoTree $repo $refs ([version]$SdkVersion)
 }
 
 $config | ConvertTo-Json -Depth 4 | Set-Content $repositoriesPath
-$SdkVersion | Set-Content $versionPath
