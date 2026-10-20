@@ -1,7 +1,10 @@
 #!/bin/bash
 set -euo pipefail
 
-TAG=v$(cat version.txt)
+TAG=v$(cat build/version.txt)
+if [ "${BRANCH}" != "${DEFAULT_BRANCH}" ]; then
+    TAG="${TAG}-$(echo "${BRANCH}" | sed 's/[^A-Za-z0-9._-]/-/g')"
+fi
 echo "Release tag: ${TAG}"
 
 if DRAFT=$(gh release view "${TAG}" --json isDraft --jq '.isDraft' 2>/dev/null); then
