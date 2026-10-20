@@ -20,15 +20,15 @@ function Update-EnvironmentVariables {
 }
 
 $installer = Get-ChildItem bin\pico-setup-windows-* | Sort-Object LastWriteTime -Descending | Select-Object -First 1 -ExpandProperty FullName
-$installPath = ''
+# Keep this short: CMake embeds the source path in object paths under the build tree, so the install path
+# appears twice in some pico-examples paths, and not all bundled tools are long-path aware.
+$installPath = Join-Path $env:SystemDrive "Pico"
 
 if ($installer.EndsWith('.exe')) {
-  Write-Host "Starting $installer"
-  $elapsed = Measure-Command { Start-Process -FilePath $installer -ArgumentList "/S" -PassThru | Wait-Process }
+  Write-Host "Installing $installer to $installPath"
+  # NSIS requires /D= to be the last argument, unquoted
+  $elapsed = Measure-Command { Start-Process -FilePath $installer -ArgumentList "/S", "/D=$installPath" -PassThru | Wait-Process }
   Write-Host ("Finished in {0:hh':'mm':'ss}" -f $elapsed)
-
-  $uninstRegKey = "Microsoft\Windows\CurrentVersion\Uninstall\Pico SDK*"
-  $installPath = (Get-ItemProperty -Path "HKCU:\Software\$uninstRegKey", "HKLM:\Software\$uninstRegKey", "HKLM:\Software\WOW6432Node\$uninstRegKey" -Name InstallPath -ErrorAction SilentlyContinue).InstallPath
 
   # Write-Host "Copying logs"
   # New-Item -Path logs -Type Directory -Force | Out-Null
@@ -36,8 +36,6 @@ if ($installer.EndsWith('.exe')) {
 
   Update-EnvironmentVariables
 } elseif ($installer.EndsWith('.zip')) {
-  $installPath = Join-Path $env:SystemDrive "Pico"
-  
   Write-Host "Extracting $installer to $installPath"
   # Not tar.exe: it converts entry names to the ANSI code page, so it can't extract OpenOCD's Cyrillic-named scripts
   $elapsed = Measure-Command { Expand-Archive -Path $installer -DestinationPath $installPath -Force }
