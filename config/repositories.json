@@ -2,7 +2,7 @@
   "$schema": "./config.schema.json",
   "repositories": [
     {
-      "href": "https://github.com/raspberrypi/pico-sdk.git",
+      "href": "https://github.com/ndabas/pico-sdk.git",
       "tree": "develop",
       "submodules": true,
       "installLevel": 1
